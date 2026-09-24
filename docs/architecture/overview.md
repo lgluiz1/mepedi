@@ -24,6 +24,8 @@ O IA-Pedidos foi projetado desde o dia zero para atender múltiplas lojas em uma
   - `Store`: Cadastro da loja, endereço comercial, slug público único, modalidades de atendimento (`allows_delivery`, `allows_pickup`).
   - `BusinessHour`: Horários de funcionamento semanais.
   - Cálculo de disponibilidade em tempo real: método `is_currently_open()` que combina status ativo, botão de pausa de pedidos (`is_paused`), abertura manual (`is_open`) e a grade semanal no fuso local.
+  - Interface pública do cardápio: rota `/<slug:store_slug>/` renderizando SSR responsivo mobile-first com `templates/stores/public_menu.html`, `static/css/menu.css` e carrinho interativo em `static/js/cart.js`.
+  - Persistência de carrinho: `localStorage` isolado por slug da loja (`ia_cart_{store_slug}`).
 - `catalog`:
   - `Category`: Categorias por loja com ordenação personalizada e status ativo.
   - `Product`: Produtos com foto, descrição, preço decimal e validação de loja cruzada contra a categoria.

@@ -1,0 +1,185 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{ store.name }} | Cardápio Digital</title>
+  <meta name="description" content="Faça seu pedido online no {{ store.name }}. Cardápio digital rápido, prático e direto no WhatsApp.">
+
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+</head>
+<body class="menu-page">
+
+  <!-- Identificador oculto da loja -->
+  <div id="store-slug-id" data-slug="{{ store.slug }}" style="display:none;"></div>
+
+  <!-- Catálogo em JSON para o cliente -->
+  <script id="store-catalog-data" type="application/json">
+    {{ products_catalog_json|safe }}
+  </script>
+
+  <!-- Header da Loja -->
+  <header class="store-hero">
+    <div class="store-header-content">
+      {% if store.logo %}
+        <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-logo">
+      {% else %}
+        <div class="store-logo">🏬</div>
+      {% endif %}
+
+      <div class="store-info">
+        <h1 class="store-title">{{ store.name }}</h1>
+        <div class="store-meta">
+          {% if store.is_paused %}
+            <span class="status-badge paused">⏸️ Pedidos Pausados</span>
+          {% elif is_open %}
+            <span class="status-badge open">🟢 Aberto Agora</span>
+          {% else %}
+            <span class="status-badge closed">🔴 Fechado</span>
+          {% endif %}
+
+          {% if store.allows_delivery %}
+            <span>🛵 Delivery (~{{ store.estimated_delivery_time_min }}-{{ store.estimated_delivery_time_max }} min)</span>
+          {% endif %}
+          {% if store.allows_pickup %}
+            <span>🛍️ Retirada</span>
+          {% endif %}
+        </div>
+        {% if store.description %}
+          <p style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">{{ store.description }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegação por Categorias (Sticky Horizontal Bar) -->
+  <nav class="categories-nav-wrapper">
+    <div class="categories-scroll">
+      {% for category in categories %}
+        <a href="#cat-{{ category.id }}" class="category-chip">{{ category.name }}</a>
+      {% empty %}
+        <span style="color:#94a3b8; font-size:0.85rem;">Nenhuma categoria disponível no momento.</span>
+      {% endfor %}
+    </div>
+  </nav>
+
+  <!-- Container de Produtos -->
+  <main class="menu-container">
+    {% for category in categories %}
+      <section id="cat-{{ category.id }}" class="category-section">
+        <div class="category-header">
+          <h2 class="category-title">{{ category.name }}</h2>
+          {% if category.description %}
+            <p class="category-desc">{{ category.description }}</p>
+          {% endif %}
+        </div>
+
+        <div class="products-list">
+          {% for product in category.products.all %}
+            <article class="product-card" data-product-id="{{ product.id }}">
+              <div class="product-details">
+                <h3 class="product-name">{{ product.name }}</h3>
+                {% if product.description %}
+                  <p class="product-description">{{ product.description }}</p>
+                {% endif %}
+                <div class="product-price-row">
+                  <span class="product-price">R$ {{ product.price|floatformat:2 }}</span>
+                  <span class="btn-add-item">+ Adicionar</span>
+                </div>
+              </div>
+              {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-thumb" loading="lazy">
+              {% endif %}
+            </article>
+          {% empty %}
+            <p style="color:#64748b; font-size:0.85rem;">Nenhum produto cadastrado nesta categoria.</p>
+          {% endfor %}
+        </div>
+      </section>
+    {% empty %}
+      <div style="text-align:center; padding:60px 16px; color:#94a3b8;">
+        <p style="font-size:1.1rem; font-weight:700;">Cardápio em atualização</p>
+        <p style="font-size:0.9rem; margin-top:8px;">Este estabelecimento ainda está preparando seus produtos.</p>
+      </div>
+    {% endfor %}
+  </main>
+
+  <!-- Modal de Opções do Produto (Bottom Sheet) -->
+  <div id="product-modal-overlay" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-product-name" class="modal-title">Detalhes do Produto</h3>
+        <button type="button" id="btn-close-modal" class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-product-summary">
+          <div>
+            <p id="modal-product-desc" style="font-size:0.88rem; color:#94a3b8;"></p>
+          </div>
+          <span id="modal-product-base-price" style="font-weight:800; color:#a5b4fc; font-size:1.1rem; white-space:nowrap;"></span>
+        </div>
+
+        <!-- Container dinâmico de grupos de opções -->
+        <div id="modal-options-container" style="display:flex; flex-direction:column; gap:16px;"></div>
+
+        <!-- Campo de Observação Livre -->
+        <div>
+          <label style="display:block; font-size:0.85rem; font-weight:700; color:#f8fafc; margin-bottom:6px;">Alguma observação?</label>
+          <textarea id="modal-notes-input" class="notes-input" placeholder="Ex: Sem cebola, cortar o lanche ao meio, mandar maionese extra..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="quantity-stepper">
+          <button type="button" id="btn-modal-minus" class="btn-step">-</button>
+          <span id="modal-step-quantity" class="step-value">1</span>
+          <button type="button" id="btn-modal-plus" class="btn-step">+</button>
+        </div>
+        <button type="button" id="btn-confirm-add-product" class="btn-confirm-add">
+          <span>Adicionar</span>
+          <span id="modal-total-value">R$ 0,00</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra Flutuante da Sacola (Mobile Bottom Bar) -->
+  <aside id="cart-floating-bar" class="cart-floating-bar">
+    <div id="btn-open-cart-drawer" class="cart-bar-btn">
+      <span id="cart-floating-count" class="cart-badge-count">0 itens</span>
+      <span>Ver Sacola</span>
+      <span id="cart-floating-total">R$ 0,00</span>
+    </div>
+  </aside>
+
+  <!-- Drawer da Sacola (Visualização Completa do Carrinho) -->
+  <div id="cart-drawer-overlay" class="cart-drawer-overlay">
+    <div class="cart-drawer">
+      <div class="modal-header">
+        <h3 class="modal-title">Sua Sacola</h3>
+        <button type="button" id="btn-close-cart-drawer" class="btn-close-modal">&times;</button>
+      </div>
+      <div id="cart-drawer-items-list" class="modal-body" style="max-height:55vh;">
+        <!-- Itens inseridos dinamicamente por cart.js -->
+      </div>
+      <div class="modal-footer" style="flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; width:100%; font-size:1.1rem; font-weight:800;">
+          <span>Subtotal:</span>
+          <span id="cart-drawer-subtotal" style="color:#a5b4fc;">R$ 0,00</span>
+        </div>
+        <a href="#checkout" id="btn-drawer-checkout" class="btn-confirm-add" style="width:100%; text-decoration:none; justify-content:center; gap:8px;">
+          <span>Avançar para o Pedido</span>
+          <span>➔</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/cart.js' %}"></script>
+</body>
+</html>

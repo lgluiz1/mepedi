@@ -137,3 +137,85 @@ class MerchantBusinessHourDetailUpdateView(generics.RetrieveUpdateDestroyAPIView
     def get_queryset(self):
         store_id = self.kwargs.get('store_id')
         return BusinessHour.objects.filter(store_id=store_id)
+
+
+def public_store_menu_view(request, store_slug):
+    """
+    Página pública do cardápio digital do lojista (mobile-first).
+    Carrega loja, categorias, produtos com fotos e opções, horários e zonas de frete.
+    """
+    import json
+    from django.shortcuts import render
+    from django.db.models import Prefetch
+    from catalog.models import Category, Product, OptionGroup, OptionItem
+    from delivery.models import DeliveryZone
+
+    store = get_object_or_404(
+        Store.objects.prefetch_related('business_hours'),
+        slug=store_slug,
+        is_active=True
+    )
+
+    categories = Category.objects.filter(
+        store=store,
+        is_active=True
+    ).prefetch_related(
+        Prefetch(
+            'products',
+            queryset=Product.objects.filter(is_active=True).prefetch_related(
+                Prefetch(
+                    'option_groups',
+                    queryset=OptionGroup.objects.prefetch_related(
+                        Prefetch('items', queryset=OptionItem.objects.filter(is_available=True))
+                    )
+                )
+            )
+        )
+    )
+
+    delivery_zones = DeliveryZone.objects.filter(store=store, is_active=True)
+    is_open = store.is_currently_open()
+    status_label = store.status_label
+
+    # Prepara catálogo em JSON para o carrinho reativo no frontend
+    products_catalog = {}
+    for cat in categories:
+        for prod in cat.products.all():
+            products_catalog[prod.id] = {
+                'id': prod.id,
+                'name': prod.name,
+                'description': prod.description,
+                'price': float(prod.price),
+                'image_url': prod.image.url if prod.image else None,
+                'category_id': cat.id,
+                'category_name': cat.name,
+                'option_groups': [
+                    {
+                        'id': og.id,
+                        'name': og.name,
+                        'description': og.description,
+                        'min_options': og.min_options,
+                        'max_options': og.max_options,
+                        'is_required': og.is_required,
+                        'items': [
+                            {
+                                'id': item.id,
+                                'name': item.name,
+                                'price': float(item.price)
+                            }
+                            for item in og.items.all()
+                        ]
+                    }
+                    for og in prod.option_groups.all()
+                ]
+            }
+
+    context = {
+        'store': store,
+        'categories': categories,
+        'delivery_zones': delivery_zones,
+        'is_open': is_open,
+        'status_label': status_label,
+        'products_catalog_json': json.dumps(products_catalog),
+    }
+    return render(request, 'stores/public_menu.html', context)

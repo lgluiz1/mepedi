@@ -187,3 +187,74 @@ class StoreBusinessHoursAndStatusTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['is_paused'])
         self.assertEqual(response.data['status_label'], "Pausada")
+
+
+class PublicMenuPageViewTest(TestCase):
+    def setUp(self):
+        from catalog.models import Category, Product, OptionGroup, OptionItem
+        from decimal import Decimal
+
+        self.owner = User.objects.create_user(
+            email='public_dono@lanches.com',
+            password='Password123!',
+            full_name='Public Dono'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Lanchonete Central",
+            whatsapp="11988889999",
+            is_active=True,
+            is_open=True
+        )
+        self.cat = Category.objects.create(store=self.store, name="Burgers Clássicos")
+        self.prod = Product.objects.create(
+            store=self.store,
+            category=self.cat,
+            name="Super X-Burger",
+            price=Decimal("26.00"),
+            description="Blend 160g e queijo cheddar"
+        )
+        self.opt_group = OptionGroup.objects.create(
+            product=self.prod,
+            name="Adicionais Especiais",
+            min_options=0,
+            max_options=2
+        )
+        OptionItem.objects.create(
+            option_group=self.opt_group,
+            name="Bacon Extra",
+            price=Decimal("4.50")
+        )
+
+        self.inactive_store = Store.objects.create(
+            owner=self.owner,
+            name="Loja Desativada",
+            whatsapp="11900001111",
+            is_active=False
+        )
+
+    def test_render_public_store_menu_page_success(self):
+        """
+        Consumidor acessa a URL pública /{store_slug}/:
+        - Retorna status 200
+        - Carrega o template stores/public_menu.html
+        - Exibe o nome da loja, status, categoria e produtos
+        """
+        response = self.client.get(f'/{self.store.slug}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTemplateUsed(response, 'stores/public_menu.html')
+        self.assertContains(response, "Lanchonete Central")
+        self.assertContains(response, "Burgers Clássicos")
+        self.assertContains(response, "Super X-Burger")
+        self.assertContains(response, "store-catalog-data")
+        self.assertContains(response, "cart.js")
+
+    def test_render_public_store_menu_page_inactive_store_returns_404(self):
+        """Loja desativada retorna 404."""
+        response = self.client.get(f'/{self.inactive_store.slug}/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_render_public_store_menu_page_unknown_slug_returns_404(self):
+        """Slug inexistente retorna 404."""
+        response = self.client.get('/slug-inexistente-12345/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

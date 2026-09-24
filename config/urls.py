@@ -6,16 +6,20 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from stores.views import public_store_menu_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Rotas dos apps que serão desenvolvidos
+    # Rotas dos apps
     path('api/v1/accounts/', include('accounts.urls', namespace='accounts')),
     path('api/v1/stores/', include('stores.urls', namespace='stores')),
     path('api/v1/catalog/', include('catalog.urls', namespace='catalog')),
     path('api/v1/customers/', include('customers.urls', namespace='customers')),
     path('api/v1/delivery/', include('delivery.urls', namespace='delivery')),
-    # Página inicial/healthcheck
+    # Página institucional da plataforma
     path('', include('core.urls', namespace='core')),
+    # Rota pública do cardápio digital da loja (ex: /lanchonete-do-luiz/)
+    path('<slug:store_slug>/', public_store_menu_view, name='store_public_menu'),
 ]
 
 if settings.DEBUG:

@@ -30,10 +30,13 @@
   - [x] Django Admin integrado para clientes e entregas
   - [x] Testes unitários e de isolamento da Fase 3
 
-- [ ] **Fase 4: Cardápio Público Mobile-First e Carrinho** *(PLANEJADO)*
-  - [ ] Página pública `/loja-slug/` responsiva e moderna
-  - [ ] Visualização de produtos, fotos, status aberto/fechado
-  - [ ] Carrinho interativo com seleção de adicionais e observações
+- [x] **Fase 4: Cardápio Público Mobile-First e Carrinho** *(CONCLUÍDO)*
+  - [x] Rota pública de primeiro nível `/<slug:store_slug>/`
+  - [x] View otimizada com pré-carregamento de categorias, produtos e opções
+  - [x] Design System do cardápio mobile-first (CSS responsivo, dark theme, badges)
+  - [x] Modal de produto com adicionais, remoções, regras min/max e observações
+  - [x] Carrinho reativo com persistência em localStorage e drawer flutuante
+  - [x] Testes automatizados da visualização pública do cardápio
 
 - [ ] **Fase 5: Checkout e Pedidos** *(PLANEJADO)*
   - [ ] Fluxo de checkout com identificação por telefone
