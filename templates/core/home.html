@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}IA-Pedidos | Plataforma Multi-Loja de Cardápio Digital{% endblock %}
+
+{% block content %}
+<div class="container">
+  <section class="hero-section">
+    <div class="hero-pill">
+      <span class="status-indicator status-online">● FASE 1 ATIVA</span>
+      <span>Arquitetura SaaS Multi-Loja</span>
+    </div>
+    <h1 class="hero-title">
+      Cardápio Digital & Pedidos <br>
+      <span>Simples, Rápido e Modular</span>
+    </h1>
+    <p class="hero-subtitle">
+      Plataforma SaaS desenvolvida em Django e PostgreSQL. Isolamento lógico total entre estabelecimentos, mobile-first e preparada para alta escala.
+    </p>
+    <div class="hero-actions">
+      <a href="/api/v1/accounts/register/" class="btn btn-primary">Registrar Loja (API)</a>
+      <a href="/admin/" class="btn btn-outline">Acessar Django Admin</a>
+    </div>
+  </section>
+
+  <section class="features-grid">
+    <article class="feature-card">
+      <div class="feature-icon">🏬</div>
+      <h2 class="feature-title">Multi-Tenancy Lógico</h2>
+      <p class="feature-text">
+        Isolamento estrito de dados via <code>store_id</code>. Cada lojista gerencia seus próprios produtos, clientes, pedidos e configurações com segurança absoluta.
+      </p>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h2 class="feature-title">Mobile-First & WhatsApp</h2>
+      <p class="feature-text">
+        Experiência fluida para o cliente final sem exigência de senhas complexas. Notificação direta com mensagens estruturadas para o WhatsApp do comércio.
+      </p>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <h2 class="feature-title">Segurança & Recálculo Server-Side</h2>
+      <p class="feature-text">
+        Preços e totais sempre recalculados no backend com dados atuais do banco de dados, protegendo o lojista contra adulterações no navegador.
+      </p>
+    </article>
+  </section>
+</div>
+{% endblock %}
