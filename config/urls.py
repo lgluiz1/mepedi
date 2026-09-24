@@ -7,6 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from stores.views import public_store_menu_view
+from orders.views import public_checkout_page, public_order_status_page
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -16,9 +17,12 @@ urlpatterns = [
     path('api/v1/catalog/', include('catalog.urls', namespace='catalog')),
     path('api/v1/customers/', include('customers.urls', namespace='customers')),
     path('api/v1/delivery/', include('delivery.urls', namespace='delivery')),
+    path('api/v1/orders/', include('orders.urls', namespace='orders')),
     # Página institucional da plataforma
     path('', include('core.urls', namespace='core')),
-    # Rota pública do cardápio digital da loja (ex: /lanchonete-do-luiz/)
+    # Rotas públicas do cardápio e fluxo de pedidos da loja
+    path('<slug:store_slug>/checkout/', public_checkout_page, name='public_checkout'),
+    path('<slug:store_slug>/pedidos/<uuid:public_id>/', public_order_status_page, name='public_order_status'),
     path('<slug:store_slug>/', public_store_menu_view, name='store_public_menu'),
 ]
 

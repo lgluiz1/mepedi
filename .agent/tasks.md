@@ -38,11 +38,15 @@
   - [x] Carrinho reativo com persistência em localStorage e drawer flutuante
   - [x] Testes automatizados da visualização pública do cardápio
 
-- [ ] **Fase 5: Checkout e Pedidos** *(PLANEJADO)*
-  - [ ] Fluxo de checkout com identificação por telefone
-  - [ ] Recálculo obrigatório e validação server-side
-  - [ ] Escolha de entrega/retirada e forma de pagamento (sem processamento financeiro no MVP)
-  - [ ] Criação do pedido com numeração amigável
+- [x] **Fase 5: Checkout e Pedidos** *(CONCLUÍDO)*
+  - [x] Modelos de Order, OrderItem e OrderItemOption com congelamento de preços
+  - [x] Motor server-side de recálculo de preços e validação contra manipulação
+  - [x] Numeração sequencial amigável de pedido por loja (#1001, #1002)
+  - [x] Fluxo de checkout com identificação por telefone e modalidades entrega/retirada
+  - [x] Formas de pagamento informativas (Pix, Dinheiro com troco, Cartões)
+  - [x] APIs do lojista para gestão e atualização de status dos pedidos
+  - [x] Templates de checkout e acompanhamento do pedido pelo cliente
+  - [x] Testes unitários e de integração de pedidos e isolamento multi-loja
 
 - [ ] **Fase 6: Integração WhatsApp e Painel de Pedidos** *(PLANEJADO)*
   - [ ] Gerador de mensagem formatada para WhatsApp

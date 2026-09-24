@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pedido {{ order.display_number }} | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    .order-status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .order-number-badge {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid var(--border-focus);
+      color: #a5b4fc;
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      margin-bottom: 12px;
+    }
+    .status-pill-big {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 10px;
+    }
+    .status-pill-big.NOVO {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid var(--border-focus);
+    }
+    .status-pill-big.ACEITO {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .status-pill-big.EM_PREPARACAO {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .status-pill-big.PRONTO {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .status-pill-big.SAIU_PARA_ENTREGA {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .status-pill-big.CONCLUIDO {
+      background: rgba(16, 185, 129, 0.25);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+    .status-pill-big.CANCELADO {
+      background: rgba(244, 63, 94, 0.2);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.4);
+    }
+  </style>
+</head>
+<body class="menu-page">
+
+  <div class="menu-container" style="max-width:580px; padding-top:24px;">
+
+    <!-- Card de Status do Pedido -->
+    <div class="order-status-card">
+      <span class="order-number-badge">{{ order.display_number }}</span>
+      <h1 style="font-size:1.6rem; font-weight:800; margin-bottom:4px;">Pedido Recebido!</h1>
+      <p style="color:var(--text-muted); font-size:0.9rem;">Estabelecimento: <strong>{{ store.name }}</strong></p>
+
+      <div>
+        <span class="status-pill-big {{ order.status }}">
+          ● {{ order.get_status_display }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Detalhes do Pedido -->
+    <div class="feature-card" style="margin-bottom:20px;">
+      <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:14px;">📋 Itens Solicitados</h2>
+      {% for item in order.items.all %}
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div>
+            <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
+            {% if item.selected_options.all %}
+              <div style="font-size:0.8rem; color:#94a3b8; margin-top:3px;">
+                {% for opt in item.selected_options.all %}
+                  + {{ opt.name }}{% if opt.price > 0 %} (R$ {{ opt.price|floatformat:2 }}){% endif %}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if item.notes %}
+              <div style="font-size:0.75rem; color:#64748b; font-style:italic;">Obs: "{{ item.notes }}"</div>
+            {% endif %}
+          </div>
+          <span style="font-weight:700; color:#a5b4fc;">R$ {{ item.total|floatformat:2 }}</span>
+        </div>
+      {% endfor %}
+
+      <div style="margin-top:14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
+          <span>Subtotal:</span>
+          <span>R$ {{ order.subtotal|floatformat:2 }}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
+          <span>Taxa de Entrega:</span>
+          <span>R$ {{ order.delivery_fee|floatformat:2 }}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:800; color:#a5b4fc; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:4px;">
+          <span>Total:</span>
+          <span>R$ {{ order.total|floatformat:2 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informações de Atendimento e Pagamento -->
+    <div class="feature-card" style="margin-bottom:24px;">
+      <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:12px;">📍 Atendimento e Pagamento</h2>
+      <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Cliente:</strong> {{ order.customer.name }} ({{ order.customer.phone }})</p>
+      <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Modalidade:</strong> {{ order.get_delivery_type_display }}</p>
+      {% if order.delivery_type == 'DELIVERY' %}
+        <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Endereço:</strong> {{ order.formatted_delivery_address }}</p>
+      {% endif %}
+      <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Pagamento:</strong> {{ order.get_payment_method_display }}</p>
+      {% if order.change_for %}
+        <p style="font-size:0.9rem; margin-bottom:8px; color:#fbbf24;"><strong>Troco para:</strong> R$ {{ order.change_for|floatformat:2 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Ações -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <a href="/{{ store.slug }}/" class="btn btn-outline" style="width:100%; text-align:center;">Voltar para o Cardápio</a>
+    </div>
+
+  </div>
+
+</body>
+</html>

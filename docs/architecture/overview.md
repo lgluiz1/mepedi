@@ -39,6 +39,11 @@ O IA-Pedidos foi projetado desde o dia zero para atender múltiplas lojas em uma
 - `delivery`:
   - `DeliveryZone`: Regiões de entrega com taxa fixa, prazo estimado e lista de bairros atendidos.
   - Cálculo server-side de frete: `POST /api/v1/delivery/public/{slug}/calculate-fee/`.
-- `orders`: Cabeçalho do pedido, itens, opções selecionadas, status e totais recalculados.
+- `orders`:
+  - `Order`: Cabeçalho do pedido herdando de `UUIDModel` para URL pública opaca e segura (`public_id`), numeração sequencial humana por loja (`#1001`, `#1002`) controlada com bloqueio pessimista (`select_for_update`), endereço e dados de entrega congelados no momento da compra, modalidade (`delivery`, `pickup`), forma de pagamento informativa (`pix`, `cash` com `change_for`, `credit_card`, `debit_card`) e rastreamento de status (`received`, `confirmed`, `preparing`, `out_for_delivery`, `ready_for_pickup`, `delivered`, `cancelled`).
+  - `OrderItem` e `OrderItemOption`: Snapshot completo e congelado de nomes e preços unitários no instante da transação, blindando o histórico contra alterações posteriores no catálogo.
+  - `OrderService.create_order`: Motor transacional que valida loja aberta, aplica regra de pedido mínimo (`min_order_value`), recalcula 100% dos valores no backend e aloca numeração atômica.
+  - Rotas públicas do cliente: `/<slug:store_slug>/checkout/` e `/<slug:store_slug>/pedidos/<uuid:public_id>/`.
+  - APIs REST: `POST /api/v1/orders/public/{slug}/` (criação), `GET /api/v1/orders/public/{slug}/{public_id}/` (acompanhamento), `GET /api/v1/orders/merchant/` e `PATCH /api/v1/orders/merchant/{public_id}/status/` (gestão do lojista).
 - `whatsapp`: Formatação de mensagens pré-preenchidas e link dinâmico para WhatsApp.
 - `core`: Classes base abstratas, decorators, validações globais e utilitários.

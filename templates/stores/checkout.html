@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Finalizar Pedido | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    .checkout-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px 80px;
+    }
+    .checkout-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .radio-pill-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .radio-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: var(--transition);
+    }
+    .radio-pill.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary);
+      color: #a5b4fc;
+    }
+    .order-summary-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.95rem;
+    }
+    .totals-row.grand-total {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #a5b4fc;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 10px;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body class="menu-page">
+
+  <div id="store-slug-id" data-slug="{{ store.slug }}" style="display:none;"></div>
+
+  <div class="checkout-container">
+    <div style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+      <a href="/{{ store.slug }}/" style="color:var(--text-muted); text-decoration:none; font-weight:700; font-size:1.1rem;">← Voltar ao cardápio</a>
+    </div>
+
+    <h1 style="font-size:1.8rem; font-weight:800; margin-bottom:24px;">Finalizar Pedido</h1>
+
+    <!-- 1. Resumo dos Itens -->
+    <div class="checkout-card">
+      <h2 class="card-title">🛍️ Resumo da Sacola</h2>
+      <div id="checkout-items-list">
+        <!-- Preenchido via JS do localStorage -->
+      </div>
+    </div>
+
+    <!-- 2. Dados do Cliente -->
+    <div class="checkout-card">
+      <h2 class="card-title">👤 Seus Dados</h2>
+      <div class="form-group">
+        <label class="form-label">Telefone Celular (WhatsApp) *</label>
+        <input type="tel" id="cust-phone" class="form-input" placeholder="(11) 98888-7777" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seu Nome Completo *</label>
+        <input type="text" id="cust-name" class="form-input" placeholder="Como deseja ser chamado(a)" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CPF (Opcional)</label>
+          <input type="text" id="cust-doc" class="form-input" placeholder="000.000.000-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail (Opcional)</label>
+          <input type="email" id="cust-email" class="form-input" placeholder="seu@email.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Modalidade e Endereço -->
+    <div class="checkout-card">
+      <h2 class="card-title">🛵 Entrega ou Retirada?</h2>
+      <div class="radio-pill-group">
+        {% if store.allows_delivery %}
+          <div id="btn-type-delivery" class="radio-pill active" onclick="setDeliveryType('DELIVERY')">🛵 Entrega</div>
+        {% endif %}
+        {% if store.allows_pickup %}
+          <div id="btn-type-pickup" class="radio-pill {% if not store.allows_delivery %}active{% endif %}" onclick="setDeliveryType('PICKUP')">🛍️ Retirada</div>
+        {% endif %}
+      </div>
+
+      <div id="delivery-address-fields">
+        <div class="form-row">
+          <div class="form-group" style="grid-column: span 1;">
+            <label class="form-label">CEP</label>
+            <input type="text" id="addr-cep" class="form-input" placeholder="00000-000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bairro *</label>
+            <input type="text" id="addr-neighborhood" class="form-input" placeholder="Seu bairro" onblur="recalculateDeliveryFee()">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns: 2fr 1fr;">
+          <div class="form-group">
+            <label class="form-label">Rua / Logradouro *</label>
+            <input type="text" id="addr-street" class="form-input" placeholder="Ex: Av. Brasil">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Número *</label>
+            <input type="text" id="addr-number" class="form-input" placeholder="123">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Complemento</label>
+            <input type="text" id="addr-comp" class="form-input" placeholder="Apto, Bloco">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ponto de Referência</label>
+            <input type="text" id="addr-ref" class="form-input" placeholder="Ex: Ao lado do mercado">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Forma de Pagamento -->
+    <div class="checkout-card">
+      <h2 class="card-title">💳 Forma de Pagamento</h2>
+      <div class="form-group">
+        <select id="pay-method" class="form-input" onchange="handlePaymentMethodChange()">
+          <option value="PIX">Pix (Chave informada no pedido)</option>
+          <option value="CREDIT_CARD">Cartão de Crédito (na entrega/retirada)</option>
+          <option value="DEBIT_CARD">Cartão de Débito (na entrega/retirada)</option>
+          <option value="MONEY">Dinheiro</option>
+          <option value="MEAL_VOUCHER">Vale-Refeição</option>
+        </select>
+      </div>
+      <div id="change-field" class="form-group" style="display:none;">
+        <label class="form-label">Precisa de troco para quanto?</label>
+        <input type="number" id="pay-change" class="form-input" placeholder="Ex: 50.00" step="0.50">
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Observações Gerais</label>
+        <textarea id="order-notes" class="form-input" rows="2" placeholder="Instruções para o entregador ou para a cozinha"></textarea>
+      </div>
+    </div>
+
+    <!-- 5. Totais e Envio -->
+    <div class="checkout-card">
+      <div class="totals-row">
+        <span style="color:var(--text-muted);">Subtotal dos itens:</span>
+        <span id="summary-subtotal" style="font-weight:700;">R$ 0,00</span>
+      </div>
+      <div id="row-delivery-fee" class="totals-row">
+        <span style="color:var(--text-muted);">Taxa de entrega:</span>
+        <span id="summary-fee" style="font-weight:700;">R$ 0,00</span>
+      </div>
+      <div class="totals-row grand-total">
+        <span>Total:</span>
+        <span id="summary-total">R$ 0,00</span>
+      </div>
+
+      <button type="button" id="btn-submit-order" class="btn-confirm-add" style="width:100%; margin-top:20px; justify-content:center; padding:16px;" onclick="submitOrder()">
+        <span>Confirmar Pedido</span>
+        <span>➔</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const storeSlug = "{{ store.slug }}";
+    const storageKey = `ia_cart_${storeSlug}`;
+    let cartItems = [];
+    let currentDeliveryType = "{% if store.allows_delivery %}DELIVERY{% else %}PICKUP{% endif %}";
+    let currentDeliveryFee = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCartItems();
+    });
+
+    function loadCartItems() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        cartItems = raw ? JSON.parse(raw) : [];
+      } catch(e) {
+        cartItems = [];
+      }
+
+      const listEl = document.getElementById('checkout-items-list');
+      if (cartItems.length === 0) {
+        listEl.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px 0;">Sua sacola está vazia.</p>';
+        document.getElementById('btn-submit-order').disabled = true;
+        return;
+      }
+
+      let subtotal = 0;
+      let html = '';
+      cartItems.forEach(item => {
+        const optsTotal = item.options.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+        const itemTotal = (Number(item.price) + optsTotal) * item.quantity;
+        subtotal += itemTotal;
+        const optsStr = item.options.map(o => o.name).join(', ');
+
+        html += `
+          <div class="order-summary-item">
+            <div>
+              <strong>${item.quantity}x ${item.name}</strong>
+              ${optsStr ? `<div style="font-size:0.78rem; color:#94a3b8;">+ ${optsStr}</div>` : ''}
+              ${item.notes ? `<div style="font-size:0.75rem; color:#64748b;">"${item.notes}"</div>` : ''}
+            </div>
+            <span style="font-weight:700;">R$ ${itemTotal.toFixed(2).replace('.', ',')}</span>
+          </div>
+        `;
+      });
+
+      listEl.innerHTML = html;
+      updateTotals(subtotal);
+    }
+
+    function setDeliveryType(type) {
+      currentDeliveryType = type;
+      const btnDel = document.getElementById('btn-type-delivery');
+      const btnPic = document.getElementById('btn-type-pickup');
+      const addrFields = document.getElementById('delivery-address-fields');
+      const feeRow = document.getElementById('row-delivery-fee');
+
+      if (type === 'DELIVERY') {
+        if (btnDel) btnDel.classList.add('active');
+        if (btnPic) btnPic.classList.remove('active');
+        if (addrFields) addrFields.style.display = 'block';
+        if (feeRow) feeRow.style.display = 'flex';
+        recalculateDeliveryFee();
+      } else {
+        if (btnDel) btnDel.classList.remove('active');
+        if (btnPic) btnPic.classList.add('active');
+        if (addrFields) addrFields.style.display = 'none';
+        if (feeRow) feeRow.style.display = 'none';
+        currentDeliveryFee = 0;
+        updateTotals();
+      }
+    }
+
+    function handlePaymentMethodChange() {
+      const select = document.getElementById('pay-method');
+      const changeBox = document.getElementById('change-field');
+      if (select.value === 'MONEY') {
+        changeBox.style.display = 'block';
+      } else {
+        changeBox.style.display = 'none';
+      }
+    }
+
+    async function recalculateDeliveryFee() {
+      if (currentDeliveryType !== 'DELIVERY') return;
+      const neighborhood = document.getElementById('addr-neighborhood').value.trim();
+      if (!neighborhood) return;
+
+      try {
+        const resp = await fetch(`/api/v1/delivery/public/${storeSlug}/calculate-fee/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ neighborhood: neighborhood })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          currentDeliveryFee = parseFloat(data.delivery_fee) || 0;
+          updateTotals();
+        }
+      } catch(e) {
+        console.error("Erro ao calcular frete:", e);
+      }
+    }
+
+    function updateTotals(explicitSubtotal) {
+      let subtotal = explicitSubtotal;
+      if (subtotal === undefined) {
+        subtotal = cartItems.reduce((acc, item) => {
+          const opts = item.options.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+          return acc + ((Number(item.price) + opts) * item.quantity);
+        }, 0);
+      }
+
+      const total = subtotal + (currentDeliveryType === 'DELIVERY' ? currentDeliveryFee : 0);
+      document.getElementById('summary-subtotal').textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
+      document.getElementById('summary-fee').textContent = `R$ ${currentDeliveryFee.toFixed(2).replace('.', ',')}`;
+      document.getElementById('summary-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+
+    async function submitOrder() {
+      const btn = document.getElementById('btn-submit-order');
+      btn.disabled = true;
+      btn.textContent = "Processando Pedido...";
+
+      const phone = document.getElementById('cust-phone').value.trim();
+      const name = document.getElementById('cust-name').value.trim();
+      const documentVal = document.getElementById('cust-doc').value.trim();
+      const email = document.getElementById('cust-email').value.trim();
+
+      if (!phone || !name) {
+        alert("Por favor informe seu nome e telefone celular.");
+        btn.disabled = false;
+        btn.textContent = "Confirmar Pedido ➔";
+        return;
+      }
+
+      let addressData = null;
+      if (currentDeliveryType === 'DELIVERY') {
+        const street = document.getElementById('addr-street').value.trim();
+        const number = document.getElementById('addr-number').value.trim();
+        const neighborhood = document.getElementById('addr-neighborhood').value.trim();
+        if (!street || !number || !neighborhood) {
+          alert("Por favor informe rua, número e bairro para a entrega.");
+          btn.disabled = false;
+          btn.textContent = "Confirmar Pedido ➔";
+          return;
+        }
+        addressData = {
+          street: street,
+          number: number,
+          neighborhood: neighborhood,
+          complement: document.getElementById('addr-comp').value.trim(),
+          reference: document.getElementById('addr-ref').value.trim(),
+          postal_code: document.getElementById('addr-cep').value.trim(),
+          city: "Cidade",
+          state: "UF"
+        };
+      }
+
+      const paymentMethod = document.getElementById('pay-method').value;
+      const changeVal = document.getElementById('pay-change').value;
+
+      // Monta itens no payload
+      const itemsPayload = cartItems.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        notes: item.notes || '',
+        options: item.options.map(o => ({ id: o.id }))
+      }));
+
+      const payload = {
+        customer: {
+          name: name,
+          phone: phone,
+          document: documentVal,
+          email: email
+        },
+        delivery_type: currentDeliveryType,
+        address: addressData,
+        payment_method: paymentMethod,
+        change_for: paymentMethod === 'MONEY' && changeVal ? parseFloat(changeVal) : null,
+        notes: document.getElementById('order-notes').value.trim(),
+        items: itemsPayload
+      };
+
+      try {
+        const response = await fetch(`/api/v1/orders/public/${storeSlug}/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const order = await response.json();
+          // Limpa carrinho
+          localStorage.removeItem(storageKey);
+          // Redireciona para tela de acompanhamento
+          window.location.href = `/${storeSlug}/pedidos/${order.public_id}/`;
+        } else {
+          const err = await response.json();
+          alert("Erro ao criar pedido: " + (err.detail || JSON.stringify(err)));
+          btn.disabled = false;
+          btn.textContent = "Confirmar Pedido ➔";
+        }
+      } catch(err) {
+        alert("Erro na conexão com o servidor. Tente novamente.");
+        btn.disabled = false;
+        btn.textContent = "Confirmar Pedido ➔";
+      }
+    }
+  </script>
+</body>
+</html>
