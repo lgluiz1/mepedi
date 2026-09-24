@@ -21,7 +21,12 @@ O IA-Pedidos foi projetado desde o dia zero para atender múltiplas lojas em uma
 ### Divisão de Aplicativos Django
 - `accounts`: Usuários, perfis, autenticação de lojistas e permissões.
 - `stores`: Cadastro da loja, endereço comercial, slug público, horários de funcionamento.
-- `catalog`: Categorias, produtos, adicionais, regras de opções (mínimo/máximo) e disponibilidade.
+- `catalog`:
+  - `Category`: Categorias por loja com ordenação personalizada e status ativo.
+  - `Product`: Produtos com foto, descrição, preço decimal e validação de loja cruzada contra a categoria.
+  - `OptionGroup`: Grupos de opções (adicionais pagos, remoções sem custo, escolhas obrigatórias com limites min/max).
+  - `OptionItem`: Itens individuais com controle de disponibilidade de estoque e precificação adicional.
+  - Endpoint público agregado `GET /api/v1/catalog/public/{slug}/menu/` com `prefetch_related` para entrega otimizada de cardápio ao cliente móvel.
 - `customers`: Clientes por loja identificados pelo telefone, endereços de entrega salvos.
 - `orders`: Cabeçalho do pedido, itens, opções selecionadas, status e totais recalculados.
 - `delivery`: Formas de entrega (retirada vs entrega), zonas e taxas de entrega.

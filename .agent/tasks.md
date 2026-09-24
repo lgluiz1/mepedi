@@ -14,11 +14,13 @@
   - [x] Testes iniciais da Fase 1 (User, Store, vínculo usuário-loja, isolamento)
   - [x] Validação completa das migrações e suíte de testes
 
-- [ ] **Fase 2: Catálogo e Produtos** *(PLANEJADO)*
-  - [ ] Modelos de Categoria e Produto
-  - [ ] Grupos de opções, adicionais e remoção de ingredientes
-  - [ ] Painel do lojista: gestão do cardápio
-  - [ ] Testes unitários do catálogo
+- [x] **Fase 2: Catálogo e Produtos** *(CONCLUÍDO)*
+  - [x] Modelos de Categoria e Produto
+  - [x] Grupos de opções, adicionais e remoção de ingredientes
+  - [x] Painel do lojista / APIs de gestão do cardápio
+  - [x] Endpoint público de cardápio da loja
+  - [x] Django Admin integrado para catálogo
+  - [x] Testes unitários e de isolamento do catálogo
 
 - [ ] **Fase 3: Clientes, Horários e Entrega** *(PLANEJADO)*
   - [ ] Modelos de Customer e CustomerAddress (identificador por telefone)

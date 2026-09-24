@@ -11,6 +11,7 @@ urlpatterns = [
     # Rotas dos apps que serão desenvolvidos
     path('api/v1/accounts/', include('accounts.urls', namespace='accounts')),
     path('api/v1/stores/', include('stores.urls', namespace='stores')),
+    path('api/v1/catalog/', include('catalog.urls', namespace='catalog')),
     # Página inicial/healthcheck
     path('', include('core.urls', namespace='core')),
 ]
