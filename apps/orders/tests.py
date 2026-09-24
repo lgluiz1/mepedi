@@ -297,3 +297,93 @@ class PublicOrderAPITest(TestCase):
         )
         self.assertEqual(status_resp.status_code, status.HTTP_200_OK)
         self.assertEqual(status_resp.data['status'], "ACEITO")
+
+
+class MerchantDashboardTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='dono@pizzaria.com',
+            password='secretpassword123',
+            full_name='Dono Pizzaria'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name='Pizzaria do Bairro',
+            slug='pizzaria-do-bairro',
+            whatsapp='(11) 98888-7777',
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(
+            user=self.owner,
+            store=self.store,
+            role='owner',
+            is_active=True
+        )
+
+        # Outra loja de outro dono para testar isolamento
+        self.other_owner = User.objects.create_user(
+            email='outro@loja.com',
+            password='secretpassword123',
+            full_name='Outro Dono'
+        )
+        self.other_store = Store.objects.create(
+            owner=self.other_owner,
+            name='Hamburgueria Rival',
+            slug='hamburgueria-rival',
+            whatsapp='(11) 96666-5555',
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(
+            user=self.other_owner,
+            store=self.other_store,
+            role='owner',
+            is_active=True
+        )
+
+    def test_unauthenticated_user_redirected_to_login(self):
+        """Usuário não logado ao acessar o painel é redirecionado para o login."""
+        response = self.client.get('/painel/')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/painel/login/', response['Location'])
+
+    def test_merchant_login_flow(self):
+        """Testa tentativa de login com credenciais inválidas e válidas."""
+        # Inválidas
+        bad_resp = self.client.post('/painel/login/', {
+            'email': 'dono@pizzaria.com',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(bad_resp.status_code, 200)
+        self.assertContains(bad_resp, 'E-mail ou senha inválidos')
+
+        # Válidas
+        good_resp = self.client.post('/painel/login/', {
+            'email': 'dono@pizzaria.com',
+            'password': 'secretpassword123'
+        })
+        self.assertEqual(good_resp.status_code, 302)
+        self.assertEqual(good_resp['Location'], '/painel/')
+
+    def test_merchant_dashboard_root_redirects_to_first_store(self):
+        """Lojista logado acessando /painel/ é redirecionado para a loja ativa."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        response = self.client.get('/painel/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], f'/painel/{self.store.slug}/')
+
+    def test_merchant_dashboard_view_renders_store_orders(self):
+        """Lojista acessando o painel de sua loja recebe 200 com os dados da loja."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        response = self.client.get(f'/painel/{self.store.slug}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pizzaria do Bairro')
+        self.assertContains(response, 'Painel de Pedidos')
+
+    def test_merchant_cross_store_isolation_forbidden(self):
+        """Lojista A tentando acessar o painel da Loja B recebe 403 Forbidden."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        response = self.client.get(f'/painel/{self.other_store.slug}/')
+        self.assertEqual(response.status_code, 403)
+

@@ -14,18 +14,19 @@
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 28px 20px;
+      padding: 24px 20px;
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     }
     .order-number-badge {
       display: inline-block;
       background: rgba(99, 102, 241, 0.15);
       border: 1px solid var(--border-focus);
       color: #a5b4fc;
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 800;
-      padding: 6px 16px;
+      padding: 6px 18px;
       border-radius: var(--radius-full);
       margin-bottom: 12px;
     }
@@ -33,13 +34,14 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 18px;
+      padding: 9px 20px;
       border-radius: var(--radius-full);
       font-size: 0.95rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       margin-top: 10px;
+      transition: all 0.3s ease;
     }
     .status-pill-big.NOVO {
       background: rgba(99, 102, 241, 0.2);
@@ -76,24 +78,102 @@
       color: #fb7185;
       border: 1px solid rgba(244, 63, 94, 0.4);
     }
+
+    /* WhatsApp Card & Button */
+    .whatsapp-box {
+      background: linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(18, 140, 126, 0.18));
+      border: 1px solid rgba(37, 211, 102, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .btn-whatsapp-order {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #25D366;
+      color: #0b1511;
+      font-weight: 800;
+      font-size: 1.05rem;
+      padding: 14px 24px;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35);
+      transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+    }
+    .btn-whatsapp-order:hover {
+      background: #22bf5b;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+    }
+    .btn-whatsapp-order svg {
+      flex-shrink: 0;
+    }
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
   </style>
 </head>
 <body class="menu-page">
 
-  <div class="menu-container" style="max-width:580px; padding-top:24px;">
+  <div class="menu-container" style="max-width:580px; padding-top:24px; padding-bottom:50px;">
 
     <!-- Card de Status do Pedido -->
     <div class="order-status-card">
       <span class="order-number-badge">{{ order.display_number }}</span>
-      <h1 style="font-size:1.6rem; font-weight:800; margin-bottom:4px;">Pedido Recebido!</h1>
+      <h1 id="orderStatusTitle" style="font-size:1.6rem; font-weight:800; margin-bottom:4px;">
+        {% if order.status == 'CONCLUIDO' %}
+          Pedido Concluído!
+        {% elif order.status == 'CANCELADO' %}
+          Pedido Cancelado
+        {% else %}
+          Pedido Recebido!
+        {% endif %}
+      </h1>
       <p style="color:var(--text-muted); font-size:0.9rem;">Estabelecimento: <strong>{{ store.name }}</strong></p>
 
-      <div>
-        <span class="status-pill-big {{ order.status }}">
-          ● {{ order.get_status_display }}
+      <div style="margin-top:12px;">
+        <span id="orderStatusPill" class="status-pill-big {{ order.status }}">
+          <span class="pulse-dot"></span>
+          <span id="orderStatusText">{{ order.get_status_display }}</span>
         </span>
       </div>
+      <p id="liveStatusHint" style="font-size:0.75rem; color:#64748b; margin-top:8px;">
+        Esta página atualiza o status em tempo real automaticamente.
+      </p>
     </div>
+
+    <!-- WhatsApp Box de Ação Imediata -->
+    {% if whatsapp_link %}
+    <div class="whatsapp-box">
+      <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:6px; color:#4ade80;">
+        💬 Envie seu pedido no WhatsApp da Loja
+      </h3>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">
+        Para agilizar a confirmação e o preparo, envie a mensagem pré-formatada com 1 clique para o estabelecimento:
+      </p>
+      <a href="{{ whatsapp_link }}" target="_blank" rel="noopener" class="btn-whatsapp-order" id="whatsappOrderBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.771.889 2.795.889h.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.769-5.766zm9.969 5.766c0 5.518-4.482 10-10 10-1.758 0-3.411-.462-4.846-1.267l-5.154 1.329 1.359-4.962c-.886-1.488-1.359-3.204-1.359-5.1 0-5.518 4.482-10 10-10s10 4.482 10 10z"/>
+        </svg>
+        Enviar Pedido no WhatsApp da Loja
+      </a>
+    </div>
+    {% endif %}
 
     <!-- Detalhes do Pedido -->
     <div class="feature-card" style="margin-bottom:20px;">
@@ -122,10 +202,12 @@
           <span>Subtotal:</span>
           <span>R$ {{ order.subtotal|floatformat:2 }}</span>
         </div>
+        {% if order.delivery_type == 'DELIVERY' %}
         <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
           <span>Taxa de Entrega:</span>
           <span>R$ {{ order.delivery_fee|floatformat:2 }}</span>
         </div>
+        {% endif %}
         <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:800; color:#a5b4fc; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:4px;">
           <span>Total:</span>
           <span>R$ {{ order.total|floatformat:2 }}</span>
@@ -140,10 +222,16 @@
       <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Modalidade:</strong> {{ order.get_delivery_type_display }}</p>
       {% if order.delivery_type == 'DELIVERY' %}
         <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Endereço:</strong> {{ order.formatted_delivery_address }}</p>
+        {% if order.reference %}
+          <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;"><strong>Ponto de Ref.:</strong> {{ order.reference }}</p>
+        {% endif %}
       {% endif %}
       <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Pagamento:</strong> {{ order.get_payment_method_display }}</p>
       {% if order.change_for %}
         <p style="font-size:0.9rem; margin-bottom:8px; color:#fbbf24;"><strong>Troco para:</strong> R$ {{ order.change_for|floatformat:2 }}</p>
+      {% endif %}
+      {% if order.notes %}
+        <p style="font-size:0.85rem; color:#94a3b8; margin-top:8px;"><strong>Obs:</strong> {{ order.notes }}</p>
       {% endif %}
     </div>
 
@@ -153,6 +241,49 @@
     </div>
 
   </div>
+
+  <!-- Polling de Status em Tempo Real -->
+  <script>
+    (function() {
+      const publicId = "{{ order.public_id }}";
+      let currentStatus = "{{ order.status }}";
+      const statusPill = document.getElementById('orderStatusPill');
+      const statusText = document.getElementById('orderStatusText');
+      const statusTitle = document.getElementById('orderStatusTitle');
+
+      function pollOrderStatus() {
+        fetch(`/api/v1/orders/public/status/${publicId}/`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.status && data.status !== currentStatus) {
+              currentStatus = data.status;
+              statusPill.className = `status-pill-big ${data.status}`;
+              statusText.textContent = data.status_display || data.status;
+
+              if (data.status === 'CONCLUIDO') {
+                statusTitle.textContent = 'Pedido Concluído!';
+              } else if (data.status === 'CANCELADO') {
+                statusTitle.textContent = 'Pedido Cancelado';
+              } else if (data.status === 'SAIU_PARA_ENTREGA') {
+                statusTitle.textContent = 'Saiu para Entrega!';
+              } else if (data.status === 'PRONTO') {
+                statusTitle.textContent = 'Pedido Pronto!';
+              } else if (data.status === 'EM_PREPARACAO') {
+                statusTitle.textContent = 'Em Preparação!';
+              } else if (data.status === 'ACEITO') {
+                statusTitle.textContent = 'Pedido Aceito!';
+              }
+            }
+          })
+          .catch(err => console.debug('Polling order error:', err));
+      }
+
+      // Consulta a cada 8 segundos se o status ainda não for terminal
+      if (currentStatus !== 'CONCLUIDO' && currentStatus !== 'CANCELADO') {
+        setInterval(pollOrderStatus, 8000);
+      }
+    })();
+  </script>
 
 </body>
 </html>

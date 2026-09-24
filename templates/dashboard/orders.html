@@ -1,0 +1,822 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Pedidos | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --dash-bg: #0b0d14;
+      --dash-header: #121520;
+      --dash-card: #161926;
+      --dash-card-border: rgba(255, 255, 255, 0.08);
+      --dash-text: #f8fafc;
+      --dash-muted: #94a3b8;
+    }
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Header & Nav */
+    .dash-header {
+      background: var(--dash-header);
+      border-bottom: 1px solid var(--dash-card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+    }
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.25rem;
+      text-decoration: none;
+      color: #fff;
+    }
+    .store-select {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--dash-card-border);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    /* Quick status toggles */
+    .status-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-dash {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      font-family: inherit;
+    }
+    .btn-dash-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--dash-card-border);
+      color: #fff;
+    }
+    .btn-dash-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .btn-dash-danger {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+    }
+    .btn-dash-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+    .btn-dash-success {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .btn-dash-success:hover {
+      background: rgba(16, 185, 129, 0.25);
+    }
+
+    /* Metrics Grid */
+    .metrics-bar {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .metric-card {
+      background: var(--dash-card);
+      border: 1px solid var(--dash-card-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+    .metric-title {
+      font-size: 0.82rem;
+      color: var(--dash-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .metric-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-top: 6px;
+      color: #fff;
+    }
+
+    /* Tabs Filter */
+    .tabs-nav {
+      max-width: 1400px;
+      margin: 0 auto 20px auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .tab-btn {
+      background: var(--dash-card);
+      border: 1px solid var(--dash-card-border);
+      color: var(--dash-muted);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: #6366f1;
+      color: #a5b4fc;
+    }
+    .tab-badge {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .tab-btn.active .tab-badge {
+      background: #6366f1;
+      color: #fff;
+    }
+    .badge-pulse {
+      background: #ef4444 !important;
+      color: #fff !important;
+      animation: pulseTab 1.5s infinite;
+    }
+    @keyframes pulseTab {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    /* Orders Grid */
+    .orders-grid {
+      max-width: 1400px;
+      margin: 0 auto 60px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+    }
+    .order-card {
+      background: var(--dash-card);
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .order-card:hover {
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    .order-card.status-NOVO {
+      border-left: 4px solid #6366f1;
+    }
+    .order-card.status-ACEITO {
+      border-left: 4px solid #10b981;
+    }
+    .order-card.status-EM_PREPARACAO {
+      border-left: 4px solid #f59e0b;
+    }
+    .order-card.status-PRONTO {
+      border-left: 4px solid #10b981;
+    }
+    .order-card.status-SAIU_PARA_ENTREGA {
+      border-left: 4px solid #3b82f6;
+    }
+    .order-card.status-CONCLUIDO {
+      border-left: 4px solid #059669;
+      opacity: 0.85;
+    }
+    .order-card.status-CANCELADO {
+      border-left: 4px solid #ef4444;
+      opacity: 0.65;
+    }
+
+    .order-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .order-card-num {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .order-card-time {
+      font-size: 0.8rem;
+      color: var(--dash-muted);
+    }
+
+    .customer-info-box {
+      margin-bottom: 14px;
+    }
+    .customer-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn-wa-chat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(37, 211, 102, 0.15);
+      border: 1px solid rgba(37, 211, 102, 0.3);
+      color: #4ade80;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-wa-chat:hover {
+      background: rgba(37, 211, 102, 0.25);
+    }
+
+    .order-items-box {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 0.88rem;
+    }
+    .order-item-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .order-item-row:last-child {
+      margin-bottom: 0;
+    }
+    .option-tag {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      display: block;
+      margin-left: 14px;
+    }
+    .option-tag.add {
+      color: #34d399;
+    }
+    .option-tag.sub {
+      color: #f87171;
+    }
+
+    .order-totals-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 16px;
+    }
+    .order-total-price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #a5b4fc;
+    }
+
+    .order-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Toast Notification */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e1b4b;
+      border: 1px solid #6366f1;
+      color: #fff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Superior -->
+  <header class="dash-header">
+    <div class="header-content">
+      <div class="brand-section">
+        <a href="/painel/" class="brand-logo">
+          <span class="logo-badge" style="margin:0; padding:4px 10px; font-size:0.95rem;">IA</span>
+          <span>Painel de Pedidos</span>
+        </a>
+
+        {% if user_stores|length > 1 %}
+          <select class="store-select" onchange="window.location.href='/painel/' + this.value + '/'">
+            {% for s in user_stores %}
+              <option value="{{ s.slug }}" {% if s.slug == store.slug %}selected{% endif %}>
+                🏪 {{ s.name }}
+              </option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <span style="font-weight:700; color:#cbd5e1; font-size:0.95rem;">🏪 {{ store.name }}</span>
+        {% endif %}
+      </div>
+
+      <div class="status-actions">
+        <!-- Indicador de Status da Loja -->
+        <span id="storeStatusBadge" class="status-pill-big {% if store.is_paused %}EM_PREPARACAO{% elif store.is_currently_open %}ACEITO{% else %}CANCELADO{% endif %}" style="margin:0; font-size:0.8rem; padding:5px 12px;">
+          {% if store.is_paused %}
+            ⏸️ Pedidos Pausados
+          {% elif store.is_currently_open %}
+            🟢 Loja Aberta
+          {% else %}
+            🔴 Loja Fechada
+          {% endif %}
+        </span>
+
+        <!-- Botão Pausar / Retomar -->
+        <button id="togglePauseBtn" class="btn-dash {% if store.is_paused %}btn-dash-success{% else %}btn-dash-outline{% endif %}" onclick="toggleStoreStatus('pause')">
+          {% if store.is_paused %}▶️ Retomar Pedidos{% else %}⏸️ Pausar Loja{% endif %}
+        </button>
+
+        <!-- Botão Abrir / Fechar -->
+        <button id="toggleOpenBtn" class="btn-dash {% if store.is_open %}btn-dash-danger{% else %}btn-dash-success{% endif %}" onclick="toggleStoreStatus('open')">
+          {% if store.is_open %}🔒 Fechar Manual{% else %}🔓 Abrir Manual{% endif %}
+        </button>
+
+        <!-- Toggle Som de Notificação -->
+        <button id="toggleSoundBtn" class="btn-dash btn-dash-outline" onclick="toggleAudioNotifications()">
+          🔔 Som Ativado
+        </button>
+
+        <!-- Link para o Cardápio -->
+        <a href="/{{ store.slug }}/" target="_blank" class="btn-dash btn-dash-outline">
+          🌐 Ver Cardápio
+        </a>
+
+        <!-- Sair -->
+        <a href="/painel/logout/" class="btn-dash btn-dash-outline" style="color:#fb7185;">
+          Sair
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Métricas Rápidas -->
+  <section class="metrics-bar">
+    <div class="metric-card">
+      <div class="metric-title">Pedidos Hoje</div>
+      <div class="metric-value" id="todayOrdersCount">{{ today_orders_count }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Faturamento Hoje</div>
+      <div class="metric-value" id="todayRevenue">R$ {{ today_revenue|floatformat:2 }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Novos Pendentes</div>
+      <div class="metric-value" id="metricNewOrders" style="color:#a5b4fc;">{{ counts.NOVO }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Em Atendimento</div>
+      <div class="metric-value" id="metricActiveOrders" style="color:#fbbf24;">
+        {{ counts.ACEITO|add:counts.EM_PREPARACAO|add:counts.PRONTO|add:counts.SAIU_PARA_ENTREGA }}
+      </div>
+    </div>
+  </section>
+
+  <!-- Abas de Filtro por Status -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-status="ALL" onclick="filterStatus('ALL', this)">
+      Todos <span class="tab-badge" id="tabCountALL">{{ counts.ALL }}</span>
+    </button>
+    <button class="tab-btn" data-status="NOVO" onclick="filterStatus('NOVO', this)">
+      🔔 Novos <span class="tab-badge {% if counts.NOVO > 0 %}badge-pulse{% endif %}" id="tabCountNOVO">{{ counts.NOVO }}</span>
+    </button>
+    <button class="tab-btn" data-status="ACEITO" onclick="filterStatus('ACEITO', this)">
+      ⏳ Aceitos <span class="tab-badge" id="tabCountACEITO">{{ counts.ACEITO }}</span>
+    </button>
+    <button class="tab-btn" data-status="EM_PREPARACAO" onclick="filterStatus('EM_PREPARACAO', this)">
+      🍳 Preparo <span class="tab-badge" id="tabCountEM_PREPARACAO">{{ counts.EM_PREPARACAO }}</span>
+    </button>
+    <button class="tab-btn" data-status="PRONTO" onclick="filterStatus('PRONTO', this)">
+      ✅ Prontos <span class="tab-badge" id="tabCountPRONTO">{{ counts.PRONTO }}</span>
+    </button>
+    <button class="tab-btn" data-status="SAIU_PARA_ENTREGA" onclick="filterStatus('SAIU_PARA_ENTREGA', this)">
+      🛵 Em Entrega <span class="tab-badge" id="tabCountSAIU_PARA_ENTREGA">{{ counts.SAIU_PARA_ENTREGA }}</span>
+    </button>
+    <button class="tab-btn" data-status="CONCLUIDO" onclick="filterStatus('CONCLUIDO', this)">
+      🎉 Concluídos <span class="tab-badge" id="tabCountCONCLUIDO">{{ counts.CONCLUIDO }}</span>
+    </button>
+    <button class="tab-btn" data-status="CANCELADO" onclick="filterStatus('CANCELADO', this)">
+      ❌ Cancelados <span class="tab-badge" id="tabCountCANCELADO">{{ counts.CANCELADO }}</span>
+    </button>
+  </nav>
+
+  <!-- Lista de Cards de Pedidos -->
+  <main class="orders-grid" id="ordersGrid">
+    {% for order in orders %}
+      <div class="order-card status-{{ order.status }}" id="order-card-{{ order.id }}" data-status="{{ order.status }}">
+        <div>
+          <!-- Header do Card -->
+          <div class="order-card-header">
+            <div>
+              <span class="order-card-num">{{ order.display_number }}</span>
+              <span class="order-card-time">• {{ order.created_at|date:"H:i" }}</span>
+            </div>
+            <div>
+              <span class="status-pill-big {{ order.status }}" style="margin:0; font-size:0.75rem; padding:4px 10px;">
+                {{ order.get_status_display }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Dados do Cliente e Modalidade -->
+          <div class="customer-info-box">
+            <div class="customer-name">
+              <span>👤 {{ order.customer.name }}</span>
+              <a href="{{ order.customer_whatsapp_link }}" target="_blank" rel="noopener" class="btn-wa-chat" title="Abrir conversa no WhatsApp">
+                💬 WhatsApp
+              </a>
+            </div>
+            <div style="font-size:0.82rem; color:var(--dash-muted); margin-top:4px;">
+              {% if order.delivery_type == 'DELIVERY' %}
+                🛵 <strong>Entrega:</strong> {{ order.formatted_delivery_address }}
+                {% if order.reference %}
+                  <div style="color:#cbd5e1; font-size:0.78rem;">📌 Ref: {{ order.reference }}</div>
+                {% endif %}
+              {% else %}
+                🛍️ <strong>Retirada no Balcão</strong>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Itens do Pedido -->
+          <div class="order-items-box">
+            {% for item in order.items.all %}
+              <div class="order-item-row">
+                <div>
+                  <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
+                  {% for opt in item.selected_options.all %}
+                    <span class="option-tag {% if opt.price > 0 %}add{% else %}sub{% endif %}">
+                      {% if opt.price > 0 %}+ {{ opt.name }} (+R$ {{ opt.price|floatformat:2 }}){% else %}- {{ opt.name }}{% endif %}
+                    </span>
+                  {% endfor %}
+                  {% if item.notes %}
+                    <div style="font-size:0.75rem; color:#fde047; font-style:italic;">Obs: "{{ item.notes }}"</div>
+                  {% endif %}
+                </div>
+                <span style="font-weight:700;">R$ {{ item.total|floatformat:2 }}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Observação Geral -->
+          {% if order.notes %}
+            <div style="font-size:0.8rem; background:rgba(253, 224, 71, 0.1); border-left:3px solid #fde047; color:#fef08a; padding:6px 10px; border-radius:4px; margin-bottom:12px;">
+              <strong>Obs Geral:</strong> {{ order.notes }}
+            </div>
+          {% endif %}
+        </div>
+
+        <div>
+          <!-- Totais e Pagamento -->
+          <div class="order-totals-box">
+            <div style="font-size:0.85rem; color:var(--dash-muted);">
+              <div>Pagamento: <strong>{{ order.get_payment_method_display }}</strong></div>
+              {% if order.change_for %}
+                <div style="color:#fbbf24;">Troco para: R$ {{ order.change_for|floatformat:2 }}</div>
+              {% endif %}
+            </div>
+            <div class="order-total-price">
+              R$ {{ order.total|floatformat:2 }}
+            </div>
+          </div>
+
+          <!-- Ações de Status -->
+          <div class="order-card-actions">
+            {% if order.status == 'NOVO' %}
+              <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'ACEITO')">
+                ✓ Aceitar Pedido
+              </button>
+              <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
+                ✕ Recusar
+              </button>
+            {% elif order.status == 'ACEITO' %}
+              <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#f59e0b; color:#fbbf24;" onclick="updateOrderStatus({{ order.id }}, 'EM_PREPARACAO')">
+                🍳 Iniciar Preparo
+              </button>
+              <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
+                ✕ Cancelar
+              </button>
+            {% elif order.status == 'EM_PREPARACAO' %}
+              <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'PRONTO')">
+                ✅ Marcar Pronto
+              </button>
+              <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
+                ✕ Cancelar
+              </button>
+            {% elif order.status == 'PRONTO' %}
+              {% if order.delivery_type == 'DELIVERY' %}
+                <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#3b82f6; color:#60a5fa;" onclick="updateOrderStatus({{ order.id }}, 'SAIU_PARA_ENTREGA')">
+                  🛵 Despachar Entrega
+                </button>
+              {% else %}
+                <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'CONCLUIDO')">
+                  🎉 Entregue no Balcão
+                </button>
+              {% endif %}
+            {% elif order.status == 'SAIU_PARA_ENTREGA' %}
+              <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'CONCLUIDO')">
+                🎉 Concluir Pedido
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div id="emptyOrdersMessage" style="grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--dash-muted);">
+        <div style="font-size:3rem; margin-bottom:12px;">📭</div>
+        <h3 style="color:#fff; font-size:1.2rem; margin-bottom:8px;">Nenhum pedido encontrado</h3>
+        <p style="font-size:0.9rem;">Novos pedidos recebidos no cardápio digital aparecerão aqui em tempo real.</p>
+      </div>
+    {% endfor %}
+  </main>
+
+  <!-- Toast Flutuante de Alerta -->
+  <div class="toast-box" id="toastAlert">
+    <div style="font-size:1.8rem;">🔔</div>
+    <div>
+      <h4 style="margin:0 0 2px 0; font-size:0.95rem; font-weight:700;" id="toastTitle">Novo Pedido Recebido!</h4>
+      <p style="margin:0; font-size:0.82rem; color:#cbd5e1;" id="toastMessage">#100X de Cliente</p>
+    </div>
+  </div>
+
+  <!-- Script Real-Time Engine -->
+  <script>
+    const storeId = {{ store.id }};
+    const storeSlug = "{{ store.slug }}";
+    let isSoundEnabled = true;
+    let knownOrderIds = new Set([
+      {% for o in orders %}{{ o.id }},{% endfor %}
+    ]);
+    let activeFilter = 'ALL';
+
+    // Gerador de Som Sintetizado via Web Audio API (zero dependências externas!)
+    function playNotificationSound() {
+      if (!isSoundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        // Ding (D5)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now);
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.6);
+
+        // Dong (A5)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.15);
+        gain2.gain.setValueAtTime(0.35, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.9);
+      } catch (err) {
+        console.debug('Audio error:', err);
+      }
+    }
+
+    function toggleAudioNotifications() {
+      isSoundEnabled = !isSoundEnabled;
+      const btn = document.getElementById('toggleSoundBtn');
+      if (isSoundEnabled) {
+        btn.textContent = '🔔 Som Ativado';
+        btn.classList.remove('btn-dash-danger');
+        btn.classList.add('btn-dash-outline');
+        playNotificationSound();
+      } else {
+        btn.textContent = '🔕 Som Mudo';
+        btn.classList.remove('btn-dash-outline');
+        btn.classList.add('btn-dash-danger');
+      }
+    }
+
+    function showToast(title, message) {
+      const toast = document.getElementById('toastAlert');
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMessage').textContent = message;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 5000);
+    }
+
+    // Filtro por abas de status
+    function filterStatus(status, btnElement) {
+      activeFilter = status;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+
+      const cards = document.querySelectorAll('.order-card');
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        if (status === 'ALL' || cardStatus === status) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const emptyMsg = document.getElementById('emptyOrdersMessage');
+      if (emptyMsg) {
+        emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
+    // Atualização de Status de Pedido via AJAX
+    function updateOrderStatus(orderId, newStatus) {
+      fetch(`/api/v1/orders/merchant/${storeId}/${orderId}/status/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Erro ao atualizar status');
+        return res.json();
+      })
+      .then(updatedOrder => {
+        // Recarrega os dados imediatamente
+        window.location.reload();
+      })
+      .catch(err => {
+        alert('Não foi possível atualizar o pedido: ' + err.message);
+      });
+    }
+
+    // Toggle de Pausa e Abertura da Loja
+    function toggleStoreStatus(type) {
+      let payload = {};
+      if (type === 'pause') {
+        const currentPaused = {% if store.is_paused %}true{% else %}false{% endif %};
+        payload.is_paused = !currentPaused;
+      } else if (type === 'open') {
+        const currentOpen = {% if store.is_open %}true{% else %}false{% endif %};
+        payload.is_open = !currentOpen;
+      }
+
+      fetch(`/api/v1/stores/merchant/${storeId}/toggle-status/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        window.location.reload();
+      })
+      .catch(err => alert('Erro ao alterar status da loja: ' + err.message));
+    }
+
+    // Polling em background a cada 10 segundos
+    function pollOrders() {
+      fetch(`/api/v1/orders/merchant/${storeId}/`)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) return null;
+          return res.json();
+        })
+        .then(orders => {
+          if (!orders || !Array.isArray(orders)) return;
+
+          let hasNew = false;
+          let newestOrderNumber = '';
+          let newestCustomer = '';
+
+          orders.forEach(o => {
+            if (!knownOrderIds.has(o.id)) {
+              hasNew = true;
+              newestOrderNumber = o.display_number;
+              newestCustomer = o.customer ? o.customer.name : '';
+              knownOrderIds.add(o.id);
+            }
+          });
+
+          if (hasNew) {
+            playNotificationSound();
+            showToast('🔔 Novo Pedido Recebido!', `${newestOrderNumber} de ${newestCustomer}`);
+            // Recarrega para renderizar os cards e recalcular métricas
+            setTimeout(() => window.location.reload(), 1500);
+          }
+        })
+        .catch(err => console.debug('Polling error:', err));
+    }
+
+    // Inicia polling a cada 8 segundos
+    setInterval(pollOrders, 8000);
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
+
+</body>
+</html>

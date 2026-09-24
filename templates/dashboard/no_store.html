@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nenhuma Loja Vinculada | IA-Pedidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #090a0f 70%);
+      padding: 20px;
+    }
+    .card-box {
+      background: rgba(18, 20, 29, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 440px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card-box">
+    <div style="font-size:3rem; margin-bottom:16px;">🏪</div>
+    <h1 style="font-size:1.5rem; font-weight:800; margin-bottom:10px;">Nenhuma Loja Encontrada</h1>
+    <p style="color:#94a3b8; font-size:0.9rem; line-height:1.5; margin-bottom:24px;">
+      Sua conta ainda não possui uma loja ativa vinculada. Entre em contato com o suporte ou realize o cadastro de uma nova loja.
+    </p>
+    <a href="/painel/logout/" class="btn btn-outline" style="width:100%; text-align:center;">Sair da Conta</a>
+  </div>
+</body>
+</html>

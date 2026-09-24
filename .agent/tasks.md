@@ -48,10 +48,12 @@
   - [x] Templates de checkout e acompanhamento do pedido pelo cliente
   - [x] Testes unitários e de integração de pedidos e isolamento multi-loja
 
-- [ ] **Fase 6: Integração WhatsApp e Painel de Pedidos** *(PLANEJADO)*
-  - [ ] Gerador de mensagem formatada para WhatsApp
-  - [ ] Redirecionamento `wa.me`
-  - [ ] Painel do lojista: listagem e atualização de status dos pedidos em tempo real
+- [x] **Fase 6: Integração WhatsApp e Painel de Pedidos** *(CONCLUÍDO)*
+  - [x] Gerador de mensagem formatada para WhatsApp com itens, adicionais e link de acompanhamento
+  - [x] Deep linking e rota de redirecionamento `wa.me`
+  - [x] Painel do lojista: listagem, métricas do dia e atualização de status dos pedidos em tempo real (AJAX)
+  - [x] Notificação sonora sintetizada (Web Audio API) e alerta visual de novos pedidos
+  - [x] Botão rápido de pausa/abertura da loja no painel e botão de conversa WhatsApp com o cliente
 
 - [ ] **Fase 7: Refinamento, Segurança e Testes End-to-End** *(PLANEJADO)*
   - [ ] Auditoria de segurança e isolamento multi-loja

@@ -29,6 +29,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
     formatted_delivery_address = serializers.ReadOnlyField()
     display_number = serializers.ReadOnlyField()
+    customer_whatsapp_link = serializers.SerializerMethodField()
+    store_whatsapp_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -39,12 +41,22 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             'change_for', 'delivery_fee', 'subtotal', 'total',
             'formatted_delivery_address', 'street', 'number', 'complement',
             'neighborhood', 'city', 'state', 'postal_code', 'reference',
-            'notes', 'items', 'created_at', 'updated_at'
+            'notes', 'items', 'customer_whatsapp_link', 'store_whatsapp_link',
+            'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'public_id', 'order_number', 'display_number',
             'subtotal', 'delivery_fee', 'total', 'created_at', 'updated_at'
         ]
+
+    def get_customer_whatsapp_link(self, obj):
+        from whatsapp.services import get_customer_whatsapp_link
+        return get_customer_whatsapp_link(obj)
+
+    def get_store_whatsapp_link(self, obj):
+        from whatsapp.services import get_store_order_whatsapp_link
+        request = self.context.get('request')
+        return get_store_order_whatsapp_link(obj, request=request)
 
 
 class OrderItemInputSerializer(serializers.Serializer):

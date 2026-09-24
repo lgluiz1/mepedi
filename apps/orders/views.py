@@ -164,14 +164,19 @@ def public_order_status_page(request, store_slug, public_id):
     """
     Renderiza a página de confirmação e acompanhamento do pedido pelo cliente.
     """
+    from whatsapp.services import get_store_order_whatsapp_link
+
     store = get_object_or_404(Store, slug=store_slug, is_active=True)
     order = get_object_or_404(
         Order.objects.prefetch_related('items__selected_options', 'customer'),
         public_id=public_id,
         store=store
     )
+    whatsapp_link = get_store_order_whatsapp_link(order, request=request)
     context = {
         'store': store,
         'order': order,
+        'whatsapp_link': whatsapp_link,
     }
     return render(request, 'stores/order_detail.html', context)
+

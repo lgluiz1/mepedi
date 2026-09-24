@@ -45,5 +45,10 @@ O IA-Pedidos foi projetado desde o dia zero para atender múltiplas lojas em uma
   - `OrderService.create_order`: Motor transacional que valida loja aberta, aplica regra de pedido mínimo (`min_order_value`), recalcula 100% dos valores no backend e aloca numeração atômica.
   - Rotas públicas do cliente: `/<slug:store_slug>/checkout/` e `/<slug:store_slug>/pedidos/<uuid:public_id>/`.
   - APIs REST: `POST /api/v1/orders/public/{slug}/` (criação), `GET /api/v1/orders/public/{slug}/{public_id}/` (acompanhamento), `GET /api/v1/orders/merchant/` e `PATCH /api/v1/orders/merchant/{public_id}/status/` (gestão do lojista).
-- `whatsapp`: Formatação de mensagens pré-preenchidas e link dinâmico para WhatsApp.
+  - Painel Web do Lojista: `/painel/` e `/painel/<slug:store_slug>/` com gestão em tempo real, métricas diárias, kanban por status, alternância rápida de abertura/pausa e alertas sonoros com Web Audio API.
+- `whatsapp`:
+  - `clean_phone_number`: Sanitização de números e adição do DDI `55`.
+  - `format_order_whatsapp_message`: Formatação estruturada do pedido contendo itens, adicionais, modalidade, pagamento, troco e link público de acompanhamento.
+  - Deep linking e redirecionamento 302 direto para `https://wa.me/{phone}?text={quote(msg)}` via `/<slug:store_slug>/pedidos/<uuid:public_id>/whatsapp/`.
+  - Links bidirecionais: cliente para loja e loja para cliente (`get_customer_whatsapp_link`).
 - `core`: Classes base abstratas, decorators, validações globais e utilitários.

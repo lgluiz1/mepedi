@@ -8,6 +8,13 @@ from django.conf.urls.static import static
 
 from stores.views import public_store_menu_view
 from orders.views import public_checkout_page, public_order_status_page
+from orders.dashboard_views import (
+    merchant_login_view,
+    merchant_logout_view,
+    merchant_dashboard_root_view,
+    merchant_dashboard_store_view,
+)
+from whatsapp.views import order_whatsapp_redirect_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,10 +25,20 @@ urlpatterns = [
     path('api/v1/customers/', include('customers.urls', namespace='customers')),
     path('api/v1/delivery/', include('delivery.urls', namespace='delivery')),
     path('api/v1/orders/', include('orders.urls', namespace='orders')),
+    path('api/v1/whatsapp/', include('whatsapp.urls', namespace='whatsapp')),
+
+    # Painel do Lojista (Web Dashboard)
+    path('painel/login/', merchant_login_view, name='merchant_login'),
+    path('painel/logout/', merchant_logout_view, name='merchant_logout'),
+    path('painel/', merchant_dashboard_root_view, name='merchant_dashboard_root'),
+    path('painel/<slug:store_slug>/', merchant_dashboard_store_view, name='merchant_dashboard_store'),
+
     # Página institucional da plataforma
     path('', include('core.urls', namespace='core')),
+
     # Rotas públicas do cardápio e fluxo de pedidos da loja
     path('<slug:store_slug>/checkout/', public_checkout_page, name='public_checkout'),
+    path('<slug:store_slug>/pedidos/<uuid:public_id>/whatsapp/', order_whatsapp_redirect_view, name='order_whatsapp_redirect'),
     path('<slug:store_slug>/pedidos/<uuid:public_id>/', public_order_status_page, name='public_order_status'),
     path('<slug:store_slug>/', public_store_menu_view, name='store_public_menu'),
 ]
