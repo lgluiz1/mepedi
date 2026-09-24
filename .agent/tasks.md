@@ -22,10 +22,13 @@
   - [x] Django Admin integrado para catálogo
   - [x] Testes unitários e de isolamento do catálogo
 
-- [ ] **Fase 3: Clientes, Horários e Entrega** *(PLANEJADO)*
-  - [ ] Modelos de Customer e CustomerAddress (identificador por telefone)
-  - [ ] Configuração de horários de funcionamento e abertura/fechamento
-  - [ ] Configuração de zonas e taxas de entrega (DeliveryZone)
+- [x] **Fase 3: Clientes, Horários e Entrega** *(CONCLUÍDO)*
+  - [x] Modelos de Customer e CustomerAddress (identificador por telefone)
+  - [x] Lógica dinâmica de verificação de loja aberta/fechada/pausada
+  - [x] Gestão de horários de funcionamento (BusinessHour)
+  - [x] Configuração de zonas e taxas de entrega (DeliveryZone)
+  - [x] Django Admin integrado para clientes e entregas
+  - [x] Testes unitários e de isolamento da Fase 3
 
 - [ ] **Fase 4: Cardápio Público Mobile-First e Carrinho** *(PLANEJADO)*
   - [ ] Página pública `/loja-slug/` responsiva e moderna

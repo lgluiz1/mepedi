@@ -93,11 +93,11 @@ class StoreMultiTenancyIsolationTest(TestCase):
 
     def test_merchant_cannot_access_or_edit_another_store_detail(self):
         """
-        O Lojista A autenticado NÃO consegue acessar ou editar os detalhes da Loja B (retorna 404).
+        O Lojista A autenticado NÃO consegue acessar ou editar os detalhes da Loja B (retorna 403 Forbidden).
         """
         self.client.force_authenticate(user=self.user_a)
         response = self.client.get(f'/api/v1/stores/merchant/{self.store_b.id}/')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
         # Tentativa de edição maliciosa
         edit_response = self.client.patch(
@@ -105,7 +105,7 @@ class StoreMultiTenancyIsolationTest(TestCase):
             {'name': 'Tentativa de Invasão'},
             format='json'
         )
-        self.assertEqual(edit_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(edit_response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_public_store_detail_by_slug(self):
         """
@@ -117,3 +117,73 @@ class StoreMultiTenancyIsolationTest(TestCase):
         self.assertEqual(response.data['slug'], "restaurante-alfa")
         # Documento fiscal não deve ser exposto na API pública
         self.assertNotIn('document', response.data)
+
+
+class StoreBusinessHoursAndStatusTest(TestCase):
+    def setUp(self):
+        import datetime
+        from stores.models import BusinessHour
+
+        self.client = APIClient()
+        self.owner = User.objects.create_user(
+            email='hora_dono@teste.com',
+            password='Password123!',
+            full_name='Hora Dono'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Hamburgueria Noturna",
+            whatsapp="11988887777",
+            is_active=True,
+            is_open=False,
+            is_paused=False
+        )
+        StoreMembership.objects.create(
+            user=self.owner,
+            store=self.store,
+            role=StoreMembership.ROLE_OWNER
+        )
+
+        # Configura horário de Quarta-feira das 18:00 às 23:00
+        BusinessHour.objects.create(
+            store=self.store,
+            weekday=2,  # 2 = Quarta-feira
+            opening_time=datetime.time(18, 0),
+            closing_time=datetime.time(23, 0),
+            is_closed=False
+        )
+
+    def test_store_open_within_schedule(self):
+        """Dentro do horário configurado, a loja é calculada como aberta."""
+        import datetime
+        # Simula Quarta-feira às 20h
+        wednesday_20h = datetime.datetime(2026, 9, 23, 20, 0)
+        self.assertTrue(self.store.is_currently_open(at_datetime=wednesday_20h))
+
+    def test_store_closed_outside_schedule(self):
+        """Fora do horário configurado, a loja é calculada como fechada."""
+        import datetime
+        # Simula Quarta-feira às 15h
+        wednesday_15h = datetime.datetime(2026, 9, 23, 15, 0)
+        self.assertFalse(self.store.is_currently_open(at_datetime=wednesday_15h))
+
+    def test_store_closed_when_paused_even_in_schedule(self):
+        """Quando o lojista aciona o botão de pausa, a loja fecha imediatamente."""
+        import datetime
+        self.store.is_paused = True
+        self.store.save()
+
+        wednesday_20h = datetime.datetime(2026, 9, 23, 20, 0)
+        self.assertFalse(self.store.is_currently_open(at_datetime=wednesday_20h))
+
+    def test_merchant_toggle_status_endpoint(self):
+        """Lojista altera status manual e pausa via API."""
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.patch(
+            f'/api/v1/stores/merchant/{self.store.id}/toggle-status/',
+            {"is_paused": True},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['is_paused'])
+        self.assertEqual(response.data['status_label'], "Pausada")

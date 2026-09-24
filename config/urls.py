@@ -12,6 +12,8 @@ urlpatterns = [
     path('api/v1/accounts/', include('accounts.urls', namespace='accounts')),
     path('api/v1/stores/', include('stores.urls', namespace='stores')),
     path('api/v1/catalog/', include('catalog.urls', namespace='catalog')),
+    path('api/v1/customers/', include('customers.urls', namespace='customers')),
+    path('api/v1/delivery/', include('delivery.urls', namespace='delivery')),
     # Página inicial/healthcheck
     path('', include('core.urls', namespace='core')),
 ]

@@ -107,6 +107,16 @@ class Store(TimeStampedModel):
         default=60
     )
 
+    # Modalidades de Atendimento
+    allows_delivery = models.BooleanField(
+        _('Aceita Entrega / Delivery'),
+        default=True
+    )
+    allows_pickup = models.BooleanField(
+        _('Aceita Retirada no Local'),
+        default=True
+    )
+
     class Meta:
         verbose_name = _('Loja')
         verbose_name_plural = _('Lojas')
@@ -125,11 +135,57 @@ class Store(TimeStampedModel):
         parts = [self.street, self.number, self.neighborhood, self.city, self.state]
         return ", ".join([p for p in parts if p])
 
+    def is_currently_open(self, at_datetime=None) -> bool:
+        """
+        Calcula dinamicamente se a loja está aberta para receber pedidos.
+        Leva em consideração:
+        1. Se a loja está ativa na plataforma.
+        2. Se os pedidos estão pausados temporariamente (botão de pausa).
+        3. Abertura manual direta (is_open=True).
+        4. Grade semanal de horários de funcionamento (BusinessHour).
+        """
+        from django.utils import timezone
+
+        if not self.is_active or self.is_paused:
+            return False
+
+        # Se o lojista abriu manualmente, está aberta
+        if self.is_open:
+            return True
+
+        # Verifica pela grade horária
+        now = at_datetime or timezone.localtime()
+        weekday = now.weekday()
+        current_time = now.time()
+
+        schedule = self.business_hours.filter(weekday=weekday, is_closed=False).first()
+        if schedule and schedule.opening_time and schedule.closing_time:
+            if schedule.opening_time <= current_time <= schedule.closing_time:
+                return True
+
+        return False
+
+    @property
+    def status_label(self) -> str:
+        if not self.is_active:
+            return "Inativa"
+        if self.is_paused:
+            return "Pausada"
+        if self.is_currently_open():
+            return "Aberto"
+        return "Fechado"
+
 
 class BusinessHour(StoreBoundedModel):
     """
     Horário de funcionamento da loja por dia da semana.
     """
+    store = models.ForeignKey(
+        'stores.Store',
+        on_delete=models.CASCADE,
+        related_name='business_hours',
+        verbose_name=_('Loja')
+    )
     WEEKDAY_CHOICES = [
         (0, _('Segunda-feira')),
         (1, _('Terça-feira')),
