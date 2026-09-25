@@ -187,6 +187,22 @@ class Order(StoreBoundedModel, UUIDModel):
             return False
         return self.preparation_seconds_remaining <= 0
 
+    @property
+    def customer_whatsapp_link(self) -> str:
+        """Gera o link wa.me direto para o lojista falar com o cliente no WhatsApp."""
+        if not hasattr(self, 'customer') or not self.customer or not self.customer.phone:
+            return "#"
+        try:
+            from whatsapp.services import get_customer_whatsapp_link
+            return get_customer_whatsapp_link(self)
+        except Exception:
+            import re
+            clean = re.sub(r'\D', '', str(self.customer.phone or ''))
+            if clean and not clean.startswith('55') and len(clean) in (10, 11):
+                clean = f"55{clean}"
+            return f"https://wa.me/{clean}" if clean else "#"
+
+
 
 
 class OrderItem(TimeStampedModel):
