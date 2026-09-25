@@ -446,6 +446,70 @@
       return '';
     }
 
+    function updateDeliveryAddressUI() {
+      const promptEl = document.getElementById('delivery-phone-prompt');
+      const savedWrapperEl = document.getElementById('saved-addresses-wrapper');
+      const manualFieldsEl = document.getElementById('delivery-manual-fields');
+      const newHeaderEl = document.getElementById('new-address-header');
+      const addrFields = document.getElementById('delivery-address-fields');
+
+      if (!promptEl || !savedWrapperEl || !manualFieldsEl) return;
+
+      if (currentDeliveryType !== 'DELIVERY') {
+        if (addrFields) addrFields.style.display = 'none';
+        return;
+      }
+
+      if (addrFields) addrFields.style.display = 'block';
+
+      // 1. Cliente reconhecido/logado
+      if (currentCustomer) {
+        promptEl.style.display = 'none';
+
+        if (savedAddresses && savedAddresses.length > 0) {
+          savedWrapperEl.style.display = 'block';
+          if (selectedAddressId === 'NEW') {
+            manualFieldsEl.style.display = 'block';
+            if (newHeaderEl) {
+              newHeaderEl.style.display = 'block';
+              newHeaderEl.textContent = '➕ Digite o novo endereço para entrega:';
+            }
+          } else {
+            manualFieldsEl.style.display = 'none';
+            if (newHeaderEl) newHeaderEl.style.display = 'none';
+          }
+        } else {
+          // Cliente reconhecido mas ainda sem nenhum endereço salvo no cadastro
+          savedWrapperEl.style.display = 'none';
+          manualFieldsEl.style.display = 'block';
+          if (newHeaderEl) {
+            newHeaderEl.style.display = 'block';
+            newHeaderEl.textContent = '📍 Cadastre seu endereço para entrega:';
+          }
+        }
+        return;
+      }
+
+      // 2. Novo cliente (digitou número não cadastrado)
+      const newCustFields = document.getElementById('new-customer-fields');
+      if (newCustFields && newCustFields.style.display === 'block') {
+        promptEl.style.display = 'none';
+        savedWrapperEl.style.display = 'none';
+        manualFieldsEl.style.display = 'block';
+        if (newHeaderEl) {
+          newHeaderEl.style.display = 'block';
+          newHeaderEl.textContent = '📍 Endereço de Entrega:';
+        }
+        return;
+      }
+
+      // 3. Estado inicial (ainda não digitou telefone)
+      promptEl.style.display = 'block';
+      savedWrapperEl.style.display = 'none';
+      manualFieldsEl.style.display = 'none';
+      if (newHeaderEl) newHeaderEl.style.display = 'none';
+    }
+
     function applyCustomerData(cust) {
       if (!cust) return;
       currentCustomer = cust;
@@ -472,9 +536,9 @@
       localStorage.setItem('ia_customer_phone', cleanDigits);
       if (cust.name) localStorage.setItem('ia_customer_name', cust.name);
 
-      // Atualiza seção de endereços
-      document.getElementById('delivery-phone-prompt').style.display = 'none';
+      // Renderiza endereços salvos e sincroniza interface
       renderSavedAddresses();
+      updateDeliveryAddressUI();
     }
 
     function showNewCustomerForm(digits) {
@@ -502,13 +566,7 @@
       document.getElementById('new-customer-alert').style.display = 'flex';
       document.getElementById('new-customer-fields').style.display = 'block';
 
-      // Em Delivery, mostra os campos manuais de endereço
-      document.getElementById('delivery-phone-prompt').style.display = 'none';
-      document.getElementById('saved-addresses-wrapper').style.display = 'none';
-      if (currentDeliveryType === 'DELIVERY') {
-        document.getElementById('delivery-manual-fields').style.display = 'block';
-        document.getElementById('new-address-header').style.display = 'block';
-      }
+      updateDeliveryAddressUI();
 
       // Foca no campo de nome para continuar digitando sem atrito
       const nameEl = document.getElementById('cust-name');
@@ -526,8 +584,6 @@
       document.getElementById('customer-phone-box').style.display = 'block';
       document.getElementById('new-customer-alert').style.display = 'none';
       document.getElementById('new-customer-fields').style.display = 'none';
-      document.getElementById('saved-addresses-wrapper').style.display = 'none';
-      document.getElementById('delivery-manual-fields').style.display = 'none';
 
       // Limpa campos preenchidos
       document.getElementById('cust-name').value = '';
@@ -540,9 +596,7 @@
       document.getElementById('addr-ref').value = '';
       document.getElementById('addr-cep').value = '';
 
-      if (currentDeliveryType === 'DELIVERY') {
-        document.getElementById('delivery-phone-prompt').style.display = 'block';
-      }
+      updateDeliveryAddressUI();
 
       const hint = document.getElementById('phone-hint');
       if (hint) hint.innerHTML = '💡 Digite o novo número para buscar ou cadastrar:';
@@ -565,33 +619,23 @@
 
       document.getElementById('new-customer-alert').style.display = 'none';
       document.getElementById('new-customer-fields').style.display = 'none';
-      document.getElementById('saved-addresses-wrapper').style.display = 'none';
-      document.getElementById('delivery-manual-fields').style.display = 'none';
-      if (currentDeliveryType === 'DELIVERY') {
-        document.getElementById('delivery-phone-prompt').style.display = 'block';
-      }
+
+      updateDeliveryAddressUI();
     }
 
     function renderSavedAddresses() {
       const wrapper = document.getElementById('saved-addresses-wrapper');
       const list = document.getElementById('saved-addresses-list');
-      const manual = document.getElementById('delivery-manual-fields');
-      const newHeader = document.getElementById('new-address-header');
 
       if (!savedAddresses || savedAddresses.length === 0) {
-        wrapper.style.display = 'none';
-        list.innerHTML = '';
-        if (currentDeliveryType === 'DELIVERY') {
-          manual.style.display = 'block';
-          newHeader.style.display = 'block';
-        }
+        if (wrapper) wrapper.style.display = 'none';
+        if (list) list.innerHTML = '';
         selectedAddressId = 'NEW';
+        updateDeliveryAddressUI();
         return;
       }
 
-      wrapper.style.display = 'block';
       let html = '';
-
       savedAddresses.forEach((addr, idx) => {
         const isChecked = idx === 0 ? 'checked' : '';
         const compStr = addr.complement ? ` • ${addr.complement}` : '';
@@ -647,9 +691,6 @@
         if (radio) radio.checked = true;
       }
 
-      document.getElementById('delivery-manual-fields').style.display = 'none';
-      document.getElementById('new-address-header').style.display = 'none';
-
       document.getElementById('addr-street').value = addr.street || '';
       document.getElementById('addr-number').value = addr.number || '';
       document.getElementById('addr-neighborhood').value = addr.neighborhood || '';
@@ -657,6 +698,7 @@
       document.getElementById('addr-ref').value = addr.reference || '';
       document.getElementById('addr-cep').value = addr.postal_code || '';
 
+      updateDeliveryAddressUI();
       recalculateDeliveryFee();
     }
 
@@ -670,9 +712,6 @@
         if (radio) radio.checked = true;
       }
 
-      document.getElementById('delivery-manual-fields').style.display = 'block';
-      document.getElementById('new-address-header').style.display = 'block';
-
       document.getElementById('addr-street').value = '';
       document.getElementById('addr-number').value = '';
       document.getElementById('addr-neighborhood').value = '';
@@ -680,7 +719,10 @@
       document.getElementById('addr-ref').value = '';
       document.getElementById('addr-cep').value = '';
 
-      document.getElementById('addr-street').focus();
+      updateDeliveryAddressUI();
+
+      const streetInput = document.getElementById('addr-street');
+      if (streetInput) streetInput.focus();
       recalculateDeliveryFee();
     }
 
@@ -781,6 +823,7 @@
       } else {
         const savedName = localStorage.getItem('ia_customer_name');
         if (savedName) document.getElementById('cust-name').value = savedName;
+        updateDeliveryAddressUI();
       }
       {% endif %}
     });
@@ -828,40 +871,23 @@
       currentDeliveryType = type;
       const btnDel = document.getElementById('btn-type-delivery');
       const btnPic = document.getElementById('btn-type-pickup');
-      const addrFields = document.getElementById('delivery-address-fields');
       const feeRow = document.getElementById('row-delivery-fee');
 
       if (type === 'DELIVERY') {
         if (btnDel) btnDel.classList.add('active');
         if (btnPic) btnPic.classList.remove('active');
-        if (addrFields) addrFields.style.display = 'block';
         if (feeRow) feeRow.style.display = 'flex';
         currentDeliveryFee = storeFixedFee;
         updateTotals();
-
-        // Atualiza estado de exibição de endereços
-        if (currentCustomer && savedAddresses.length > 0) {
-          document.getElementById('delivery-phone-prompt').style.display = 'none';
-          document.getElementById('saved-addresses-wrapper').style.display = 'block';
-          document.getElementById('delivery-manual-fields').style.display = 'none';
-        } else if (document.getElementById('new-customer-fields').style.display === 'block') {
-          document.getElementById('delivery-phone-prompt').style.display = 'none';
-          document.getElementById('saved-addresses-wrapper').style.display = 'none';
-          document.getElementById('delivery-manual-fields').style.display = 'block';
-        } else {
-          document.getElementById('delivery-phone-prompt').style.display = 'block';
-          document.getElementById('saved-addresses-wrapper').style.display = 'none';
-          document.getElementById('delivery-manual-fields').style.display = 'none';
-        }
-
+        updateDeliveryAddressUI();
         recalculateDeliveryFee();
       } else {
         if (btnDel) btnDel.classList.remove('active');
         if (btnPic) btnPic.classList.add('active');
-        if (addrFields) addrFields.style.display = 'none';
         if (feeRow) feeRow.style.display = 'none';
         currentDeliveryFee = 0;
         updateTotals();
+        updateDeliveryAddressUI();
       }
     }
 
