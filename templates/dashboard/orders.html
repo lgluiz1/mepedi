@@ -397,9 +397,86 @@
       z-index: 1000;
       animation: slideIn 0.3s ease-out;
     }
-    @keyframes slideIn {
-      from { transform: translateY(50px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    /* Estilos do Cupom Térmico (58mm / 80mm) */
+    .thermal-receipt {
+      font-family: 'Courier New', Courier, monospace;
+      color: #000;
+      font-size: 12px;
+      line-height: 1.35;
+      max-width: 320px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 10px;
+    }
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .receipt-store-title {
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .receipt-divider {
+      text-align: center;
+      margin: 6px 0;
+      font-size: 11px;
+      letter-spacing: -1px;
+      color: #444;
+    }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .receipt-row.bold {
+      font-weight: 900;
+    }
+    .receipt-opt {
+      padding-left: 12px;
+      font-size: 11px;
+      color: #333;
+    }
+    .receipt-opt.italic {
+      font-style: italic;
+    }
+    .receipt-totals {
+      margin-top: 4px;
+    }
+    .total-row {
+      font-size: 14px;
+      font-weight: 900;
+      margin-top: 4px;
+    }
+    .receipt-footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #thermalReceiptPrintArea, #thermalReceiptPrintArea * {
+        visibility: visible !important;
+      }
+      #thermalReceiptPrintArea {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 78mm !important;
+        margin: 0 !important;
+        padding: 0 2mm !important;
+        background: #fff !important;
+      }
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
     }
   </style>
 </head>
@@ -441,12 +518,12 @@
       </nav>
 
       <div class="status-actions">
-        <!-- Indicador de Status da Loja -->
-        <span id="storeStatusBadge" class="status-pill-big {% if store.is_paused %}EM_PREPARACAO{% elif store.is_currently_open %}ACEITO{% else %}CANCELADO{% endif %}" style="margin:0; font-size:0.8rem; padding:5px 12px;">
+        <!-- Indicador de Status da Loja com Tempo Aberta -->
+        <span id="storeStatusBadge" class="status-pill-big {% if store.is_paused %}EM_PREPARACAO{% elif store.is_currently_open %}ACEITO{% else %}CANCELADO{% endif %}" style="margin:0; font-size:0.82rem; padding:6px 12px; font-weight:700;">
           {% if store.is_paused %}
             ⏸️ Pedidos Pausados
           {% elif store.is_currently_open %}
-            🟢 Loja Aberta
+            🟢 Loja Aberta ({{ open_duration_str }})
           {% else %}
             🔴 Loja Fechada
           {% endif %}
@@ -454,12 +531,12 @@
 
         <!-- Botão Pausar / Retomar -->
         <button id="togglePauseBtn" class="btn-dash {% if store.is_paused %}btn-dash-success{% else %}btn-dash-outline{% endif %}" onclick="toggleStoreStatus('pause')">
-          {% if store.is_paused %}▶️ Retomar Pedidos{% else %}⏸️ Pausar Loja{% endif %}
+          {% if store.is_paused %}▶️ Retomar Loja{% else %}⏸️ Pausar Loja{% endif %}
         </button>
 
-        <!-- Botão Abrir / Fechar -->
-        <button id="toggleOpenBtn" class="btn-dash {% if store.is_open %}btn-dash-danger{% else %}btn-dash-success{% endif %}" onclick="toggleStoreStatus('open')">
-          {% if store.is_open %}🔒 Fechar Manual{% else %}🔓 Abrir Manual{% endif %}
+        <!-- Botão Abrir / Fechar Manual -->
+        <button id="toggleOpenBtn" class="btn-dash {% if store.is_open or store.is_currently_open %}btn-dash-danger{% else %}btn-dash-success{% endif %}" onclick="toggleStoreStatus('open')">
+          {% if store.is_open or store.is_currently_open %}🔒 Fechar Manual{% else %}🔓 Abrir Manual{% endif %}
         </button>
 
         <!-- Toggle Som de Notificação -->
@@ -533,9 +610,9 @@
   <!-- Lista de Cards de Pedidos -->
   <main class="orders-grid" id="ordersGrid">
     {% for order in orders %}
-      <div class="order-card status-{{ order.status }}" id="order-card-{{ order.id }}" data-status="{{ order.status }}">
+      <div class="order-card status-{{ order.status }} {% if order.is_preparation_delayed %}order-delayed{% endif %}" id="order-card-{{ order.id }}" data-status="{{ order.status }}" style="{% if order.is_preparation_delayed %}border:2px solid #ef4444;{% endif %}">
         <div>
-          <!-- Header do Card -->
+          <!-- Header do Card com Número, Horário e Status -->
           <div class="order-card-header">
             <div>
               <span class="order-card-num">{{ order.display_number }}</span>
@@ -548,8 +625,30 @@
             </div>
           </div>
 
+          <!-- Temporizador Inteligente: 10m para Aceitar / Tempo de Preparo -->
+          {% if order.status == 'NOVO' %}
+            <div style="margin-top:6px;">
+              <span class="pill-rule required" style="font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; background:#fee2e2; color:#b91c1c; padding:3px 9px; border-radius:999px;">
+                <span>⏰ Aceitar em:</span>
+                <strong class="order-accept-timer" data-order-id="{{ order.id }}" data-remaining="{{ order.seconds_remaining_to_accept }}">--:--</strong>
+              </span>
+            </div>
+          {% elif order.status == 'ACEITO' or order.status == 'EM_PREPARACAO' %}
+            <div style="margin-top:6px;">
+              <span class="pill-rule {% if order.is_preparation_delayed %}required{% else %}highlight{% endif %}" style="font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px;">
+                <span>🍳 Tempo de Preparo:</span>
+                <strong class="order-prep-timer" data-order-id="{{ order.id }}" data-prep-remaining="{{ order.preparation_seconds_remaining }}">--:--</strong>
+              </span>
+            </div>
+            <!-- Banner de Alerta quando o Tempo de Preparo Esgotar -->
+            <div class="prep-alert-banner" id="prep-alert-{{ order.id }}" style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:8px 10px; border-radius:8px; font-size:0.8rem; font-weight:700; margin-top:8px; display:{% if order.is_preparation_delayed %}flex{% else %}none{% endif %}; align-items:center; gap:6px;">
+              <span>⚠️</span>
+              <span>Tempo de preparo esgotado! Deseja marcar como "Pronto" ou cancelar o pedido?</span>
+            </div>
+          {% endif %}
+
           <!-- Dados do Cliente e Modalidade -->
-          <div class="customer-info-box">
+          <div class="customer-info-box" style="margin-top:12px;">
             <div class="customer-name">
               <span>👤 {{ order.customer.name }}</span>
               <a href="{{ order.customer_whatsapp_link }}" target="_blank" rel="noopener" class="btn-wa-chat" title="Abrir conversa no WhatsApp">
@@ -576,7 +675,7 @@
                   <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
                   {% for opt in item.selected_options.all %}
                     <span class="option-tag {% if opt.price > 0 %}add{% else %}sub{% endif %}">
-                      {% if opt.price > 0 %}+ {{ opt.name }} (+R$ {{ opt.price|floatformat:2 }}){% else %}- {{ opt.name }}{% endif %}
+                      {% if opt.price > 0 %}+ {{ opt.name }} (+R$ {{ opt.price|floatformat:2 }}){% else %}- {{ opt.name }} (Incluso){% endif %}
                     </span>
                   {% endfor %}
                   {% if item.notes %}
@@ -610,7 +709,7 @@
             </div>
           </div>
 
-          <!-- Ações de Status -->
+          <!-- Ações de Status e Impressão Térmica -->
           <div class="order-card-actions">
             {% if order.status == 'NOVO' %}
               <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'ACEITO')">
@@ -623,6 +722,9 @@
               <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#f59e0b; color:#d97706;" onclick="updateOrderStatus({{ order.id }}, 'EM_PREPARACAO')">
                 🍳 Iniciar Preparo
               </button>
+              <button class="btn-dash btn-dash-outline" onclick="openReceiptModal({{ order.id }})" title="Imprimir Cupom Térmico">
+                🖨️ Cupom
+              </button>
               <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
                 ✕ Cancelar
               </button>
@@ -630,24 +732,147 @@
               <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'PRONTO')">
                 ✅ Marcar Pronto
               </button>
+              <button class="btn-dash btn-dash-outline" onclick="openReceiptModal({{ order.id }})" title="Imprimir Cupom Térmico">
+                🖨️ Cupom
+              </button>
               <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
                 ✕ Cancelar
               </button>
             {% elif order.status == 'PRONTO' %}
+              <!-- Destaque Total para Impressão Térmica na Fila de Prontos -->
+              <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#4f46e5; color:#4f46e5; font-weight:700; background:#eef2ff;" onclick="openReceiptModal({{ order.id }})">
+                🖨️ Imprimir Cupom
+              </button>
               {% if order.delivery_type == 'DELIVERY' %}
-                <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#3b82f6; color:#2563eb;" onclick="updateOrderStatus({{ order.id }}, 'SAIU_PARA_ENTREGA')">
-                  🛵 Despachar Entrega
+                <button class="btn-dash btn-dash-outline" style="border-color:#3b82f6; color:#2563eb;" onclick="updateOrderStatus({{ order.id }}, 'SAIU_PARA_ENTREGA')">
+                  🛵 Despachar
                 </button>
               {% else %}
-                <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'CONCLUIDO')">
-                  🎉 Entregue no Balcão
+                <button class="btn-dash btn-dash-success" onclick="updateOrderStatus({{ order.id }}, 'CONCLUIDO')">
+                  🎉 Entregue
                 </button>
               {% endif %}
+              <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
+                ✕
+              </button>
             {% elif order.status == 'SAIU_PARA_ENTREGA' %}
               <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus({{ order.id }}, 'CONCLUIDO')">
                 🎉 Concluir Pedido
               </button>
+              <button class="btn-dash btn-dash-outline" onclick="openReceiptModal({{ order.id }})">
+                🖨️ Cupom
+              </button>
+            {% else %}
+              <button class="btn-dash btn-dash-outline" style="width:100%; justify-content:center;" onclick="openReceiptModal({{ order.id }})">
+                🖨️ Imprimir Cupom
+              </button>
             {% endif %}
+          </div>
+        </div>
+
+        <!-- Template do Cupom Térmico deste Pedido (Renderizado no Modal / Impressão) -->
+        <div id="receipt-data-{{ order.id }}" style="display:none;">
+          <div class="thermal-receipt">
+            <div class="receipt-header">
+              <div class="receipt-store-title">{{ store.name }}</div>
+              {% if store.street %}
+                <div>{{ store.street }}, {{ store.number }}{% if store.neighborhood %} - {{ store.neighborhood }}{% endif %}</div>
+                <div>{{ store.city }}/{{ store.state }}{% if store.postal_code %} - CEP {{ store.postal_code }}{% endif %}</div>
+              {% endif %}
+              <div>WhatsApp: {{ store.whatsapp }}</div>
+              <div class="receipt-divider">================================</div>
+              <div class="receipt-row bold">
+                <span>PEDIDO: {{ order.display_number }}</span>
+                <span>{{ order.created_at|date:"d/m/Y H:i" }}</span>
+              </div>
+              <div class="receipt-row bold">
+                <span>MODALIDADE:</span>
+                <span>{{ order.get_delivery_type_display|upper }}</span>
+              </div>
+            </div>
+
+            <div class="receipt-divider">--------------------------------</div>
+
+            <div class="receipt-section">
+              <div class="receipt-row bold"><span>DADOS DO CLIENTE:</span></div>
+              <div>Nome: {{ order.customer.name }}</div>
+              <div>Telefone: {{ order.customer.phone }}</div>
+              {% if order.delivery_type == 'DELIVERY' %}
+                <div>Endereço: {{ order.formatted_delivery_address }}</div>
+                {% if order.reference %}
+                  <div>Ponto de Ref: {{ order.reference }}</div>
+                {% endif %}
+              {% else %}
+                <div>Retirada no Balcão da Loja</div>
+              {% endif %}
+            </div>
+
+            <div class="receipt-divider">--------------------------------</div>
+
+            <div class="receipt-section">
+              <div class="receipt-row bold"><span>ITENS DO PEDIDO:</span></div>
+              {% for item in order.items.all %}
+                <div class="receipt-row bold" style="margin-top:4px;">
+                  <span>{{ item.quantity }}x {{ item.product_name }}</span>
+                  <span>R$ {{ item.total|floatformat:2 }}</span>
+                </div>
+                {% for opt in item.selected_options.all %}
+                  <div class="receipt-opt">
+                    {% if opt.price > 0 %}
+                      + {{ opt.name }} (+R$ {{ opt.price|floatformat:2 }})
+                    {% else %}
+                      - {{ opt.name }} (Incluso)
+                    {% endif %}
+                  </div>
+                {% endfor %}
+                {% if item.notes %}
+                  <div class="receipt-opt italic">Obs: "{{ item.notes }}"</div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            {% if order.notes %}
+              <div class="receipt-divider">--------------------------------</div>
+              <div class="receipt-section">
+                <div class="receipt-row bold"><span>OBSERVAÇÕES:</span></div>
+                <div>"{{ order.notes }}"</div>
+              </div>
+            {% endif %}
+
+            <div class="receipt-divider">--------------------------------</div>
+
+            <div class="receipt-totals">
+              <div class="receipt-row">
+                <span>Subtotal:</span>
+                <span>R$ {{ order.subtotal|floatformat:2 }}</span>
+              </div>
+              {% if order.delivery_fee > 0 %}
+                <div class="receipt-row">
+                  <span>Taxa de Entrega:</span>
+                  <span>R$ {{ order.delivery_fee|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+              <div class="receipt-row bold total-row">
+                <span>TOTAL DO PEDIDO:</span>
+                <span>R$ {{ order.total|floatformat:2 }}</span>
+              </div>
+              <div class="receipt-row" style="margin-top:4px;">
+                <span>Pagamento:</span>
+                <span>{{ order.get_payment_method_display }}</span>
+              </div>
+              {% if order.change_for %}
+                <div class="receipt-row">
+                  <span>Troco para:</span>
+                  <span>R$ {{ order.change_for|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="receipt-divider">================================</div>
+
+            <div class="receipt-footer">
+              <p>{{ store.thermal_receipt_message|default:"Agradecemos a sua preferência! Bom apetite e volte sempre!" }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -669,7 +894,32 @@
     </div>
   </div>
 
-  <!-- Script Real-Time Engine -->
+  <!-- Modal: Pré-visualização e Impressão Térmica de Cupom -->
+  <div id="receiptPreviewModal" style="display:none; align-items:center; justify-content:center; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; backdrop-filter:blur(4px);">
+    <div style="background:#ffffff; max-width:440px; width:100%; border-radius:18px; padding:24px; box-shadow:0 25px 60px rgba(0,0,0,0.25); max-height:90vh; display:flex; flex-direction:column; margin:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+        <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0f172a;">🖨️ Cupom do Pedido (Impressora Térmica)</h3>
+        <button type="button" onclick="closeReceiptModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <!-- Área de visualização em tela -->
+      <div id="thermalReceiptContainer" style="flex:1; overflow-y:auto; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:16px; margin-bottom:16px;">
+        <!-- Inserido dinamicamente via JS -->
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" class="btn-dash btn-dash-outline" onclick="closeReceiptModal()">Fechar</button>
+        <button type="button" class="btn-dash btn-dash-success" onclick="triggerPrintReceipt()" style="font-size:0.95rem; padding:10px 20px;">
+          🖨️ Imprimir Agora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container oculto exclusivamente para a impressão do navegador -->
+  <div id="thermalReceiptPrintArea" style="display:none;"></div>
+
+  <!-- Script Real-Time Engine & Timers -->
   <script>
     const storeId = {{ store.id }};
     const storeSlug = "{{ store.slug }}";
@@ -716,6 +966,31 @@
       }
     }
 
+    // Som de Atenção Urgente (Tempo de Preparo Esgotado)
+    function playUrgentAlertSound() {
+      if (!isSoundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        [0, 0.2, 0.4].forEach(t => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(750, now + t);
+          gain.gain.setValueAtTime(0.25, now + t);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + t + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + t);
+          osc.stop(now + t + 0.12);
+        });
+      } catch (err) {
+        console.debug('Urgent audio error:', err);
+      }
+    }
+
     function toggleAudioNotifications() {
       isSoundEnabled = !isSoundEnabled;
       const btn = document.getElementById('toggleSoundBtn');
@@ -739,6 +1014,24 @@
       setTimeout(() => {
         toast.style.display = 'none';
       }, 5000);
+    }
+
+    // Modal de Impressão Térmica
+    function openReceiptModal(orderId) {
+      const source = document.getElementById(`receipt-data-${orderId}`);
+      if (!source) return;
+      const htmlContent = source.innerHTML;
+      document.getElementById('thermalReceiptContainer').innerHTML = htmlContent;
+      document.getElementById('thermalReceiptPrintArea').innerHTML = htmlContent;
+      document.getElementById('receiptPreviewModal').style.display = 'flex';
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receiptPreviewModal').style.display = 'none';
+    }
+
+    function triggerPrintReceipt() {
+      window.print();
     }
 
     // Filtro por abas de status
@@ -780,7 +1073,6 @@
         return res.json();
       })
       .then(updatedOrder => {
-        // Recarrega os dados imediatamente
         window.location.reload();
       })
       .catch(err => {
@@ -795,7 +1087,7 @@
         const currentPaused = {% if store.is_paused %}true{% else %}false{% endif %};
         payload.is_paused = !currentPaused;
       } else if (type === 'open') {
-        const currentOpen = {% if store.is_open %}true{% else %}false{% endif %};
+        const currentOpen = {% if store.is_open or store.is_currently_open %}true{% else %}false{% endif %};
         payload.is_open = !currentOpen;
       }
 
@@ -814,7 +1106,64 @@
       .catch(err => alert('Erro ao alterar status da loja: ' + err.message));
     }
 
-    // Polling em background a cada 10 segundos
+    // Motor de Tickers (Contagens Regressivas em Tempo Real a cada 1s)
+    let warnedPrepOrders = new Set();
+
+    function formatTime(totalSeconds) {
+      if (totalSeconds <= 0) return '00:00';
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function tickTimers() {
+      // 1. Contagem limite de 10m para pedidos novos
+      document.querySelectorAll('.order-accept-timer').forEach(el => {
+        let sec = parseInt(el.getAttribute('data-remaining'), 10);
+        if (isNaN(sec)) return;
+        sec -= 1;
+        el.setAttribute('data-remaining', sec);
+
+        if (sec <= 0) {
+          el.textContent = '00:00 (Expirando...)';
+          const orderId = el.getAttribute('data-order-id');
+          // Dispara cancelamento automático
+          updateOrderStatus(orderId, 'CANCELADO');
+        } else {
+          el.textContent = formatTime(sec);
+        }
+      });
+
+      // 2. Contagem de Tempo de Preparo para Aceitos e Em Preparação
+      document.querySelectorAll('.order-prep-timer').forEach(el => {
+        let sec = parseInt(el.getAttribute('data-prep-remaining'), 10);
+        if (isNaN(sec)) return;
+        sec -= 1;
+        el.setAttribute('data-prep-remaining', sec);
+        const orderId = el.getAttribute('data-order-id');
+        const alertBanner = document.getElementById(`prep-alert-${orderId}`);
+        const card = document.getElementById(`order-card-${orderId}`);
+
+        if (sec <= 0) {
+          el.textContent = '⚠️ Esgotado!';
+          if (alertBanner) alertBanner.style.display = 'flex';
+          if (card) card.style.border = '2px solid #ef4444';
+
+          if (!warnedPrepOrders.has(orderId)) {
+            warnedPrepOrders.add(orderId);
+            playUrgentAlertSound();
+            showToast('⚠️ Tempo de Preparo Esgotado!', `Verifique o pedido #${orderId} na cozinha`);
+          }
+        } else {
+          el.textContent = `${formatTime(sec)} restantes`;
+        }
+      });
+    }
+
+    setInterval(tickTimers, 1000);
+    tickTimers();
+
+    // Polling em background a cada 8 segundos
     function pollOrders() {
       fetch(`/api/v1/orders/merchant/${storeId}/`)
         .then(res => {
@@ -840,14 +1189,12 @@
           if (hasNew) {
             playNotificationSound();
             showToast('🔔 Novo Pedido Recebido!', `${newestOrderNumber} de ${newestCustomer}`);
-            // Recarrega para renderizar os cards e recalcular métricas
             setTimeout(() => window.location.reload(), 1500);
           }
         })
         .catch(err => console.debug('Polling error:', err));
     }
 
-    // Inicia polling a cada 8 segundos
     setInterval(pollOrders, 8000);
 
     function getCookie(name) {
@@ -868,3 +1215,4 @@
 
 </body>
 </html>
+

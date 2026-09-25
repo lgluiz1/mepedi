@@ -42,11 +42,15 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             'formatted_delivery_address', 'street', 'number', 'complement',
             'neighborhood', 'city', 'state', 'postal_code', 'reference',
             'notes', 'items', 'customer_whatsapp_link', 'store_whatsapp_link',
+            'accepted_at', 'preparing_at', 'ready_at',
+            'seconds_remaining_to_accept', 'preparation_seconds_remaining', 'is_preparation_delayed',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'public_id', 'order_number', 'display_number',
-            'subtotal', 'delivery_fee', 'total', 'created_at', 'updated_at'
+            'subtotal', 'delivery_fee', 'total', 'created_at', 'updated_at',
+            'accepted_at', 'preparing_at', 'ready_at',
+            'seconds_remaining_to_accept', 'preparation_seconds_remaining', 'is_preparation_delayed',
         ]
 
     def get_customer_whatsapp_link(self, obj):

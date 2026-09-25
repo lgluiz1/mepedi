@@ -484,9 +484,118 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <button type="submit" class="btn btn-primary" style="margin-top:20px; padding:14px 28px; font-size:1rem;">
-          💾 Salvar Configurações e Imagens
+      <!-- 3. OPERAÇÃO DE COZINHA E TEMPO DE PREPARO -->
+      <div class="card-settings">
+        <h2 class="card-title">🍳 Operação de Cozinha & Tempo de Preparo</h2>
+        <p class="card-subtitle">
+          Defina o tempo padrão de preparo dos pedidos. Esse tempo começa a contar assim que o pedido é aceito e continua durante o preparo.
+        </p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="prepTimeInput">Tempo Padrão de Preparo (Minutos) *</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <input type="number" id="prepTimeInput" name="preparation_time_minutes" class="form-control" value="{{ store.preparation_time_minutes|default:30 }}" style="max-width:120px;" min="5" max="240" required>
+              <span style="font-size:0.9rem; font-weight:600; color:#475569;">minutos</span>
+            </div>
+            <small style="color:#64748b; font-size:0.78rem; display:block; margin-top:4px;">
+              Assim que o pedido for aceito, a contagem de preparo iniciará automaticamente no painel.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. HORÁRIOS DE FUNCIONAMENTO (SEMANAL) -->
+      <div class="card-settings">
+        <h2 class="card-title">⏰ Horários de Funcionamento da Loja</h2>
+        <p class="card-subtitle">
+          Configure os dias e horários em que seu estabelecimento abre para pedidos. O cardápio digital exibirá automaticamente o status <strong>"Aberto! [Horário]"</strong> ou <strong>"Fechado"</strong> aos clientes.
+        </p>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <thead>
+              <tr style="border-bottom:2px solid #e2e8f0; text-align:left; color:#64748b;">
+                <th style="padding:10px 12px;">Dia da Semana</th>
+                <th style="padding:10px 12px;">Status</th>
+                <th style="padding:10px 12px;">Abertura</th>
+                <th style="padding:10px 12px;">Fechamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for day in weekdays_data %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:12px; font-weight:700; color:#0f172a;">
+                    {{ day.name }}
+                  </td>
+                  <td style="padding:12px;">
+                    <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:600; font-size:0.85rem; color:{% if day.is_closed %}#ef4444{% else %}#059669{% endif %};">
+                      <input type="checkbox" name="bh_{{ day.weekday }}_closed" {% if day.is_closed %}checked{% endif %} onchange="this.parentElement.style.color = this.checked ? '#ef4444' : '#059669'">
+                      Fechado neste dia
+                    </label>
+                  </td>
+                  <td style="padding:12px;">
+                    <input type="time" name="bh_{{ day.weekday }}_open" class="form-control" value="{{ day.opening_time }}" style="max-width:140px;">
+                  </td>
+                  <td style="padding:12px;">
+                    <input type="time" name="bh_{{ day.weekday }}_close" class="form-control" value="{{ day.closing_time }}" style="max-width:140px;">
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. ENDEREÇO & CUPOM TÉRMICO (IMPRESSORA 58mm / 80mm) -->
+      <div class="card-settings">
+        <h2 class="card-title">🖨️ Dados para Impressão de Cupom Térmico</h2>
+        <p class="card-subtitle">
+          Endereço e mensagem impressos no cupom padrão para grampear ou colar no pedido pronto.
+        </p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="storeStreet">Rua / Logradouro</label>
+            <input type="text" id="storeStreet" name="street" class="form-control" value="{{ store.street }}" placeholder="Ex: Rua das Flores">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="storeNumber">Número</label>
+            <input type="text" id="storeNumber" name="number" class="form-control" value="{{ store.number }}" placeholder="Ex: 120">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="storeNeighborhood">Bairro</label>
+            <input type="text" id="storeNeighborhood" name="neighborhood" class="form-control" value="{{ store.neighborhood }}" placeholder="Ex: Centro">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="storeCity">Cidade</label>
+            <input type="text" id="storeCity" name="city" class="form-control" value="{{ store.city }}" placeholder="Ex: São Paulo">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="storeState">Estado (UF)</label>
+            <input type="text" id="storeState" name="state" class="form-control" value="{{ store.state }}" maxlength="2" placeholder="SP" style="max-width:80px; text-transform:uppercase;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="storeCep">CEP</label>
+            <input type="text" id="storeCep" name="postal_code" class="form-control" value="{{ store.postal_code }}" placeholder="00000-000">
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="receiptMsg">Mensagem de Agradecimento (Rodapé do Cupom)</label>
+            <input type="text" id="receiptMsg" name="thermal_receipt_message" class="form-control" value="{{ store.thermal_receipt_message }}" placeholder="Agradecemos a sua preferência! Bom apetite e volte sempre!">
+            <small style="color:#64748b; font-size:0.78rem;">Impresso no final de cada via térmica de pedido.</small>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top:24px; padding:14px 28px; font-size:1.05rem;">
+          💾 Salvar Todas as Configurações
         </button>
       </div>
     </form>

@@ -103,8 +103,17 @@ class MerchantOrderListView(generics.ListAPIView):
     serializer_class = OrderDetailSerializer
 
     def get_queryset(self):
+        from django.utils import timezone
+        import datetime
         store_id = self.kwargs.get('store_id')
         get_user_store(self.request.user, store_id)
+
+        # Auto-cancela pedidos pendentes que não foram aceitos em até 10 minutos
+        cutoff_10m = timezone.now() - datetime.timedelta(minutes=10)
+        Order.objects.filter(store_id=store_id, status=Order.STATUS_NEW, created_at__lt=cutoff_10m).update(
+            status=Order.STATUS_CANCELLED
+        )
+
         qs = Order.objects.filter(store_id=store_id).prefetch_related('items__selected_options', 'customer')
         
         status_filter = self.request.query_params.get('status')
@@ -126,13 +135,14 @@ class MerchantOrderDetailView(generics.RetrieveAPIView):
 
 class MerchantOrderUpdateStatusView(APIView):
     """
-    Atualiza o status de um pedido da loja.
+    Atualiza o status de um pedido da loja e registra os marcos temporais.
     PATCH /api/v1/orders/merchant/{store_id}/{id}/status/
     Body: {"status": "ACEITO"}
     """
     permission_classes = [permissions.IsAuthenticated, IsStoreMember]
 
     def patch(self, request, store_id, id):
+        from django.utils import timezone
         store = get_user_store(request.user, store_id)
         order = get_object_or_404(Order, id=id, store=store)
 
@@ -140,10 +150,29 @@ class MerchantOrderUpdateStatusView(APIView):
         serializer.is_valid(raise_exception=True)
 
         new_status = serializer.validated_data['status']
-        order.status = new_status
-        order.save(update_fields=['status', 'updated_at'])
+        now = timezone.now()
+        update_fields = ['status', 'updated_at']
 
-        return Response(OrderDetailSerializer(order).data)
+        if new_status == Order.STATUS_ACCEPTED:
+            if not order.accepted_at:
+                order.accepted_at = now
+                update_fields.append('accepted_at')
+        elif new_status == Order.STATUS_PREPARING:
+            if not order.accepted_at:
+                order.accepted_at = now
+                update_fields.append('accepted_at')
+            if not order.preparing_at:
+                order.preparing_at = now
+                update_fields.append('preparing_at')
+        elif new_status == Order.STATUS_READY:
+            if not order.ready_at:
+                order.ready_at = now
+                update_fields.append('ready_at')
+
+        order.status = new_status
+        order.save(update_fields=update_fields)
+
+        return Response(OrderDetailSerializer(order, context={'request': request}).data)
 
 
 # =====================================================================

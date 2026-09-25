@@ -130,6 +130,11 @@ class Order(StoreBoundedModel, UUIDModel):
         blank=True
     )
 
+    # Marcos Temporais da Operação
+    accepted_at = models.DateTimeField(_('Aceito em'), null=True, blank=True)
+    preparing_at = models.DateTimeField(_('Em Preparação em'), null=True, blank=True)
+    ready_at = models.DateTimeField(_('Pronto em'), null=True, blank=True)
+
     class Meta:
         verbose_name = _('Pedido')
         verbose_name_plural = _('Pedidos')
@@ -154,6 +159,34 @@ class Order(StoreBoundedModel, UUIDModel):
         if self.reference:
             parts.append(f"[Ref: {self.reference}]")
         return " ".join(parts)
+
+    @property
+    def seconds_remaining_to_accept(self) -> int:
+        """Tempo restante em segundos para o aceite (janela limite de 10 minutos)."""
+        from django.utils import timezone
+        if self.status != self.STATUS_NEW:
+            return 0
+        elapsed = (timezone.now() - self.created_at).total_seconds()
+        remaining = int(10 * 60 - elapsed)
+        return max(0, remaining)
+
+    @property
+    def preparation_seconds_remaining(self) -> int:
+        """Tempo restante de preparo em segundos (baseado no tempo configurado na loja)."""
+        from django.utils import timezone
+        if not self.accepted_at or self.status not in [self.STATUS_ACCEPTED, self.STATUS_PREPARING]:
+            return 0
+        total_prep = (self.store.preparation_time_minutes or 30) * 60
+        elapsed = (timezone.now() - self.accepted_at).total_seconds()
+        return int(total_prep - elapsed)
+
+    @property
+    def is_preparation_delayed(self) -> bool:
+        """Indica se o tempo de preparo estimado já foi ultrapassado."""
+        if not self.accepted_at or self.status not in [self.STATUS_ACCEPTED, self.STATUS_PREPARING]:
+            return False
+        return self.preparation_seconds_remaining <= 0
+
 
 
 class OrderItem(TimeStampedModel):

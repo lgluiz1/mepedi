@@ -95,17 +95,28 @@ class MerchantStoreToggleStatusView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStoreMember]
 
     def patch(self, request, store_id):
+        from django.utils import timezone
         store = get_user_store(request.user, store_id)
         if 'is_open' in request.data:
-            store.is_open = bool(request.data['is_open'])
+            new_is_open = bool(request.data['is_open'])
+            store.is_open = new_is_open
+            if new_is_open:
+                if not store.opened_at:
+                    store.opened_at = timezone.now()
+            else:
+                store.opened_at = None
+
         if 'is_paused' in request.data:
             store.is_paused = bool(request.data['is_paused'])
+
         store.save()
         return Response({
             "is_open": store.is_open,
             "is_paused": store.is_paused,
             "is_currently_open": store.is_currently_open(),
-            "status_label": store.status_label
+            "status_label": store.status_label,
+            "open_duration_minutes": store.get_open_duration_minutes(),
+            "today_hours": store.get_today_hours_display(),
         })
 
 
@@ -211,12 +222,17 @@ def public_store_menu_view(request, store_slug):
                 ]
             }
 
+    weekdays_schedule = store.business_hours.all().order_by('weekday')
+    today_hours = store.get_today_hours_display()
+
     context = {
         'store': store,
         'categories': categories,
         'delivery_zones': delivery_zones,
         'is_open': is_open,
         'status_label': status_label,
+        'today_hours': today_hours,
+        'weekdays_schedule': weekdays_schedule,
         'products_catalog_json': json.dumps(products_catalog),
     }
     return render(request, 'stores/public_menu.html', context)

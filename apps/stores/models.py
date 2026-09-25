@@ -117,6 +117,25 @@ class Store(TimeStampedModel):
         default=True
     )
 
+    # Operação de Cozinha e Cupom
+    preparation_time_minutes = models.PositiveIntegerField(
+        _('Tempo Padrão de Preparo (min)'),
+        default=30,
+        help_text=_('Tempo estimado para produção dos pedidos na cozinha.')
+    )
+    opened_at = models.DateTimeField(
+        _('Loja Aberta em'),
+        null=True,
+        blank=True,
+        help_text=_('Data e hora em que a loja foi aberta manualmente nesta sessão.')
+    )
+    thermal_receipt_message = models.TextField(
+        _('Mensagem do Cupom Térmico'),
+        default='Agradecemos a sua preferência! Bom apetite e volte sempre!',
+        blank=True,
+        help_text=_('Mensagem impressa no rodapé dos cupons para clientes.')
+    )
+
     class Meta:
         verbose_name = _('Loja')
         verbose_name_plural = _('Lojas')
@@ -134,6 +153,36 @@ class Store(TimeStampedModel):
     def full_address(self):
         parts = [self.street, self.number, self.neighborhood, self.city, self.state]
         return ", ".join([p for p in parts if p])
+
+    def get_today_business_hour(self):
+        """Retorna o horário de funcionamento cadastrado para o dia de hoje."""
+        from django.utils import timezone
+        today_weekday = timezone.localtime().weekday()
+        return self.business_hours.filter(weekday=today_weekday).first()
+
+    def get_today_hours_display(self) -> str:
+        """Retorna a string de horários do dia, ex: '18:45 - 23:50' ou 'Fechado hoje'."""
+        today_schedule = self.get_today_business_hour()
+        if today_schedule and not today_schedule.is_closed and today_schedule.opening_time and today_schedule.closing_time:
+            return f"{today_schedule.opening_time.strftime('%H:%M')} - {today_schedule.closing_time.strftime('%H:%M')}"
+        return "18:00 - 23:30"
+
+    def get_open_duration_minutes(self) -> int:
+        """Calcula há quantos minutos a loja está aberta."""
+        from django.utils import timezone
+        if not self.is_currently_open():
+            return 0
+        now = timezone.now()
+        if self.opened_at:
+            return max(0, int((now - self.opened_at).total_seconds() // 60))
+        # Se abriu pela grade horária
+        today_schedule = self.get_today_business_hour()
+        if today_schedule and today_schedule.opening_time:
+            local_now = timezone.localtime(now)
+            opening_dt = local_now.replace(hour=today_schedule.opening_time.hour, minute=today_schedule.opening_time.minute, second=0, microsecond=0)
+            if local_now >= opening_dt:
+                return max(0, int((local_now - opening_dt).total_seconds() // 60))
+        return 0
 
     def is_currently_open(self, at_datetime=None) -> bool:
         """

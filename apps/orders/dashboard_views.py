@@ -74,7 +74,14 @@ def merchant_dashboard_store_view(request, store_slug):
     """
     Painel de controle e acompanhamento de pedidos em tempo real para a loja selecionada.
     """
+    import datetime
     current_store, active_stores = get_user_active_store(request.user, store_slug)
+
+    # 1. Auto-cancela pedidos pendentes que não foram aceitos em até 10 minutos
+    cutoff_10m = timezone.now() - datetime.timedelta(minutes=10)
+    Order.objects.filter(store=current_store, status=Order.STATUS_NEW, created_at__lt=cutoff_10m).update(
+        status=Order.STATUS_CANCELLED
+    )
 
     orders_qs = Order.objects.filter(store=current_store).prefetch_related(
         'items__selected_options', 'customer'
@@ -98,6 +105,15 @@ def merchant_dashboard_store_view(request, store_slug):
         'CANCELADO': orders_qs.filter(status='CANCELADO').count(),
     }
 
+    # Contagem de tempo da loja aberta
+    open_minutes = current_store.get_open_duration_minutes()
+    if open_minutes >= 60:
+        h = open_minutes // 60
+        m = open_minutes % 60
+        open_duration_str = f"{h:02d}h {m:02d}m"
+    else:
+        open_duration_str = f"{open_minutes:02d}m"
+
     context = {
         'store': current_store,
         'user_stores': active_stores,
@@ -106,6 +122,8 @@ def merchant_dashboard_store_view(request, store_slug):
         'today_orders_count': today_orders.count(),
         'today_revenue': today_revenue,
         'is_currently_open': current_store.is_currently_open(),
+        'open_duration_str': open_duration_str,
+        'today_hours_display': current_store.get_today_hours_display(),
         'status_choices': Order.STATUS_CHOICES,
         'active_tab': 'orders',
     }
@@ -115,8 +133,11 @@ def merchant_dashboard_store_view(request, store_slug):
 @login_required(login_url='/painel/login/')
 def merchant_store_settings_view(request, store_slug):
     """
-    Gerenciamento de Identidade Visual (Logo e Capa/Banner) e configurações da loja.
+    Gerenciamento de Identidade Visual, Horários de Funcionamento, Tempo de Preparo e Cupom Térmico.
     """
+    from stores.models import BusinessHour
+    import datetime
+
     current_store, active_stores = get_user_active_store(request.user, store_slug)
     success_msg = None
     error_msg = None
@@ -130,6 +151,16 @@ def merchant_store_settings_view(request, store_slug):
         allows_pickup = request.POST.get('allows_pickup') == 'on'
         time_min = request.POST.get('estimated_delivery_time_min', '30')
         time_max = request.POST.get('estimated_delivery_time_max', '60')
+        prep_time = request.POST.get('preparation_time_minutes', '30')
+        receipt_msg = request.POST.get('thermal_receipt_message', '').strip()
+
+        # Endereço Comercial para Impressão do Cupom
+        street = request.POST.get('street', '').strip()
+        number = request.POST.get('number', '').strip()
+        neighborhood = request.POST.get('neighborhood', '').strip()
+        city = request.POST.get('city', '').strip()
+        state = request.POST.get('state', '').strip().upper()
+        postal_code = request.POST.get('postal_code', '').strip()
 
         if not name or not whatsapp:
             error_msg = "Nome do estabelecimento e WhatsApp são campos obrigatórios."
@@ -140,9 +171,19 @@ def merchant_store_settings_view(request, store_slug):
             current_store.phone = phone
             current_store.allows_delivery = allows_delivery
             current_store.allows_pickup = allows_pickup
+            current_store.street = street
+            current_store.number = number
+            current_store.neighborhood = neighborhood
+            current_store.city = city
+            current_store.state = state
+            current_store.postal_code = postal_code
+            if receipt_msg:
+                current_store.thermal_receipt_message = receipt_msg
+
             try:
                 current_store.estimated_delivery_time_min = int(time_min)
                 current_store.estimated_delivery_time_max = int(time_max)
+                current_store.preparation_time_minutes = int(prep_time)
             except ValueError:
                 pass
 
@@ -161,11 +202,52 @@ def merchant_store_settings_view(request, store_slug):
                 current_store.banner = None
 
             current_store.save()
-            success_msg = "Configurações e identidade visual da loja salvas com sucesso!"
+
+            # Horários de Funcionamento por Dia da Semana (0 a 6)
+            for day in range(7):
+                is_closed = request.POST.get(f'bh_{day}_closed') == 'on'
+                open_str = request.POST.get(f'bh_{day}_open', '').strip()
+                close_str = request.POST.get(f'bh_{day}_close', '').strip()
+
+                bh, _ = BusinessHour.objects.get_or_create(store=current_store, weekday=day)
+                bh.is_closed = is_closed
+                if not is_closed and open_str and close_str:
+                    try:
+                        bh.opening_time = datetime.datetime.strptime(open_str, '%H:%M').time()
+                        bh.closing_time = datetime.datetime.strptime(close_str, '%H:%M').time()
+                    except ValueError:
+                        pass
+                bh.save()
+
+            success_msg = "Configurações, horários de funcionamento e identidade visual salvos com sucesso!"
+
+    # Monta lista de dias da semana para o formulário
+    from stores.models import BusinessHour
+    existing_bhs = {bh.weekday: bh for bh in current_store.business_hours.all()}
+    weekdays_data = []
+    day_names = [
+        (0, 'Segunda-feira'),
+        (1, 'Terça-feira'),
+        (2, 'Quarta-feira'),
+        (3, 'Quinta-feira'),
+        (4, 'Sexta-feira'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    ]
+    for w_day, w_name in day_names:
+        bh_obj = existing_bhs.get(w_day)
+        weekdays_data.append({
+            'weekday': w_day,
+            'name': w_name,
+            'is_closed': bh_obj.is_closed if bh_obj else False,
+            'opening_time': bh_obj.opening_time.strftime('%H:%M') if (bh_obj and bh_obj.opening_time) else '18:00',
+            'closing_time': bh_obj.closing_time.strftime('%H:%M') if (bh_obj and bh_obj.closing_time) else '23:30',
+        })
 
     context = {
         'store': current_store,
         'user_stores': active_stores,
+        'weekdays_data': weekdays_data,
         'success_msg': success_msg,
         'error_msg': error_msg,
         'active_tab': 'settings',

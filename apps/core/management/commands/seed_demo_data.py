@@ -1,4 +1,6 @@
+import datetime
 from decimal import Decimal
+from django.utils import timezone
 from django.core.management.base import BaseCommand
 from accounts.models import User, StoreMembership
 from stores.models import Store, BusinessHour
@@ -51,8 +53,28 @@ class Command(BaseCommand):
                 "banner": "stores/banners/pizzaria_banner.jpg",
                 "logo": "stores/logos/pizzaria_logo.jpg",
                 "minimum_order_value": Decimal("30.00"),
+                "preparation_time_minutes": 30,
+                "street": "Rua das Flores",
+                "number": "120",
+                "neighborhood": "Jardins",
+                "city": "São Paulo",
+                "state": "SP",
+                "postal_code": "01410-000",
+                "thermal_receipt_message": "Agradecemos a sua preferência! Bom apetite e volte sempre!",
             }
         )
+        store.street = "Rua das Flores"
+        store.number = "120"
+        store.neighborhood = "Jardins"
+        store.city = "São Paulo"
+        store.state = "SP"
+        store.postal_code = "01410-000"
+        store.preparation_time_minutes = 30
+        store.is_open = True
+        store.is_active = True
+        store.is_paused = False
+        if not store.opened_at:
+            store.opened_at = timezone.now() - datetime.timedelta(hours=2, minutes=15)
         if not store.banner:
             store.banner = "stores/banners/pizzaria_banner.jpg"
         if not store.logo:
@@ -65,17 +87,21 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(f"[OK] Loja '{store.name}' vinculada (/pizzaria-bella/)"))
 
-        # 3. Horários de Funcionamento (Seg a Dom, 18:00 às 23:59)
+        # 3. Horários de Funcionamento (Seg a Dom, 18:45 às 23:50 - Conforme Imagem 1)
         for day in range(7):
-            BusinessHour.objects.get_or_create(
+            bh, _ = BusinessHour.objects.get_or_create(
                 store=store,
                 weekday=day,
                 defaults={
-                    "opening_time": "18:00:00",
-                    "closing_time": "23:59:00",
+                    "opening_time": "18:45:00",
+                    "closing_time": "23:50:00",
                     "is_closed": False
                 }
             )
+            bh.opening_time = "18:45:00"
+            bh.closing_time = "23:50:00"
+            bh.is_closed = False
+            bh.save()
 
         # 4. Zonas de Entrega
         zone_centro, _ = DeliveryZone.objects.get_or_create(
@@ -308,6 +334,70 @@ class Command(BaseCommand):
                 price=Decimal("0.00"),
                 group_name="Preferências de Ingredientes"
             )
+
+        # Pedido 1002: Em Preparo (Contagem de preparo ativa)
+        cust_marcos, _ = Customer.objects.get_or_create(store=store, phone="11988882233", defaults={"name": "Marcos Vinicius"})
+        o2, o2_created = Order.objects.get_or_create(
+            store=store,
+            order_number=1002,
+            defaults={
+                "customer": cust_marcos,
+                "delivery_type": Order.TYPE_DELIVERY,
+                "status": Order.STATUS_PREPARING,
+                "payment_method": Order.PAY_PIX,
+                "street": "Rua Oscar Freire",
+                "number": "540",
+                "complement": "Apto 32",
+                "neighborhood": "Cerqueira César",
+                "city": "São Paulo",
+                "state": "SP",
+                "reference": "Portaria 2",
+                "subtotal": Decimal("45.00"),
+                "delivery_fee": Decimal("9.00"),
+                "total": Decimal("54.00"),
+                "accepted_at": timezone.now() - datetime.timedelta(minutes=12),
+                "preparing_at": timezone.now() - datetime.timedelta(minutes=8),
+                "notes": "Favor avisar na portaria ao chegar."
+            }
+        )
+        if o2_created:
+            OrderItem.objects.create(order=o2, product_name="Pizza Margherita", unit_price=Decimal("45.00"), quantity=1, subtotal=Decimal("45.00"), total=Decimal("45.00"))
+
+        # Pedido 1003: Pronto (Para testar impressão térmica com 4 sabores)
+        cust_camila, _ = Customer.objects.get_or_create(store=store, phone="11977774411", defaults={"name": "Camila Fernandes"})
+        o3, o3_created = Order.objects.get_or_create(
+            store=store,
+            order_number=1003,
+            defaults={
+                "customer": cust_camila,
+                "delivery_type": Order.TYPE_PICKUP,
+                "status": Order.STATUS_READY,
+                "payment_method": Order.PAY_DEBIT,
+                "subtotal": Decimal("83.00"),
+                "delivery_fee": Decimal("0.00"),
+                "total": Decimal("83.00"),
+                "accepted_at": timezone.now() - datetime.timedelta(minutes=32),
+                "preparing_at": timezone.now() - datetime.timedelta(minutes=28),
+                "ready_at": timezone.now() - datetime.timedelta(minutes=3),
+                "notes": "Cliente vem retirar de carro."
+            }
+        )
+        if o3_created:
+            it3 = OrderItem.objects.create(
+                order=o3,
+                product_name="Pizza Família (Escolha 4 Sabores)",
+                unit_price=Decimal("74.00"),
+                quantity=1,
+                subtotal=Decimal("74.00"),
+                total=Decimal("83.00"),
+                notes="Massa bem fininha"
+            )
+            OrderItemOption.objects.create(order_item=it3, name="Calabresa Especial", price=Decimal("0.00"), group_name="Escolha 4 Sabores")
+            OrderItemOption.objects.create(order_item=it3, name="Quatro Queijos Gratinado", price=Decimal("0.00"), group_name="Escolha 4 Sabores")
+            OrderItemOption.objects.create(order_item=it3, name="Frango Cremoso com Catupiry", price=Decimal("0.00"), group_name="Escolha 4 Sabores")
+            OrderItemOption.objects.create(order_item=it3, name="Margherita Clássica", price=Decimal("0.00"), group_name="Escolha 4 Sabores")
+            OrderItemOption.objects.create(order_item=it3, name="Borda Catupiry", price=Decimal("9.00"), group_name="Borda Recheada")
+
 
         self.stdout.write(self.style.SUCCESS("[OK] Catálogo, produtos e pedido de demonstração criados com sucesso!"))
         self.stdout.write(self.style.SUCCESS("=" * 60))
