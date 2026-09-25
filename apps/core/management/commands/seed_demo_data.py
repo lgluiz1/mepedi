@@ -48,9 +48,16 @@ class Command(BaseCommand):
                 "is_active": True,
                 "is_open": True,
                 "is_paused": False,
+                "banner": "stores/banners/pizzaria_banner.jpg",
+                "logo": "stores/logos/pizzaria_logo.jpg",
                 "minimum_order_value": Decimal("30.00"),
             }
         )
+        if not store.banner:
+            store.banner = "stores/banners/pizzaria_banner.jpg"
+        if not store.logo:
+            store.logo = "stores/logos/pizzaria_logo.jpg"
+        store.save()
         StoreMembership.objects.get_or_create(
             user=owner,
             store=store,
@@ -109,10 +116,14 @@ class Command(BaseCommand):
             defaults={
                 "description": "Molho de tomate artesanal, fatias generosas de calabresa defumada, cebola roxa e azeitonas pretas.",
                 "price": Decimal("48.00"),
+                "image": "products/images/pizza_calabresa.jpg",
                 "is_active": True,
                 "order": 1
             }
         )
+        if not p_calabresa.image:
+            p_calabresa.image = "products/images/pizza_calabresa.jpg"
+            p_calabresa.save()
         # Grupo de Bordas
         grp_bordas, _ = OptionGroup.objects.get_or_create(
             product=p_calabresa,
