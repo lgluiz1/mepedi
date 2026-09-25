@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Opções e Sabores: {{ product.name }} | {{ store.name }}</title>
+  <title>MePedi - Complementos & Sabores: {{ product.name }} | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -27,87 +29,190 @@
       min-height: 100vh;
     }
 
+    /* Header & Nav MePedi Style */
     .dash-header {
-      background: var(--dash-header);
-      border-bottom: 1px solid var(--dash-card-border);
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
       position: sticky;
       top: 0;
       z-index: 100;
-      padding: 12px 24px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      padding: 10px 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     }
     .header-content {
-      max-width: 1300px;
+      max-width: 1440px;
       margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Linha 1: Marca, Loja e Abas */
+    .dash-row-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
-    .brand-section {
+    .header-left-cluster {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
     }
-    .brand-logo {
+    .header-brand {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .mepedi-logo-img {
+      height: 34px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+    .h-divider {
+      width: 1.5px;
+      height: 22px;
+      background: #e2e8f0;
+      flex-shrink: 0;
+    }
+    .panel-title-text {
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .store-badge-header {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-weight: 800;
-      font-size: 1.25rem;
-      text-decoration: none;
-      color: #0f172a;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
-
-    .dash-nav-links {
+    .store-circle-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
-    .nav-tab-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 0.88rem;
+    .store-avatar-fallback {
+      font-size: 1.05rem;
+      background: #eff6ff;
+    }
+    .store-header-name {
+      font-size: 0.95rem;
       font-weight: 700;
-      color: #64748b;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .nav-tab-link:hover {
-      color: #0f172a;
-      background: #f1f5f9;
-    }
-    .nav-tab-link.active {
-      color: #4f46e5;
-      background: #eef2ff;
+      color: #1e293b;
+      white-space: nowrap;
     }
 
-    .btn-dash {
+    /* Linha 1 Direita: Abas / Tabs */
+    .dash-nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .dash-tab-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #475569;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .dash-tab-pill:hover {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+    .dash-tab-pill.active {
+      background: #eef2ff;
+      color: #4338ca;
+      border-color: #c7d2fe;
+    }
+    .dash-tab-pill .tab-icon {
+      font-size: 0.95rem;
+      display: inline-block;
+    }
+
+    /* Linha 2: Ações */
+    .dash-row-bottom {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .pill-actions-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+    }
+    .pill-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
       font-weight: 600;
+      font-family: inherit;
       cursor: pointer;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       border: 1px solid transparent;
-      font-family: inherit;
+      outline: none;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .btn-dash-outline {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #0f172a;
+    .pill-btn-menu {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
     }
-    .btn-dash-outline:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
+    .pill-btn-menu:hover {
+      background: #dbeafe;
+    }
+    .pill-btn-logout {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #ef4444;
+    }
+    .pill-btn-logout:hover {
+      background: #fee2e2;
+    }
+
+    @media (max-width: 992px) {
+      .dash-row-top {
+        flex-wrap: wrap;
+      }
+      .header-left-cluster {
+        flex-wrap: wrap;
+      }
     }
 
     .options-container {
@@ -301,36 +406,58 @@
 </head>
 <body>
 
-  <!-- Header Superior -->
+  <!-- Header Superior MePedi -->
   <header class="dash-header">
     <div class="header-content">
-      <div class="brand-section">
-        <a href="/painel/" class="brand-logo">
-          <span class="logo-badge" style="margin:0; padding:4px 10px; font-size:0.95rem;">IA</span>
-          <span>Painel do Lojista</span>
-        </a>
-        <span style="font-weight:700; color:#334155; font-size:0.95rem;">🏪 {{ store.name }}</span>
+      <!-- Linha 1: Identidade, Loja e Navegação Principal -->
+      <div class="dash-row-top">
+        <div class="header-left-cluster">
+          <a href="/painel/{{ store.slug }}/" class="header-brand" title="MePedi">
+            <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
+          </a>
+          <div class="h-divider"></div>
+          <span class="panel-title-text">Painel de Pedidos</span>
+          <div class="h-divider"></div>
+          <div class="store-badge-header">
+            {% if store.logo %}
+              <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
+            {% else %}
+              <div class="store-circle-avatar store-avatar-fallback">🍕</div>
+            {% endif %}
+            <span class="store-header-name">{{ store.name }}</span>
+          </div>
+        </div>
+
+        <!-- Links de Navegação da Direita -->
+        <nav class="dash-nav-tabs">
+          <a href="/painel/{{ store.slug }}/" class="dash-tab-pill">
+            <span class="tab-icon">🧾</span>
+            <span>Meus Pedidos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill active">
+            <span class="tab-icon">🍕</span>
+            <span>Produtos &amp; Fotos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
+            <span class="tab-icon">⚙️</span>
+            <span>Configurações</span>
+          </a>
+        </nav>
       </div>
 
-      <nav class="dash-nav-links">
-        <a href="/painel/{{ store.slug }}/" class="nav-tab-link">
-          📋 Pedidos
-        </a>
-        <a href="/painel/{{ store.slug }}/produtos/" class="nav-tab-link active">
-          🍕 Produtos & Fotos
-        </a>
-        <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link">
-          ⚙️ Configurações
-        </a>
-      </nav>
-
-      <div style="display:flex; align-items:center; gap:8px;">
-        <a href="/{{ store.slug }}/" target="_blank" class="btn-dash btn-dash-outline">
-          🌐 Ver Cardápio
-        </a>
-        <a href="/painel/logout/" class="btn-dash btn-dash-outline" style="color:#fb7185;">
-          Sair
-        </a>
+      <!-- Linha 2: Ações Rápidas -->
+      <div class="dash-row-bottom">
+        <div class="pill-actions-group">
+          <a href="/painel/{{ store.slug }}/produtos/" class="pill-action-btn pill-btn-menu">
+            ⬅️ Voltar aos Produtos
+          </a>
+          <a href="/{{ store.slug }}/" target="_blank" class="pill-action-btn pill-btn-menu">
+            🌐 Ver Cardápio
+          </a>
+          <a href="/painel/logout/" class="pill-action-btn pill-btn-logout">
+            🚨 Sair
+          </a>
+        </div>
       </div>
     </div>
   </header>

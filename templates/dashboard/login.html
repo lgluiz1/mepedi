@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login do Lojista | IA-Pedidos</title>
+  <title>Login do Lojista | MePedi</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -29,18 +31,11 @@
       padding: 36px 28px;
       box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08), 0 0 1px 1px rgba(0, 0, 0, 0.02);
     }
-    .logo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.1rem;
-      padding: 6px 16px;
-      border-radius: 9999px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    .mepedi-login-logo {
+      height: 48px;
+      width: auto;
+      object-fit: contain;
+      margin-bottom: 12px;
     }
     .form-group {
       margin-bottom: 20px;
@@ -84,9 +79,9 @@
 <body>
 
   <div class="login-container">
-    <div style="text-align:center; margin-bottom:28px;">
-      <span class="logo-badge">IA-Pedidos</span>
-      <h1 style="font-size:1.6rem; font-weight:800; margin:0 0 8px 0; color:#0f172a;">Painel do Lojista</h1>
+    <div style="text-align:center; margin-bottom:24px;">
+      <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-login-logo">
+      <h1 style="font-size:1.5rem; font-weight:800; margin:0 0 6px 0; color:#0f172a;">Painel do Lojista</h1>
       <p style="color:#64748b; font-size:0.9rem; margin:0;">Faça login para acompanhar e gerenciar seus pedidos em tempo real</p>
     </div>
 

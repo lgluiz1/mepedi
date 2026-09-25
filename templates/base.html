@@ -4,8 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}IA-Pedidos | Plataforma de Cardápio Digital e Pedidos{% endblock %}</title>
-  <meta name="description" content="Plataforma SaaS multi-loja de cardápio digital e gestão de pedidos online para comerciantes locais.">
+  <title>{% block title %}MePedi | Plataforma de Cardápio Digital e Pedidos{% endblock %}</title>
+  <meta name="description" content="MePedi - Plataforma SaaS multi-loja de cardápio digital e gestão de pedidos online para comerciantes locais.">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,9 +16,8 @@
 </head>
 <body>
   <nav class="navbar container">
-    <a href="{% url 'core:home' %}" class="logo-brand">
-      <span class="logo-badge">IA</span>
-      <span>Pedidos</span>
+    <a href="{% url 'core:home' %}" class="logo-brand" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+      <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" style="height:38px; width:auto; object-fit:contain;">
     </a>
     <div class="nav-links">
       <a href="{% url 'core:health_check' %}" class="nav-link">Status da API</a>
@@ -29,7 +30,7 @@
   </main>
 
   <footer class="footer container">
-    <p>&copy; 2026 IA-Pedidos SaaS. Plataforma de Cardápio Digital & Pedidos.</p>
+    <p>&copy; 2026 MePedi. Plataforma de Cardápio Digital & Pedidos.</p>
   </footer>
 
   {% block extra_scripts %}{% endblock %}
