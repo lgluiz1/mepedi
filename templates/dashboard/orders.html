@@ -308,12 +308,220 @@
       background: #fee2e2;
     }
 
-    @media (max-width: 992px) {
+    /* Botões Globais do Painel & Ações de Pedidos */
+    .btn-dash {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+      font-family: inherit;
+      white-space: nowrap;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .btn-dash:active {
+      transform: scale(0.97);
+    }
+    .btn-dash-outline {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #1e293b;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .btn-dash-outline:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    .btn-dash-danger {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .btn-dash-danger:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+    .btn-dash-success {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #059669;
+    }
+    .btn-dash-success:hover {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+    }
+    .btn-dash-primary {
+      background: #4f46e5;
+      border-color: #4338ca;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    }
+    .btn-dash-primary:hover {
+      background: #4338ca;
+    }
+
+    /* Responsividade Especial para Dispositivos Móveis (Celulares) */
+    @media (max-width: 900px) {
+      .dash-header {
+        padding: 8px 12px 6px 12px;
+      }
+      .header-content {
+        gap: 6px;
+      }
       .dash-row-top {
         flex-wrap: wrap;
+        gap: 8px;
+        justify-content: space-between;
       }
       .header-left-cluster {
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .panel-title-text,
+      .h-divider-hide-mobile {
+        display: none !important;
+      }
+      .mepedi-logo-img {
+        height: 28px;
+      }
+      .store-circle-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.95rem;
+      }
+      .store-header-name {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.88rem;
+      }
+      .store-quick-switch {
+        max-width: 140px;
+        font-size: 0.82rem;
+        padding: 2px 6px;
+      }
+
+      /* Abas de Navegação no Celular (Scroll horizontal fluido) */
+      .dash-nav-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding: 2px 0 4px 0;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .dash-tab-pill {
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        flex-shrink: 0;
+      }
+
+      /* Linha 2 de Ações e Status da Loja no Celular */
+      .dash-row-bottom {
+        padding-top: 6px;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-row-bottom::-webkit-scrollbar {
+        display: none;
+      }
+      .status-live-container {
+        font-size: 0.78rem;
+        flex-shrink: 0;
+      }
+      .status-indicator-label {
+        font-size: 0.78rem;
+      }
+      .pill-action-btn {
+        padding: 5px 11px;
+        font-size: 0.76rem;
+        flex-shrink: 0;
+      }
+
+      /* Métricas Compactas em Grade 2x2: Foco Imediato nos Pedidos! */
+      .metrics-bar {
+        margin: 10px auto;
+        padding: 0 12px;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .metric-card {
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+      .metric-title {
+        font-size: 0.72rem;
+      }
+      .metric-value {
+        font-size: 1.25rem;
+        margin-top: 2px;
+      }
+
+      /* Filtro de Status dos Pedidos com Scroll Touch */
+      .tabs-nav {
+        margin: 0 auto 12px auto;
+        padding: 0 12px 6px 12px;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .tabs-nav::-webkit-scrollbar {
+        display: none;
+      }
+      .tab-btn {
+        padding: 7px 12px;
+        font-size: 0.82rem;
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+
+      /* Grid e Cards de Pedidos 100% Mobile Friendly */
+      .orders-grid {
+        grid-template-columns: 1fr;
+        padding: 0 12px 60px 12px;
+        gap: 12px;
+      }
+      .order-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+      }
+      .order-card-num {
+        font-size: 1.05rem;
+      }
+      .order-card-actions {
+        display: flex;
+        gap: 6px;
         flex-wrap: wrap;
+      }
+      .order-card-actions .btn-dash {
+        flex: 1;
+        min-height: 42px;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+      }
+
+      /* Modal no Celular */
+      #receiptPreviewModal > div {
+        width: calc(100% - 24px) !important;
+        margin: 12px !important;
+        padding: 16px !important;
+        max-height: 85vh !important;
       }
     }
 
@@ -663,9 +871,9 @@
           <a href="/painel/{{ store.slug }}/" class="header-brand" title="MePedi">
             <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
           </a>
-          <div class="h-divider"></div>
+          <div class="h-divider h-divider-hide-mobile"></div>
           <span class="panel-title-text">Painel de Pedidos</span>
-          <div class="h-divider"></div>
+          <div class="h-divider h-divider-hide-mobile"></div>
           <div class="store-badge-header">
             {% if store.logo %}
               <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
@@ -1112,9 +1320,9 @@
         <!-- Inserido dinamicamente via JS -->
       </div>
 
-      <div style="display:flex; gap:10px; justify-content:flex-end;">
-        <button type="button" class="btn-dash btn-dash-outline" onclick="closeReceiptModal()">Fechar</button>
-        <button type="button" class="btn-dash btn-dash-success" onclick="triggerPrintReceipt()" style="font-size:0.95rem; padding:10px 20px;">
+      <div style="display:flex; gap:10px; justify-content:flex-end; width:100%;">
+        <button type="button" class="btn-dash btn-dash-outline" style="flex:1;" onclick="closeReceiptModal()">Fechar</button>
+        <button type="button" class="btn-dash btn-dash-success" onclick="triggerPrintReceipt()" style="flex:2; font-size:0.95rem; padding:10px 20px;">
           🖨️ Imprimir Agora
         </button>
       </div>

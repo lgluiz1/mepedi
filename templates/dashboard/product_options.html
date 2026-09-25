@@ -206,12 +206,137 @@
       background: #fee2e2;
     }
 
-    @media (max-width: 992px) {
+    /* Botões Globais do Painel */
+    .btn-dash {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+      font-family: inherit;
+      white-space: nowrap;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .btn-dash:active {
+      transform: scale(0.97);
+    }
+    .btn-dash-outline {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #1e293b;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .btn-dash-outline:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    .btn-dash-danger {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .btn-dash-danger:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+    .btn-dash-success {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #059669;
+    }
+    .btn-dash-success:hover {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+    }
+
+    @media (max-width: 900px) {
+      .dash-header {
+        padding: 8px 12px 6px 12px;
+      }
+      .header-content {
+        gap: 6px;
+      }
       .dash-row-top {
         flex-wrap: wrap;
+        gap: 8px;
+        justify-content: space-between;
       }
       .header-left-cluster {
-        flex-wrap: wrap;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .panel-title-text,
+      .h-divider-hide-mobile {
+        display: none !important;
+      }
+      .mepedi-logo-img {
+        height: 28px;
+      }
+      .store-circle-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.95rem;
+      }
+      .store-header-name {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.88rem;
+      }
+
+      .dash-nav-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding: 2px 0 4px 0;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .dash-tab-pill {
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        flex-shrink: 0;
+      }
+
+      .dash-row-bottom {
+        padding-top: 6px;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-row-bottom::-webkit-scrollbar {
+        display: none;
+      }
+      .pill-action-btn {
+        padding: 5px 11px;
+        font-size: 0.76rem;
+        flex-shrink: 0;
+      }
+
+      .options-container {
+        padding: 0 12px;
+        margin: 16px auto 60px auto;
+      }
+      .product-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
       }
     }
 
@@ -415,9 +540,9 @@
           <a href="/painel/{{ store.slug }}/" class="header-brand" title="MePedi">
             <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
           </a>
-          <div class="h-divider"></div>
+          <div class="h-divider h-divider-hide-mobile"></div>
           <span class="panel-title-text">Painel de Pedidos</span>
-          <div class="h-divider"></div>
+          <div class="h-divider h-divider-hide-mobile"></div>
           <div class="store-badge-header">
             {% if store.logo %}
               <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
