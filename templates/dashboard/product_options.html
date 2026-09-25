@@ -257,89 +257,6 @@
       border-color: #6ee7b7;
     }
 
-    @media (max-width: 900px) {
-      .dash-header {
-        padding: 8px 12px 6px 12px;
-      }
-      .header-content {
-        gap: 6px;
-      }
-      .dash-row-top {
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: space-between;
-      }
-      .header-left-cluster {
-        gap: 8px;
-        flex: 1;
-        min-width: 0;
-      }
-      .panel-title-text,
-      .h-divider-hide-mobile {
-        display: none !important;
-      }
-      .mepedi-logo-img {
-        height: 28px;
-      }
-      .store-circle-avatar {
-        width: 28px;
-        height: 28px;
-        font-size: 0.95rem;
-      }
-      .store-header-name {
-        max-width: 150px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 0.88rem;
-      }
-
-      .dash-nav-tabs {
-        width: 100%;
-        overflow-x: auto;
-        padding: 2px 0 4px 0;
-        gap: 6px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-      }
-      .dash-nav-tabs::-webkit-scrollbar {
-        display: none;
-      }
-      .dash-tab-pill {
-        padding: 6px 12px;
-        font-size: 0.82rem;
-        flex-shrink: 0;
-      }
-
-      .dash-row-bottom {
-        padding-top: 6px;
-        gap: 6px;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-      }
-      .dash-row-bottom::-webkit-scrollbar {
-        display: none;
-      }
-      .pill-action-btn {
-        padding: 5px 11px;
-        font-size: 0.76rem;
-        flex-shrink: 0;
-      }
-
-      .options-container {
-        padding: 0 12px;
-        margin: 16px auto 60px auto;
-      }
-      .product-header-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 16px;
-      }
-    }
-
     .options-container {
       max-width: 1000px;
       margin: 24px auto 80px auto;
@@ -527,6 +444,103 @@
       font-weight: 600;
       margin-bottom: 20px;
     }
+
+    .items-table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 900px) {
+      .dash-header {
+        padding: 8px 12px 6px 12px;
+      }
+      .header-content {
+        gap: 6px;
+      }
+      .dash-row-top {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: space-between;
+      }
+      .header-left-cluster {
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .panel-title-text,
+      .h-divider-hide-mobile {
+        display: none !important;
+      }
+      .mepedi-logo-img {
+        height: 28px;
+      }
+      .store-circle-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.95rem;
+      }
+      .store-header-name {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.88rem;
+      }
+
+      .dash-nav-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding: 2px 0 4px 0;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .dash-tab-pill {
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        flex-shrink: 0;
+      }
+
+      .dash-row-bottom {
+        padding-top: 6px;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .dash-row-bottom::-webkit-scrollbar {
+        display: none;
+      }
+      .pill-action-btn {
+        padding: 5px 11px;
+        font-size: 0.76rem;
+        flex-shrink: 0;
+      }
+
+      .options-container {
+        padding: 0 12px;
+        margin: 16px auto 60px auto;
+      }
+      .product-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+      }
+      .group-card {
+        padding: 16px 14px;
+      }
+      .group-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -668,56 +682,58 @@
 
         <!-- Tabela de Itens deste Grupo -->
         {% if group.items.all %}
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Nome da Opção / Sabor</th>
-                <th>Preço Adicional</th>
-                <th>Status (Disponibilidade)</th>
-                <th style="text-align:right;">Excluir</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for item in group.items.all %}
+          <div class="items-table-responsive">
+            <table class="items-table">
+              <thead>
                 <tr>
-                  <td>
-                    <strong style="color:#0f172a;">{{ item.name }}</strong>
-                  </td>
-                  <td>
-                    {% if item.price > 0 %}
-                      <span style="font-weight:700; color:#4f46e5;">+ R$ {{ item.price|floatformat:2 }}</span>
-                    {% else %}
-                      <span style="color:#64748b;">Incluso (R$ 0,00)</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <form method="post" action="" style="display:inline;">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="toggle_item">
-                      <input type="hidden" name="item_id" value="{{ item.id }}">
-                      <button type="submit" class="status-toggle-btn {% if item.is_available %}avail{% else %}unavail{% endif %}" title="Clique para alternar disponibilidade">
-                        {% if item.is_available %}
-                          <span>🟢 Disponível</span>
-                        {% else %}
-                          <span>🔴 Esgotado</span>
-                        {% endif %}
-                      </button>
-                    </form>
-                  </td>
-                  <td style="text-align:right;">
-                    <form method="post" action="" onsubmit="return confirm('Excluir &quot;{{ item.name|escapejs }}&quot;?');" style="display:inline;">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_item">
-                      <input type="hidden" name="item_id" value="{{ item.id }}">
-                      <button type="submit" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1rem;" title="Excluir">
-                        🗑️
-                      </button>
-                    </form>
-                  </td>
+                  <th>Nome da Opção / Sabor</th>
+                  <th>Preço Adicional</th>
+                  <th>Status (Disponibilidade)</th>
+                  <th style="text-align:right;">Excluir</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {% for item in group.items.all %}
+                  <tr>
+                    <td>
+                      <strong style="color:#0f172a;">{{ item.name }}</strong>
+                    </td>
+                    <td>
+                      {% if item.price > 0 %}
+                        <span style="font-weight:700; color:#4f46e5;">+ R$ {{ item.price|floatformat:2 }}</span>
+                      {% else %}
+                        <span style="color:#64748b;">Incluso (R$ 0,00)</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <form method="post" action="" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_item">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <button type="submit" class="status-toggle-btn {% if item.is_available %}avail{% else %}unavail{% endif %}" title="Clique para alternar disponibilidade">
+                          {% if item.is_available %}
+                            <span>🟢 Disponível</span>
+                          {% else %}
+                            <span>🔴 Esgotado</span>
+                          {% endif %}
+                        </button>
+                      </form>
+                    </td>
+                    <td style="text-align:right;">
+                      <form method="post" action="" onsubmit="return confirm('Excluir &quot;{{ item.name|escapejs }}&quot;?');" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_item">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <button type="submit" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1rem;" title="Excluir">
+                          🗑️
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
           <div style="text-align:center; padding:24px 16px; background:#f8fafc; border-radius:10px; color:#64748b; font-size:0.88rem;">
             Nenhum sabor ou item cadastrado neste grupo ainda.
