@@ -13,6 +13,51 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    .btn-top-my-orders {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 9999px;
+      padding: 7px 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn-top-my-orders:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+    .customer-login-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .customer-login-modal-box {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+    }
+  </style>
 </head>
 <body class="menu-page">
 
@@ -47,7 +92,12 @@
         </div>
 
         <div class="store-info">
-          <h1 class="store-title">{{ store.name }}</h1>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+            <h1 class="store-title" style="margin:0;">{{ store.name }}</h1>
+            <button type="button" class="btn-top-my-orders" onclick="handleMyOrdersClick()">
+              🛍️ Meus Pedidos
+            </button>
+          </div>
           <div class="store-meta" style="flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px;">
             {% if store.is_paused %}
               <span class="status-badge paused" style="background:#fef3c7; color:#b45309; font-weight:800; border-radius:6px; padding:3px 8px;">⏸️ Pedidos Pausados</span>
@@ -257,6 +307,79 @@
     </div>
   </div>
 
+  <!-- Modal: Identificação do Cliente / Meus Pedidos (Estilo InstaDelivery - Imagem 2) -->
+  <div class="customer-login-modal-overlay" id="customerLoginModal" style="display:none;" onclick="if(event.target===this) closeCustomerLoginModal()">
+    <div class="customer-login-modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:18px;">
+        <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0f172a;">Login (somente na primeira vez)</h3>
+        <button type="button" onclick="closeCustomerLoginModal()" style="background:none; border:1px solid #cbd5e1; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:1rem; color:#64748b; display:flex; align-items:center; justify-content:center;">✕</button>
+      </div>
+
+      <form onsubmit="submitCustomerLoginModal(event)">
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:6px;">Nome:</label>
+          <input type="text" id="modalCustomerName" class="form-input" style="width:100%; box-sizing:border-box; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; font-family:inherit; outline:none;" placeholder="Nome" required>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:6px;">Seu WhatsApp (somente dígitos):</label>
+          <input type="tel" id="modalCustomerPhone" class="form-input" style="width:100%; box-sizing:border-box; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; font-family:inherit; outline:none;" placeholder="(xx) xxxxx-xxxx" required>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+          <button type="submit" style="background:#1e293b; color:#ffffff; border:none; padding:12px 28px; border-radius:8px; font-weight:700; font-size:1rem; cursor:pointer; font-family:inherit; transition:background 0.2s;">
+            Começar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="{% static 'js/cart.js' %}"></script>
+  <script>
+    const currentStoreSlug = "{{ store.slug }}";
+
+    function handleMyOrdersClick() {
+      const phone = localStorage.getItem('ia_customer_phone');
+      if (phone && phone.trim().length >= 8) {
+        window.location.href = `/${currentStoreSlug}/meus-pedidos/?phone=${encodeURIComponent(phone)}`;
+      } else {
+        openCustomerLoginModal();
+      }
+    }
+
+    function openCustomerLoginModal() {
+      const savedPhone = localStorage.getItem('ia_customer_phone') || '';
+      const savedName = localStorage.getItem('ia_customer_name') || '';
+      const pInput = document.getElementById('modalCustomerPhone');
+      const nInput = document.getElementById('modalCustomerName');
+      if (pInput) pInput.value = savedPhone;
+      if (nInput) nInput.value = savedName;
+      document.getElementById('customerLoginModal').style.display = 'flex';
+    }
+
+    function closeCustomerLoginModal() {
+      document.getElementById('customerLoginModal').style.display = 'none';
+    }
+
+    function submitCustomerLoginModal(e) {
+      e.preventDefault();
+      const name = document.getElementById('modalCustomerName').value.trim();
+      const phone = document.getElementById('modalCustomerPhone').value.trim();
+      const cleanPhone = phone.replace(/\D/g, '');
+
+      if (!cleanPhone || cleanPhone.length < 8) {
+        alert("Por favor, informe seu WhatsApp com DDD.");
+        return;
+      }
+
+      localStorage.setItem('ia_customer_phone', cleanPhone);
+      if (name) {
+        localStorage.setItem('ia_customer_name', name);
+      }
+
+      window.location.href = `/${currentStoreSlug}/meus-pedidos/?phone=${encodeURIComponent(cleanPhone)}&name=${encodeURIComponent(name)}`;
+    }
+  </script>
 </body>
 </html>

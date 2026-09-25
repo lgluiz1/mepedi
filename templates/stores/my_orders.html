@@ -1,0 +1,631 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Pedidos | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --yooga-tab-active: #0284c7;
+      --yooga-card-border: #e2e8f0;
+      --yooga-footer-bg: #1e293b;
+    }
+    body {
+      background-color: #f8fafc;
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #0f172a;
+    }
+    .my-orders-container {
+      max-width: 600px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      box-shadow: 0 0 25px rgba(0,0,0,0.05);
+    }
+    .orders-top-bar {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+      background: #ffffff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .btn-back-menu {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #475569;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: color 0.15s ease;
+    }
+    .btn-back-menu:hover {
+      color: #0f172a;
+    }
+    .customer-header-box {
+      padding: 16px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .customer-greeting {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .customer-name-label {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .customer-phone-label {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .btn-switch-account {
+      font-size: 0.8rem;
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 6px 12px;
+      background: #e0f2fe;
+      border-radius: 9999px;
+      transition: all 0.2s;
+    }
+    .btn-switch-account:hover {
+      background: #bae6fd;
+    }
+
+    /* Tabs no estilo Yooga (Imagem 3) */
+    .yooga-tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      background: #ffffff;
+      position: sticky;
+      top: 61px;
+      z-index: 10;
+    }
+    .yooga-tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 14px 10px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .yooga-tab-btn.active {
+      color: #0284c7;
+      border-bottom-color: #0284c7;
+    }
+    .tab-counter {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.75rem;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-weight: 700;
+    }
+    .yooga-tab-btn.active .tab-counter {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    /* Cards de Pedido (Estilo Yooga) */
+    .orders-content {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .yooga-order-card {
+      background: #ffffff;
+      border: 1px solid var(--yooga-card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
+    }
+    .yooga-order-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .yooga-card-header {
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .yooga-store-thumb {
+      width: 58px;
+      height: 58px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+    .yooga-header-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .yooga-store-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 2px 0;
+    }
+    .yooga-order-number {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin: 0 0 8px 0;
+      font-weight: 600;
+    }
+    .yooga-items-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .yooga-item-li {
+      font-size: 0.88rem;
+      color: #334155;
+      font-weight: 600;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .yooga-item-li::before {
+      content: "•";
+      color: #94a3b8;
+      font-size: 1.1rem;
+    }
+    .yooga-btn-view-order {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      margin: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      color: #334155;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .yooga-btn-view-order:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .yooga-card-meta {
+      padding: 12px 16px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 0.85rem;
+      color: #475569;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .yooga-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .yooga-card-footer {
+      background: var(--yooga-footer-bg);
+      color: #ffffff;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .yooga-footer-label {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .yooga-footer-total {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    /* Modal / Form de Login (Estilo InstaDelivery - Imagem 2) */
+    .login-box-card {
+      margin: 40px auto;
+      max-width: 440px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 28px 24px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    }
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+    .login-subtitle {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin: 0 0 20px 0;
+      line-height: 1.4;
+    }
+    .form-group-login {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .form-label-login {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-input-login {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input-login:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .btn-login-submit {
+      width: 100%;
+      padding: 14px;
+      background: #1e293b;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .btn-login-submit:hover {
+      background: #0f172a;
+    }
+
+    /* Badges de Status */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .status-NOVO { background: #fef9c3; color: #854d0e; }
+    .status-ACEITO { background: #e0f2fe; color: #0369a1; }
+    .status-EM_PREPARACAO { background: #ffedd5; color: #c2410c; }
+    .status-PRONTO { background: #dcfce7; color: #15803d; }
+    .status-SAIU_ENTREGA { background: #f3e8ff; color: #7e22ce; }
+    .status-CONCLUIDO { background: #f1f5f9; color: #334155; }
+    .status-CANCELADO { background: #fee2e2; color: #b91c1c; }
+
+    .empty-tab-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="my-orders-container">
+    <!-- Topo: Voltar ao cardápio -->
+    <header class="orders-top-bar">
+      <a href="/{{ store.slug }}/" class="btn-back-menu">
+        ← Voltar ao cardápio
+      </a>
+      <div style="font-weight:800; font-size:1.1rem; color:#0f172a;">
+        Meus Pedidos
+      </div>
+    </header>
+
+    {% if customer %}
+      <!-- Identificação do Cliente -->
+      <div class="customer-header-box">
+        <div class="customer-greeting">
+          <span class="customer-name-label">Olá, {{ customer.name }} 👋</span>
+          <span class="customer-phone-label">WhatsApp: {{ customer.phone }}</span>
+        </div>
+        <a href="/{{ store.slug }}/meus-pedidos/?action=logout" class="btn-switch-account" onclick="localStorage.removeItem('ia_customer_phone'); localStorage.removeItem('ia_customer_name');">
+          Trocar número
+        </a>
+      </div>
+
+      <!-- Abas Estilo Yooga (Imagem 3) -->
+      <nav class="yooga-tabs">
+        <button type="button" class="yooga-tab-btn active" id="tabBtnActive" onclick="switchOrdersTab('ACTIVE')">
+          <span>Em Andamento</span>
+          <span class="tab-counter">{{ active_count }}</span>
+        </button>
+        <button type="button" class="yooga-tab-btn" id="tabBtnCompleted" onclick="switchOrdersTab('COMPLETED')">
+          <span>Finalizados</span>
+          <span class="tab-counter">{{ completed_count }}</span>
+        </button>
+      </nav>
+
+      <!-- Conteúdo da Aba 1: EM ANDAMENTO -->
+      <main class="orders-content" id="tabActiveContent">
+        {% for order in active_orders %}
+          <div class="yooga-order-card">
+            <div class="yooga-card-header">
+              {% if store.logo %}
+                <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="yooga-store-thumb">
+              {% else %}
+                <div class="yooga-store-thumb">🍕</div>
+              {% endif %}
+
+              <div class="yooga-header-details">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                  <h3 class="yooga-store-name">{{ store.name }}</h3>
+                  <span class="status-pill status-{{ order.status }}">
+                    {{ order.get_status_display }}
+                  </span>
+                </div>
+                <div class="yooga-order-number">Pedido #{{ order.order_number }}</div>
+
+                <!-- Lista resumida dos itens -->
+                <ul class="yooga-items-list">
+                  {% for item in order.items.all %}
+                    <li class="yooga-item-li">
+                      <span>{{ item.quantity }}x {{ item.product_name }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Botão de Acompanhar / Ver Pedido -->
+            <a href="/{{ store.slug }}/pedidos/{{ order.public_id }}/" class="yooga-btn-view-order">
+              <span>🔍 Acompanhar Pedido em Tempo Real</span>
+              <span>➔</span>
+            </a>
+
+            <!-- Metadados de Entrega e Pagamento -->
+            <div class="yooga-card-meta">
+              <div class="yooga-meta-row">
+                <span>🕒 Pedido realizado em:</span>
+                <strong>{{ order.created_at|date:"d/m/Y às H:i" }}</strong>
+              </div>
+              <div class="yooga-meta-row">
+                {% if order.delivery_type == 'DELIVERY' %}
+                  <span>🛵 Entrega em:</span>
+                  <strong>{{ order.formatted_delivery_address }}</strong>
+                {% else %}
+                  <span>🛍️ Modalidade:</span>
+                  <strong>Retirada no Balcão da Loja</strong>
+                {% endif %}
+              </div>
+              <div class="yooga-meta-row">
+                <span>💳 Pagamento:</span>
+                <strong>{{ order.get_payment_method_display }}</strong>
+              </div>
+            </div>
+
+            <!-- Rodapé Escuro com Total (Estilo Yooga) -->
+            <div class="yooga-card-footer">
+              <span class="yooga-footer-label">Total</span>
+              <span class="yooga-footer-total">R$ {{ order.total|floatformat:2 }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-tab-state">
+            <div style="font-size:3rem; margin-bottom:12px;">⏳</div>
+            <h3 style="color:#0f172a; margin:0 0 6px 0;">Nenhum pedido em andamento</h3>
+            <p style="margin:0 0 20px 0; font-size:0.9rem;">Você não tem nenhum pedido sendo preparado no momento.</p>
+            <a href="/{{ store.slug }}/" class="btn-login-submit" style="display:inline-block; text-decoration:none; max-width:220px;">
+              Fazer um Pedido ➔
+            </a>
+          </div>
+        {% endfor %}
+      </main>
+
+      <!-- Conteúdo da Aba 2: FINALIZADOS -->
+      <main class="orders-content" id="tabCompletedContent" style="display:none;">
+        {% for order in completed_orders %}
+          <div class="yooga-order-card">
+            <div class="yooga-card-header">
+              {% if store.logo %}
+                <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="yooga-store-thumb">
+              {% else %}
+                <div class="yooga-store-thumb">🍕</div>
+              {% endif %}
+
+              <div class="yooga-header-details">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                  <h3 class="yooga-store-name">{{ store.name }}</h3>
+                  <span class="status-pill status-{{ order.status }}">
+                    {{ order.get_status_display }}
+                  </span>
+                </div>
+                <div class="yooga-order-number">Pedido #{{ order.order_number }}</div>
+
+                <ul class="yooga-items-list">
+                  {% for item in order.items.all %}
+                    <li class="yooga-item-li">
+                      <span>{{ item.quantity }}x {{ item.product_name }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+
+            <a href="/{{ store.slug }}/pedidos/{{ order.public_id }}/" class="yooga-btn-view-order">
+              <span>📄 Ver Detalhes do Pedido</span>
+            </a>
+
+            <div class="yooga-card-meta">
+              <div class="yooga-meta-row">
+                <span>🕒 Finalizado em:</span>
+                <strong>{{ order.updated_at|date:"d/m/Y às H:i" }}</strong>
+              </div>
+              <div class="yooga-meta-row">
+                <span>💳 Pagamento:</span>
+                <strong>{{ order.get_payment_method_display }}</strong>
+              </div>
+            </div>
+
+            <div class="yooga-card-footer">
+              <span class="yooga-footer-label">Total</span>
+              <span class="yooga-footer-total">R$ {{ order.total|floatformat:2 }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-tab-state">
+            <div style="font-size:3rem; margin-bottom:12px;">📦</div>
+            <h3 style="color:#0f172a; margin:0 0 6px 0;">Nenhum pedido finalizado</h3>
+            <p style="margin:0; font-size:0.9rem;">Seus pedidos concluídos ou entregues aparecerão aqui.</p>
+          </div>
+        {% endfor %}
+      </main>
+
+    {% else %}
+      <!-- Tela de Identificação / Login pelo WhatsApp (Estilo InstaDelivery - Imagem 2) -->
+      <div style="padding: 20px;">
+        <div class="login-box-card">
+          <h2 class="login-title">Login (somente na primeira vez)</h2>
+          <p class="login-subtitle">
+            Informe seu número de WhatsApp para localizar seus pedidos em andamento e histórico de compras.
+          </p>
+
+          <form method="post" action="/{{ store.slug }}/meus-pedidos/" onsubmit="handleCustomerLoginSubmit(event)">
+            {% csrf_token %}
+            <div class="form-group-login">
+              <label class="form-label-login" for="customerNameInput">Nome:</label>
+              <input type="text" id="customerNameInput" name="name" class="form-input-login" placeholder="Nome" required>
+            </div>
+
+            <div class="form-group-login">
+              <label class="form-label-login" for="customerPhoneInput">Seu WhatsApp (somente dígitos):</label>
+              <input type="tel" id="customerPhoneInput" name="phone" class="form-input-login" placeholder="(xx) xxxxx-xxxx" required>
+            </div>
+
+            <button type="submit" class="btn-login-submit">
+              Começar
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    const storeSlug = "{{ store.slug }}";
+
+    // Auto-preenche telefone do localStorage se estiver na tela de login
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedPhone = localStorage.getItem('ia_customer_phone');
+      const savedName = localStorage.getItem('ia_customer_name');
+      const phoneInput = document.getElementById('customerPhoneInput');
+      const nameInput = document.getElementById('customerNameInput');
+
+      if (phoneInput && savedPhone) {
+        phoneInput.value = savedPhone;
+      }
+      if (nameInput && savedName) {
+        nameInput.value = savedName;
+      }
+
+      // Se temos o cliente renderizado, garante que os dados estejam salvos no localStorage
+      {% if customer %}
+        localStorage.setItem('ia_customer_phone', '{{ customer.phone }}');
+        localStorage.setItem('ia_customer_name', '{{ customer.name }}');
+      {% endif %}
+    });
+
+    function handleCustomerLoginSubmit(e) {
+      const phoneVal = document.getElementById('customerPhoneInput').value.trim();
+      const nameVal = document.getElementById('customerNameInput').value.trim();
+      const cleanPhone = phoneVal.replace(/\D/g, '');
+
+      if (!cleanPhone || cleanPhone.length < 8) {
+        e.preventDefault();
+        alert("Por favor, digite um número de WhatsApp válido com DDD.");
+        return;
+      }
+
+      localStorage.setItem('ia_customer_phone', cleanPhone);
+      if (nameVal) {
+        localStorage.setItem('ia_customer_name', nameVal);
+      }
+    }
+
+    function switchOrdersTab(tab) {
+      const btnActive = document.getElementById('tabBtnActive');
+      const btnComp = document.getElementById('tabBtnCompleted');
+      const contentActive = document.getElementById('tabActiveContent');
+      const contentComp = document.getElementById('tabCompletedContent');
+
+      if (tab === 'ACTIVE') {
+        btnActive.classList.add('active');
+        btnComp.classList.remove('active');
+        contentActive.style.display = 'flex';
+        contentComp.style.display = 'none';
+      } else {
+        btnActive.classList.remove('active');
+        btnComp.classList.add('active');
+        contentActive.style.display = 'none';
+        contentComp.style.display = 'flex';
+      }
+    }
+
+    // Auto-refresh a cada 20 segundos se houver pedidos em andamento
+    {% if active_count > 0 %}
+      setInterval(() => {
+        window.location.reload();
+      }, 20000);
+    {% endif %}
+  </script>
+</body>
+</html>

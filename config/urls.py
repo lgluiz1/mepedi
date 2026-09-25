@@ -7,7 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from stores.views import public_store_menu_view
-from orders.views import public_checkout_page, public_order_status_page
+from orders.views import public_checkout_page, public_order_status_page, public_customer_orders_page
 from orders.dashboard_views import (
     merchant_login_view,
     merchant_logout_view,
@@ -44,6 +44,7 @@ urlpatterns = [
 
     # Rotas públicas do cardápio e fluxo de pedidos da loja
     path('<slug:store_slug>/checkout/', public_checkout_page, name='public_checkout'),
+    path('<slug:store_slug>/meus-pedidos/', public_customer_orders_page, name='public_customer_orders'),
     path('<slug:store_slug>/pedidos/<uuid:public_id>/whatsapp/', order_whatsapp_redirect_view, name='order_whatsapp_redirect'),
     path('<slug:store_slug>/pedidos/<uuid:public_id>/', public_order_status_page, name='public_order_status'),
     path('<slug:store_slug>/', public_store_menu_view, name='store_public_menu'),

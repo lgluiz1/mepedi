@@ -214,3 +214,97 @@ def public_order_status_page(request, store_slug, public_id):
     }
     return render(request, 'stores/order_detail.html', context)
 
+
+def public_customer_orders_page(request, store_slug):
+    """
+    Página 'Meus Pedidos' do cliente no cardápio digital (estilo Yooga / InstaDelivery).
+    Identifica o cliente pelo telefone (WhatsApp) sem exigir senha no primeiro momento.
+    Exibe abas 'Em Andamento' e 'Finalizados' com status em tempo real e atalho para o pedido.
+    """
+    import re
+    from customers.models import Customer
+    from django.db.models import Q
+
+    store = get_object_or_404(Store, slug=store_slug, is_active=True)
+
+    # Logout / Troca de número
+    if request.GET.get('action') == 'logout':
+        if 'customer_phone' in request.session:
+            del request.session['customer_phone']
+        if 'customer_name' in request.session:
+            del request.session['customer_name']
+        return render(request, 'stores/my_orders.html', {
+            'store': store,
+            'customer': None,
+            'phone': '',
+            'active_orders': [],
+            'completed_orders': [],
+            'active_count': 0,
+            'completed_count': 0,
+        })
+
+    phone_raw = request.GET.get('phone') or request.POST.get('phone') or request.session.get('customer_phone', '')
+    name_raw = request.GET.get('name') or request.POST.get('name') or request.session.get('customer_name', '')
+
+    clean_digits = re.sub(r'\D', '', str(phone_raw)) if phone_raw else ''
+    customer = None
+    active_orders = []
+    completed_orders = []
+
+    if clean_digits:
+        # Salva na sessão do cliente
+        request.session['customer_phone'] = clean_digits
+        if name_raw:
+            request.session['customer_name'] = name_raw.strip()
+
+        # Busca flexível por telefone (com ou sem DDI 55)
+        phone_variations = [clean_digits]
+        if clean_digits.startswith('55') and len(clean_digits) in (12, 13):
+            phone_variations.append(clean_digits[2:])
+        else:
+            phone_variations.append(f"55{clean_digits}")
+
+        customer = Customer.objects.filter(store=store, phone__in=phone_variations).first()
+
+        # Se não existe e informou o nome, registra o cliente
+        if not customer and name_raw:
+            customer = Customer.objects.create(
+                store=store,
+                phone=clean_digits,
+                name=name_raw.strip()
+            )
+
+        if customer:
+            # Atualiza nome se foi informado novo nome
+            if name_raw and customer.name != name_raw.strip():
+                customer.name = name_raw.strip()
+                customer.save(update_fields=['name'])
+
+            all_orders = Order.objects.filter(
+                store=store,
+                customer=customer
+            ).prefetch_related('items__selected_options').order_by('-created_at')
+
+            active_statuses = [
+                Order.STATUS_NEW,
+                Order.STATUS_ACCEPTED,
+                Order.STATUS_PREPARING,
+                Order.STATUS_READY,
+                Order.STATUS_OUT_FOR_DELIVERY,
+            ]
+
+            active_orders = [o for o in all_orders if o.status in active_statuses]
+            completed_orders = [o for o in all_orders if o.status not in active_statuses]
+
+    context = {
+        'store': store,
+        'customer': customer,
+        'phone': clean_digits,
+        'customer_name': customer.name if customer else (name_raw.strip() if name_raw else ''),
+        'active_orders': active_orders,
+        'completed_orders': completed_orders,
+        'active_count': len(active_orders),
+        'completed_count': len(completed_orders),
+    }
+    return render(request, 'stores/my_orders.html', context)
+

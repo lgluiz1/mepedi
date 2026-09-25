@@ -517,4 +517,82 @@ class MerchantDashboardTests(TestCase):
         self.assertFalse(OptionGroup.objects.filter(id=group.id).exists())
 
 
+class PublicCustomerOrdersViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='pizzaiolo@pedidos.com',
+            password='secretpassword123',
+            full_name='Pizzaiolo Teste'
+        )
+        self.store = Store.objects.create(
+            owner=self.user,
+            name='Pizzaria Express Bella',
+            whatsapp='5511999998888',
+            fixed_delivery_fee=Decimal('8.50'),
+            is_active=True
+        )
+        from customers.models import Customer
+        self.customer = Customer.objects.create(
+            store=self.store,
+            name='João da Silva',
+            phone='11977776666'
+        )
+        self.order_active = Order.objects.create(
+            store=self.store,
+            customer=self.customer,
+            order_number=101,
+            status=Order.STATUS_PREPARING,
+            delivery_type=Order.TYPE_DELIVERY,
+            delivery_fee=Decimal('8.50'),
+            subtotal=Decimal('45.00'),
+            total=Decimal('53.50'),
+            street='Rua das Flores',
+            number='100',
+            neighborhood='Centro'
+        )
+        self.order_completed = Order.objects.create(
+            store=self.store,
+            customer=self.customer,
+            order_number=100,
+            status=Order.STATUS_COMPLETED,
+            delivery_type=Order.TYPE_DELIVERY,
+            delivery_fee=Decimal('8.50'),
+            subtotal=Decimal('60.00'),
+            total=Decimal('68.50'),
+            street='Rua das Flores',
+            number='100',
+            neighborhood='Centro'
+        )
+
+    def test_my_orders_unidentified_renders_login_form(self):
+        """Cliente sem identificação visualiza o formulário de login por WhatsApp."""
+        resp = self.client.get(f'/{self.store.slug}/meus-pedidos/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Login (somente na primeira vez)')
+        self.assertContains(resp, 'Seu WhatsApp (somente dígitos)')
+
+    def test_my_orders_identified_displays_active_and_completed_orders(self):
+        """Cliente identificado por WhatsApp vê seus pedidos ativos e finalizados em abas."""
+        resp = self.client.get(f'/{self.store.slug}/meus-pedidos/?phone=11977776666')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'João da Silva')
+        self.assertContains(resp, 'Em Andamento')
+        self.assertContains(resp, 'Finalizados')
+        self.assertContains(resp, f'Pedido #{self.order_active.order_number}')
+        self.assertContains(resp, f'Pedido #{self.order_completed.order_number}')
+        self.assertContains(resp, 'R$ 53,50')
+        self.assertContains(resp, 'R$ 68,50')
+
+    def test_my_orders_logout_clears_session(self):
+        """Ação de logout limpa a sessão e retorna à tela de login."""
+        session = self.client.session
+        session['customer_phone'] = '11977776666'
+        session.save()
+
+        resp = self.client.get(f'/{self.store.slug}/meus-pedidos/?action=logout')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Login (somente na primeira vez)')
+
+
+
 

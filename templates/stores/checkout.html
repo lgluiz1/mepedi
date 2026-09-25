@@ -253,6 +253,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       loadCartItems();
+      const savedPhone = localStorage.getItem('ia_customer_phone');
+      const savedName = localStorage.getItem('ia_customer_name');
+      const phoneEl = document.getElementById('cust-phone');
+      const nameEl = document.getElementById('cust-name');
+      if (savedPhone && phoneEl && !phoneEl.value) {
+        phoneEl.value = savedPhone;
+      }
+      if (savedName && nameEl && !nameEl.value) {
+        nameEl.value = savedName;
+      }
     });
 
     function loadCartItems() {
@@ -463,6 +473,9 @@
 
         if (response.ok) {
           const order = await response.json();
+          // Salva identificação do cliente para consultas no 'Meus Pedidos'
+          localStorage.setItem('ia_customer_phone', phone.replace(/\D/g, ''));
+          localStorage.setItem('ia_customer_name', name);
           // Limpa carrinho
           localStorage.removeItem(storageKey);
           // Redireciona para tela de acompanhamento
