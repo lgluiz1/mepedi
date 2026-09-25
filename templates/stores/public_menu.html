@@ -262,7 +262,7 @@
           <span>Subtotal:</span>
           <span id="cart-drawer-subtotal" style="color:var(--primary);">R$ 0,00</span>
         </div>
-        <a href="#checkout" id="btn-drawer-checkout" class="btn-confirm-add" style="width:100%; text-decoration:none; justify-content:center; gap:8px;">
+        <a href="/{{ store.slug }}/checkout/" id="btn-drawer-checkout" class="btn-confirm-add" style="width:100%; text-decoration:none; justify-content:center; gap:8px;" onclick="return handleCheckoutAdvance(event)">
           <span>Avançar para o Pedido</span>
           <span>➔</span>
         </a>
@@ -379,6 +379,22 @@
       }
 
       window.location.href = `/${currentStoreSlug}/meus-pedidos/?phone=${encodeURIComponent(cleanPhone)}&name=${encodeURIComponent(name)}`;
+    }
+
+    function handleCheckoutAdvance(e) {
+      if (!window.iaCart || window.iaCart.items.length === 0) {
+        e.preventDefault();
+        alert("Sua sacola está vazia.");
+        return false;
+      }
+      const storeMinOrder = parseFloat("{{ store.minimum_order_value|stringformat:'.2f'|default:'0.00' }}".replace(',', '.')) || 0;
+      const currentSubtotal = window.iaCart.getSubtotal();
+      if (storeMinOrder > 0 && currentSubtotal < storeMinOrder) {
+        e.preventDefault();
+        alert(`O valor mínimo para pedidos nesta loja é de R$ ${storeMinOrder.toFixed(2).replace('.', ',')}. Seu subtotal atual é R$ ${currentSubtotal.toFixed(2).replace('.', ',')}. Por favor, adicione mais itens para avançar.`);
+        return false;
+      }
+      return true;
     }
   </script>
 </body>
