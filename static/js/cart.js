@@ -183,8 +183,8 @@ class IAPedidosCart {
         let html = `
           <div class="option-group-header">
             <div>
-              <strong style="color:#f8fafc; font-size:0.95rem;">${group.name}</strong>
-              ${group.description ? `<p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">${group.description}</p>` : ''}
+              <strong style="color:var(--text-main); font-size:0.95rem;">${group.name}</strong>
+              ${group.description ? `<p style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${group.description}</p>` : ''}
             </div>
             <span class="group-badge ${badgeClass}">${badgeText}</span>
           </div>

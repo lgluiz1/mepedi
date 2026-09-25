@@ -11,12 +11,12 @@
   <link rel="stylesheet" href="{% static 'css/menu.css' %}">
   <style>
     :root {
-      --dash-bg: #0b0d14;
-      --dash-header: #121520;
-      --dash-card: #161926;
-      --dash-card-border: rgba(255, 255, 255, 0.08);
-      --dash-text: #f8fafc;
-      --dash-muted: #94a3b8;
+      --dash-bg: #f8fafc;
+      --dash-header: #ffffff;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
     }
     body {
       background-color: var(--dash-bg);
@@ -35,6 +35,7 @@
       top: 0;
       z-index: 100;
       padding: 12px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     .header-content {
       max-width: 1400px;
@@ -57,12 +58,12 @@
       font-weight: 800;
       font-size: 1.25rem;
       text-decoration: none;
-      color: #fff;
+      color: #0f172a;
     }
     .store-select {
-      background: rgba(255, 255, 255, 0.05);
+      background: #f1f5f9;
       border: 1px solid var(--dash-card-border);
-      color: #fff;
+      color: #0f172a;
       padding: 6px 12px;
       border-radius: 8px;
       font-family: inherit;
@@ -92,28 +93,29 @@
       font-family: inherit;
     }
     .btn-dash-outline {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--dash-card-border);
-      color: #fff;
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
     }
     .btn-dash-outline:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: #f1f5f9;
+      border-color: #94a3b8;
     }
     .btn-dash-danger {
-      background: rgba(244, 63, 94, 0.15);
-      border-color: rgba(244, 63, 94, 0.3);
-      color: #fb7185;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #dc2626;
     }
     .btn-dash-danger:hover {
-      background: rgba(244, 63, 94, 0.25);
+      background: rgba(239, 68, 68, 0.18);
     }
     .btn-dash-success {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.12);
       border-color: rgba(16, 185, 129, 0.3);
-      color: #34d399;
+      color: #059669;
     }
     .btn-dash-success:hover {
-      background: rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.2);
     }
 
     /* Metrics Grid */
@@ -130,6 +132,7 @@
       border: 1px solid var(--dash-card-border);
       border-radius: 14px;
       padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
     }
     .metric-title {
       font-size: 0.82rem;
@@ -142,7 +145,7 @@
       font-size: 1.6rem;
       font-weight: 800;
       margin-top: 6px;
-      color: #fff;
+      color: #0f172a;
     }
 
     /* Tabs Filter */
@@ -156,7 +159,7 @@
       padding-bottom: 4px;
     }
     .tab-btn {
-      background: var(--dash-card);
+      background: #ffffff;
       border: 1px solid var(--dash-card-border);
       color: var(--dash-muted);
       padding: 9px 18px;
@@ -170,18 +173,20 @@
       gap: 8px;
       white-space: nowrap;
       transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
     .tab-btn:hover {
-      color: #fff;
-      border-color: rgba(255, 255, 255, 0.2);
+      color: #0f172a;
+      border-color: #cbd5e1;
     }
     .tab-btn.active {
-      background: rgba(99, 102, 241, 0.15);
+      background: #eef2ff;
       border-color: #6366f1;
-      color: #a5b4fc;
+      color: #4f46e5;
     }
     .tab-badge {
-      background: rgba(255, 255, 255, 0.1);
+      background: #f1f5f9;
+      color: #475569;
       padding: 2px 7px;
       border-radius: 999px;
       font-size: 0.75rem;
@@ -212,7 +217,7 @@
       gap: 20px;
     }
     .order-card {
-      background: var(--dash-card);
+      background: #ffffff;
       border: 1px solid var(--dash-card-border);
       border-radius: 16px;
       padding: 20px;
@@ -221,10 +226,11 @@
       justify-content: space-between;
       transition: border-color 0.2s, box-shadow 0.2s;
       position: relative;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
     }
     .order-card:hover {
-      border-color: rgba(99, 102, 241, 0.35);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      border-color: #cbd5e1;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
     .order-card.status-NOVO {
       border-left: 4px solid #6366f1;
@@ -243,11 +249,11 @@
     }
     .order-card.status-CONCLUIDO {
       border-left: 4px solid #059669;
-      opacity: 0.85;
+      opacity: 0.9;
     }
     .order-card.status-CANCELADO {
       border-left: 4px solid #ef4444;
-      opacity: 0.65;
+      opacity: 0.7;
     }
 
     .order-card-header {
@@ -256,12 +262,12 @@
       justify-content: space-between;
       margin-bottom: 12px;
       padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid #f1f5f9;
     }
     .order-card-num {
       font-size: 1.15rem;
       font-weight: 800;
-      color: #fff;
+      color: #0f172a;
     }
     .order-card-time {
       font-size: 0.8rem;
@@ -274,7 +280,7 @@
     .customer-name {
       font-weight: 700;
       font-size: 1rem;
-      color: #fff;
+      color: #0f172a;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -283,9 +289,9 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: rgba(37, 211, 102, 0.15);
+      background: rgba(37, 211, 102, 0.12);
       border: 1px solid rgba(37, 211, 102, 0.3);
-      color: #4ade80;
+      color: #16a34a;
       padding: 3px 9px;
       border-radius: 6px;
       font-size: 0.75rem;
@@ -294,15 +300,17 @@
       transition: background 0.2s;
     }
     .btn-wa-chat:hover {
-      background: rgba(37, 211, 102, 0.25);
+      background: rgba(37, 211, 102, 0.22);
     }
 
     .order-items-box {
-      background: rgba(0, 0, 0, 0.2);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 12px;
       margin-bottom: 14px;
       font-size: 0.88rem;
+      color: #0f172a;
     }
     .order-item-row {
       display: flex;
@@ -314,15 +322,15 @@
     }
     .option-tag {
       font-size: 0.78rem;
-      color: #94a3b8;
+      color: #64748b;
       display: block;
       margin-left: 14px;
     }
     .option-tag.add {
-      color: #34d399;
+      color: #059669;
     }
     .option-tag.sub {
-      color: #f87171;
+      color: #dc2626;
     }
 
     .order-totals-box {
@@ -330,13 +338,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid #f1f5f9;
       margin-bottom: 16px;
     }
     .order-total-price {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #a5b4fc;
+      color: #4f46e5;
     }
 
     .order-card-actions {
@@ -350,12 +358,12 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: #1e1b4b;
+      background: #ffffff;
       border: 1px solid #6366f1;
-      color: #fff;
+      color: #0f172a;
       padding: 16px 20px;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
       display: none;
       align-items: center;
       gap: 12px;
@@ -388,7 +396,7 @@
             {% endfor %}
           </select>
         {% else %}
-          <span style="font-weight:700; color:#cbd5e1; font-size:0.95rem;">🏪 {{ store.name }}</span>
+          <span style="font-weight:700; color:#334155; font-size:0.95rem;">🏪 {{ store.name }}</span>
         {% endif %}
       </div>
 
@@ -444,11 +452,11 @@
     </div>
     <div class="metric-card">
       <div class="metric-title">Novos Pendentes</div>
-      <div class="metric-value" id="metricNewOrders" style="color:#a5b4fc;">{{ counts.NOVO }}</div>
+      <div class="metric-value" id="metricNewOrders" style="color:#4f46e5;">{{ counts.NOVO }}</div>
     </div>
     <div class="metric-card">
       <div class="metric-title">Em Atendimento</div>
-      <div class="metric-value" id="metricActiveOrders" style="color:#fbbf24;">
+      <div class="metric-value" id="metricActiveOrders" style="color:#d97706;">
         {{ counts.ACEITO|add:counts.EM_PREPARACAO|add:counts.PRONTO|add:counts.SAIU_PARA_ENTREGA }}
       </div>
     </div>
@@ -512,7 +520,7 @@
               {% if order.delivery_type == 'DELIVERY' %}
                 🛵 <strong>Entrega:</strong> {{ order.formatted_delivery_address }}
                 {% if order.reference %}
-                  <div style="color:#cbd5e1; font-size:0.78rem;">📌 Ref: {{ order.reference }}</div>
+                  <div style="color:#64748b; font-size:0.78rem;">📌 Ref: {{ order.reference }}</div>
                 {% endif %}
               {% else %}
                 🛍️ <strong>Retirada no Balcão</strong>
@@ -532,7 +540,7 @@
                     </span>
                   {% endfor %}
                   {% if item.notes %}
-                    <div style="font-size:0.75rem; color:#fde047; font-style:italic;">Obs: "{{ item.notes }}"</div>
+                    <div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "{{ item.notes }}"</div>
                   {% endif %}
                 </div>
                 <span style="font-weight:700;">R$ {{ item.total|floatformat:2 }}</span>
@@ -542,7 +550,7 @@
 
           <!-- Observação Geral -->
           {% if order.notes %}
-            <div style="font-size:0.8rem; background:rgba(253, 224, 71, 0.1); border-left:3px solid #fde047; color:#fef08a; padding:6px 10px; border-radius:4px; margin-bottom:12px;">
+            <div style="font-size:0.8rem; background:#fffbeb; border-left:3px solid #f59e0b; color:#92400e; padding:6px 10px; border-radius:4px; margin-bottom:12px;">
               <strong>Obs Geral:</strong> {{ order.notes }}
             </div>
           {% endif %}
@@ -554,7 +562,7 @@
             <div style="font-size:0.85rem; color:var(--dash-muted);">
               <div>Pagamento: <strong>{{ order.get_payment_method_display }}</strong></div>
               {% if order.change_for %}
-                <div style="color:#fbbf24;">Troco para: R$ {{ order.change_for|floatformat:2 }}</div>
+                <div style="color:#d97706;">Troco para: R$ {{ order.change_for|floatformat:2 }}</div>
               {% endif %}
             </div>
             <div class="order-total-price">
@@ -572,7 +580,7 @@
                 ✕ Recusar
               </button>
             {% elif order.status == 'ACEITO' %}
-              <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#f59e0b; color:#fbbf24;" onclick="updateOrderStatus({{ order.id }}, 'EM_PREPARACAO')">
+              <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#f59e0b; color:#d97706;" onclick="updateOrderStatus({{ order.id }}, 'EM_PREPARACAO')">
                 🍳 Iniciar Preparo
               </button>
               <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus({{ order.id }}, 'CANCELADO')">
@@ -587,7 +595,7 @@
               </button>
             {% elif order.status == 'PRONTO' %}
               {% if order.delivery_type == 'DELIVERY' %}
-                <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#3b82f6; color:#60a5fa;" onclick="updateOrderStatus({{ order.id }}, 'SAIU_PARA_ENTREGA')">
+                <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#3b82f6; color:#2563eb;" onclick="updateOrderStatus({{ order.id }}, 'SAIU_PARA_ENTREGA')">
                   🛵 Despachar Entrega
                 </button>
               {% else %}
@@ -606,7 +614,7 @@
     {% empty %}
       <div id="emptyOrdersMessage" style="grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--dash-muted);">
         <div style="font-size:3rem; margin-bottom:12px;">📭</div>
-        <h3 style="color:#fff; font-size:1.2rem; margin-bottom:8px;">Nenhum pedido encontrado</h3>
+        <h3 style="color:#0f172a; font-size:1.2rem; margin-bottom:8px;">Nenhum pedido encontrado</h3>
         <p style="font-size:0.9rem;">Novos pedidos recebidos no cardápio digital aparecerão aqui em tempo real.</p>
       </div>
     {% endfor %}
@@ -617,7 +625,7 @@
     <div style="font-size:1.8rem;">🔔</div>
     <div>
       <h4 style="margin:0 0 2px 0; font-size:0.95rem; font-weight:700;" id="toastTitle">Novo Pedido Recebido!</h4>
-      <p style="margin:0; font-size:0.82rem; color:#cbd5e1;" id="toastMessage">#100X de Cliente</p>
+      <p style="margin:0; font-size:0.82rem; color:#64748b;" id="toastMessage">#100X de Cliente</p>
     </div>
   </div>
 

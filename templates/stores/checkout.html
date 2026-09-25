@@ -43,17 +43,19 @@
     }
     .form-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
       border-radius: var(--radius-sm);
       padding: 12px 14px;
       color: var(--text-main);
       font-family: inherit;
       font-size: 0.95rem;
+      transition: var(--transition);
     }
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
     }
     .form-row {
       display: grid;
@@ -67,7 +69,7 @@
       margin-bottom: 16px;
     }
     .radio-pill {
-      background: rgba(255, 255, 255, 0.04);
+      background: #f8fafc;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
       padding: 12px;
@@ -75,33 +77,35 @@
       cursor: pointer;
       font-weight: 700;
       font-size: 0.95rem;
+      color: var(--text-main);
       transition: var(--transition);
     }
     .radio-pill.active {
-      background: rgba(99, 102, 241, 0.2);
+      background: #eef2ff;
       border-color: var(--primary);
-      color: #a5b4fc;
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.12);
     }
     .order-summary-item {
       display: flex;
       justify-content: space-between;
       font-size: 0.9rem;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid #f1f5f9;
     }
     .totals-row {
       display: flex;
       justify-content: space-between;
       padding: 6px 0;
       font-size: 0.95rem;
+      color: var(--text-muted);
     }
     .totals-row.grand-total {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #a5b4fc;
+      color: var(--primary);
       border-top: 1px solid var(--border-subtle);
-      margin-top: 10px;
-      padding-top: 12px;
+      padding-top: 10px;
     }
   </style>
 </head>

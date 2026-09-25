@@ -11,19 +11,19 @@
   <link rel="stylesheet" href="{% static 'css/menu.css' %}">
   <style>
     .order-status-card {
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 24px 20px;
       text-align: center;
       margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     }
     .order-number-badge {
       display: inline-block;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid var(--border-focus);
-      color: #a5b4fc;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: var(--primary);
       font-size: 1.15rem;
       font-weight: 800;
       padding: 6px 18px;
@@ -44,49 +44,50 @@
       transition: all 0.3s ease;
     }
     .status-pill-big.NOVO {
-      background: rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-      border: 1px solid var(--border-focus);
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
     }
     .status-pill-big.ACEITO {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
     }
     .status-pill-big.EM_PREPARACAO {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fde68a;
     }
     .status-pill-big.PRONTO {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
     }
     .status-pill-big.SAIU_PARA_ENTREGA {
-      background: rgba(59, 130, 246, 0.2);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.4);
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
     }
     .status-pill-big.CONCLUIDO {
-      background: rgba(16, 185, 129, 0.25);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #6ee7b7;
     }
     .status-pill-big.CANCELADO {
-      background: rgba(244, 63, 94, 0.2);
-      color: #fb7185;
-      border: 1px solid rgba(244, 63, 94, 0.4);
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
     }
 
     /* WhatsApp Card & Button */
     .whatsapp-box {
-      background: linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(18, 140, 126, 0.18));
-      border: 1px solid rgba(37, 211, 102, 0.35);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
       border-radius: var(--radius-lg);
       padding: 20px;
       margin-bottom: 24px;
       text-align: center;
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.08);
     }
     .btn-whatsapp-order {
       display: inline-flex;
@@ -160,7 +161,7 @@
     <!-- WhatsApp Box de Ação Imediata -->
     {% if whatsapp_link %}
     <div class="whatsapp-box">
-      <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:6px; color:#4ade80;">
+      <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:6px; color:#15803d;">
         💬 Envie seu pedido no WhatsApp da Loja
       </h3>
       <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">
@@ -179,11 +180,11 @@
     <div class="feature-card" style="margin-bottom:20px;">
       <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:14px;">📋 Itens Solicitados</h2>
       {% for item in order.items.all %}
-        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f1f5f9;">
           <div>
             <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
             {% if item.selected_options.all %}
-              <div style="font-size:0.8rem; color:#94a3b8; margin-top:3px;">
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;">
                 {% for opt in item.selected_options.all %}
                   + {{ opt.name }}{% if opt.price > 0 %} (R$ {{ opt.price|floatformat:2 }}){% endif %}{% if not forloop.last %}, {% endif %}
                 {% endfor %}
@@ -193,7 +194,7 @@
               <div style="font-size:0.75rem; color:#64748b; font-style:italic;">Obs: "{{ item.notes }}"</div>
             {% endif %}
           </div>
-          <span style="font-weight:700; color:#a5b4fc;">R$ {{ item.total|floatformat:2 }}</span>
+          <span style="font-weight:700; color:var(--text-main);">R$ {{ item.total|floatformat:2 }}</span>
         </div>
       {% endfor %}
 
@@ -208,7 +209,7 @@
           <span>R$ {{ order.delivery_fee|floatformat:2 }}</span>
         </div>
         {% endif %}
-        <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:800; color:#a5b4fc; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:4px;">
+        <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:800; color:var(--primary); border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:4px;">
           <span>Total:</span>
           <span>R$ {{ order.total|floatformat:2 }}</span>
         </div>
@@ -223,15 +224,15 @@
       {% if order.delivery_type == 'DELIVERY' %}
         <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Endereço:</strong> {{ order.formatted_delivery_address }}</p>
         {% if order.reference %}
-          <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;"><strong>Ponto de Ref.:</strong> {{ order.reference }}</p>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"><strong>Ponto de Ref.:</strong> {{ order.reference }}</p>
         {% endif %}
       {% endif %}
       <p style="font-size:0.9rem; margin-bottom:8px;"><strong>Pagamento:</strong> {{ order.get_payment_method_display }}</p>
       {% if order.change_for %}
-        <p style="font-size:0.9rem; margin-bottom:8px; color:#fbbf24;"><strong>Troco para:</strong> R$ {{ order.change_for|floatformat:2 }}</p>
+        <p style="font-size:0.9rem; margin-bottom:8px; color:#d97706;"><strong>Troco para:</strong> R$ {{ order.change_for|floatformat:2 }}</p>
       {% endif %}
       {% if order.notes %}
-        <p style="font-size:0.85rem; color:#94a3b8; margin-top:8px;"><strong>Obs:</strong> {{ order.notes }}</p>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;"><strong>Obs:</strong> {{ order.notes }}</p>
       {% endif %}
     </div>
 

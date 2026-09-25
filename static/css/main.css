@@ -1,26 +1,27 @@
 :root {
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg-dark: #0a0e17;
-  --bg-card: rgba(22, 29, 46, 0.7);
-  --bg-card-hover: rgba(30, 41, 67, 0.85);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-highlight: rgba(99, 102, 241, 0.3);
+  --bg-dark: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-color: #e2e8f0;
+  --border-highlight: rgba(79, 70, 229, 0.25);
   
-  --primary: #6366f1;
-  --primary-glow: rgba(99, 102, 241, 0.4);
+  --primary: #4f46e5;
+  --primary-glow: rgba(79, 70, 229, 0.2);
   --secondary: #ec4899;
   --accent: #10b981;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
 
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 24px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 4px 14px rgba(79, 70, 229, 0.25);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -39,8 +40,8 @@ body {
   flex-direction: column;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.1) 0%, transparent 45%);
+    radial-gradient(circle at 15% 15%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.05) 0%, transparent 45%);
 }
 
 .container {
@@ -57,6 +58,7 @@ body {
   align-items: center;
   padding: 20px 0;
   border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
@@ -118,7 +120,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  background: linear-gradient(135deg, var(--primary), #4338ca);
   color: white;
   box-shadow: 0 4px 14px var(--primary-glow);
 }
@@ -129,14 +131,14 @@ body {
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.04);
+  background: #ffffff;
   color: var(--text-main);
-  border-color: var(--border-color);
+  border: 1px solid #cbd5e1;
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-highlight);
+  background: #f1f5f9;
+  border-color: #94a3b8;
   transform: translateY(-2px);
 }
 
@@ -152,12 +154,12 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 16px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid var(--border-highlight);
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.2);
   border-radius: var(--radius-full);
   font-size: 0.85rem;
   font-weight: 600;
-  color: #a5b4fc;
+  color: #4f46e5;
   margin-bottom: 24px;
 }
 
@@ -167,13 +169,13 @@ body {
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-bottom: 20px;
-  background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+  background: linear-gradient(180deg, #0f172a 30%, #475569 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .hero-title span {
-  background: linear-gradient(135deg, #818cf8, #f472b6);
+  background: linear-gradient(135deg, #4f46e5, #ec4899);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -206,7 +208,7 @@ body {
   border: 1px solid var(--border-color);
   padding: 32px;
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
   transition: var(--transition);
   display: flex;
   flex-direction: column;
@@ -216,21 +218,20 @@ body {
 .feature-card:hover {
   transform: translateY(-4px);
   border-color: var(--border-highlight);
-  background: var(--bg-card-hover);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .feature-icon {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(79, 70, 229, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: #4f46e5;
+  border: 1px solid rgba(79, 70, 229, 0.15);
 }
 
 .feature-title {
@@ -257,8 +258,8 @@ body {
 }
 
 .status-online {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
