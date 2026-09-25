@@ -387,3 +387,63 @@ class MerchantDashboardTests(TestCase):
         response = self.client.get(f'/painel/{self.other_store.slug}/')
         self.assertEqual(response.status_code, 403)
 
+    def test_merchant_store_settings_view_get_and_post(self):
+        """Lojista consegue visualizar e atualizar configurações e identidade visual da loja."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        get_resp = self.client.get(f'/painel/{self.store.slug}/configuracoes/')
+        self.assertEqual(get_resp.status_code, 200)
+        self.assertContains(get_resp, 'Identidade Visual')
+
+        # Atualiza configurações
+        post_resp = self.client.post(f'/painel/{self.store.slug}/configuracoes/', {
+            'name': 'Pizzaria do Bairro Atualizada',
+            'description': 'Nova descrição da pizzaria',
+            'whatsapp': '5511999998888',
+            'phone': '1133334444',
+            'allows_delivery': 'on',
+            'allows_pickup': 'on',
+            'estimated_delivery_time_min': '25',
+            'estimated_delivery_time_max': '50',
+        })
+        self.assertEqual(post_resp.status_code, 200)
+        self.store.refresh_from_db()
+        self.assertEqual(self.store.name, 'Pizzaria do Bairro Atualizada')
+        self.assertEqual(self.store.description, 'Nova descrição da pizzaria')
+
+    def test_merchant_products_crud_lifecycle(self):
+        """Lojista gerencia produtos (criação, listagem e exclusão) via painel."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        cat = Category.objects.create(store=self.store, name="Pizzas Salgadas")
+
+        # 1. Cria produto
+        create_resp = self.client.post(f'/painel/{self.store.slug}/produtos/', {
+            'action': 'create',
+            'name': 'Pizza Margherita Especial',
+            'category': str(cat.id),
+            'price': '45,90',
+            'description': 'Molho de tomate fresco, mussarela e manjericão',
+            'is_active': 'on'
+        })
+        self.assertEqual(create_resp.status_code, 200)
+        product = Product.objects.filter(store=self.store, name='Pizza Margherita Especial').first()
+        self.assertIsNotNone(product)
+        self.assertEqual(product.price, Decimal('45.90'))
+
+        # 2. Toggle status
+        toggle_resp = self.client.post(f'/painel/{self.store.slug}/produtos/', {
+            'action': 'toggle',
+            'product_id': str(product.id)
+        })
+        self.assertEqual(toggle_resp.status_code, 200)
+        product.refresh_from_db()
+        self.assertFalse(product.is_active)
+
+        # 3. Exclui produto
+        del_resp = self.client.post(f'/painel/{self.store.slug}/produtos/', {
+            'action': 'delete',
+            'product_id': str(product.id)
+        })
+        self.assertEqual(del_resp.status_code, 200)
+        self.assertFalse(Product.objects.filter(id=product.id).exists())
+
+

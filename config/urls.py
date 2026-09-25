@@ -13,6 +13,8 @@ from orders.dashboard_views import (
     merchant_logout_view,
     merchant_dashboard_root_view,
     merchant_dashboard_store_view,
+    merchant_products_view,
+    merchant_store_settings_view,
 )
 from whatsapp.views import order_whatsapp_redirect_view
 
@@ -32,6 +34,8 @@ urlpatterns = [
     path('painel/logout/', merchant_logout_view, name='merchant_logout'),
     path('painel/', merchant_dashboard_root_view, name='merchant_dashboard_root'),
     path('painel/<slug:store_slug>/', merchant_dashboard_store_view, name='merchant_dashboard_store'),
+    path('painel/<slug:store_slug>/produtos/', merchant_products_view, name='merchant_products'),
+    path('painel/<slug:store_slug>/configuracoes/', merchant_store_settings_view, name='merchant_store_settings'),
 
     # Página institucional da plataforma
     path('', include('core.urls', namespace='core')),

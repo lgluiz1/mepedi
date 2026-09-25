@@ -1,0 +1,682 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cardápio & Produtos com Fotos | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --dash-bg: #f8fafc;
+      --dash-header: #ffffff;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
+    }
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .dash-header {
+      background: var(--dash-header);
+      border-bottom: 1px solid var(--dash-card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+    .header-content {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.25rem;
+      text-decoration: none;
+      color: #0f172a;
+    }
+    .store-select {
+      background: #f1f5f9;
+      border: 1px solid var(--dash-card-border);
+      color: #0f172a;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .dash-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-tab-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .nav-tab-link:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+    .nav-tab-link.active {
+      color: #4f46e5;
+      background: #eef2ff;
+    }
+
+    .btn-dash {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      font-family: inherit;
+    }
+    .btn-dash-outline {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    .btn-dash-outline:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .products-container {
+      max-width: 1200px;
+      margin: 30px auto 80px auto;
+      padding: 0 20px;
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .product-thumb-table {
+      width: 54px;
+      height: 54px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .products-table-card {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    table.dash-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    table.dash-table th {
+      background: #f8fafc;
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    table.dash-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      font-size: 0.92rem;
+    }
+    table.dash-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.dash-table tr:hover {
+      background: #fafafa;
+    }
+
+    .badge-cat {
+      background: #eef2ff;
+      color: #4f46e5;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .status-dot.active {
+      color: #059669;
+    }
+    .status-dot.inactive {
+      color: #dc2626;
+    }
+
+    /* Modal Form */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      border: 1px solid #e2e8f0;
+      animation: modalZoom 0.2s ease-out;
+    }
+    @keyframes modalZoom {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      color: #0f172a;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Superior -->
+  <header class="dash-header">
+    <div class="header-content">
+      <div class="brand-section">
+        <a href="/painel/" class="brand-logo">
+          <span class="logo-badge" style="margin:0; padding:4px 10px; font-size:0.95rem;">IA</span>
+          <span>Painel do Lojista</span>
+        </a>
+
+        {% if user_stores|length > 1 %}
+          <select class="store-select" onchange="window.location.href='/painel/' + this.value + '/produtos/'">
+            {% for s in user_stores %}
+              <option value="{{ s.slug }}" {% if s.slug == store.slug %}selected{% endif %}>
+                🏪 {{ s.name }}
+              </option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <span style="font-weight:700; color:#334155; font-size:0.95rem;">🏪 {{ store.name }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Links de Navegação Principal do Painel -->
+      <nav class="dash-nav-links">
+        <a href="/painel/{{ store.slug }}/" class="nav-tab-link">
+          📋 Pedidos
+        </a>
+        <a href="/painel/{{ store.slug }}/produtos/" class="nav-tab-link active">
+          🍕 Produtos & Fotos
+        </a>
+        <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link">
+          ⚙️ Capa & Logo
+        </a>
+      </nav>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/{{ store.slug }}/" target="_blank" class="btn-dash btn-dash-outline">
+          🌐 Ver Cardápio
+        </a>
+        <a href="/painel/logout/" class="btn-dash btn-dash-outline" style="color:#fb7185;">
+          Sair
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="products-container">
+    {% if success_msg %}
+      <div class="alert-success">
+        <span>✅</span>
+        <span>{{ success_msg }}</span>
+      </div>
+    {% endif %}
+
+    {% if error_msg %}
+      <div class="alert-error">
+        <span>❌ {{ error_msg }}</span>
+      </div>
+    {% endif %}
+
+    <!-- Barra de Ações & Botão Novo Produto -->
+    <div class="actions-bar">
+      <div>
+        <h1 style="font-size:1.6rem; font-weight:800; margin:0 0 4px 0; color:#0f172a;">Produtos do Cardápio</h1>
+        <p style="color:#64748b; font-size:0.9rem; margin:0;">
+          Gerencie os produtos da sua loja com fotos, descrições e preços em tempo real.
+        </p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-outline" onclick="openModal('modalCreateCategory')">
+          + Nova Categoria
+        </button>
+        <button type="button" class="btn btn-primary" onclick="openCreateProductModal()">
+          + Cadastrar Produto
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabela de Produtos -->
+    <div class="products-table-card">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th style="width:70px;">Foto</th>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th>Preço</th>
+            <th>Status</th>
+            <th style="text-align:right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td>
+                {% if product.image %}
+                  <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-thumb-table">
+                {% else %}
+                  <div class="product-thumb-table" title="Sem foto">🍽️</div>
+                {% endif %}
+              </td>
+              <td>
+                <strong style="color:#0f172a; font-size:1rem;">{{ product.name }}</strong>
+                {% if product.description %}
+                  <p style="color:#64748b; font-size:0.82rem; margin:3px 0 0 0; max-width:380px;">{{ product.description }}</p>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge-cat">{{ product.category.name }}</span>
+              </td>
+              <td>
+                <strong style="color:#4f46e5; font-size:1.05rem;">R$ {{ product.price|floatformat:2 }}</strong>
+              </td>
+              <td>
+                <form method="post" action="" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="product_id" value="{{ product.id }}">
+                  <button type="submit" style="background:transparent; border:none; cursor:pointer;" title="Clique para alterar status">
+                    {% if product.is_active %}
+                      <span class="status-dot active">🟢 Ativo</span>
+                    {% else %}
+                      <span class="status-dot inactive">🔴 Pausado</span>
+                    {% endif %}
+                  </button>
+                </form>
+              </td>
+              <td style="text-align:right;">
+                <div style="display:inline-flex; gap:8px;">
+                  <button type="button" class="btn-dash btn-dash-outline" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
+                    ✏️ Editar
+                  </button>
+                  <form method="post" action="" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto &quot;{{ product.name|escapejs }}&quot;?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <button type="submit" class="btn-dash btn-dash-outline" style="color:#ef4444;" title="Excluir Produto">
+                      🗑️
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="text-align:center; padding:50px 20px; color:#64748b;">
+                <div style="font-size:3rem; margin-bottom:10px;">🍽️</div>
+                <h3 style="color:#0f172a; font-size:1.2rem; margin-bottom:6px;">Nenhum produto cadastrado</h3>
+                <p style="font-size:0.9rem; margin-bottom:16px;">Adicione produtos com fotos e preços para montar o seu cardápio digital.</p>
+                <button type="button" class="btn btn-primary" onclick="openCreateProductModal()">
+                  + Cadastrar Primeiro Produto
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Modal: Cadastrar Novo Produto -->
+  <div id="modalCreateProduct" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-size:1.3rem; font-weight:800; margin:0; color:#0f172a;">Novo Produto</h2>
+        <button type="button" onclick="closeModal('modalCreateProduct')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+
+        <!-- Upload de Foto do Produto com Preview -->
+        <div class="form-group">
+          <label class="form-label">Foto do Produto</label>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <div id="createImgPreviewBox" style="width:70px; height:70px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+              <span id="createImgPlaceholder" style="font-size:1.8rem;">📷</span>
+              <img id="createImgPreview" src="" alt="" style="width:100%; height:100%; object-fit:cover; display:none;">
+            </div>
+            <div style="flex:1;">
+              <input type="file" name="image" id="createProductImageInput" accept="image/*" class="form-control" style="padding:7px;" onchange="previewProductImg(this, 'createImgPreview', 'createImgPlaceholder')">
+              <small style="color:#64748b; font-size:0.75rem;">Formatos aceitos: JPG, PNG, WEBP</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="createName">Nome do Produto *</label>
+          <input type="text" id="createName" name="name" class="form-control" placeholder="Ex: Pizza Calabresa Especial" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="createCategory">Categoria *</label>
+            <select id="createCategory" name="category" class="form-control" required>
+              {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% empty %}
+                <option value="">Nenhuma categoria cadastrada</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="createPrice">Preço Base (R$) *</label>
+            <input type="text" id="createPrice" name="price" class="form-control" placeholder="48,00" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="createDesc">Descrição / Ingredientes</label>
+          <textarea id="createDesc" name="description" class="form-control" rows="3" placeholder="Molho de tomate artesanal, calabresa fatiada, cebola roxa e azeitonas..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" name="is_active" checked>
+            <span>Disponível para venda no cardápio</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateProduct')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Produto -->
+  <div id="modalEditProduct" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-size:1.3rem; font-weight:800; margin:0; color:#0f172a;">Editar Produto</h2>
+        <button type="button" onclick="closeModal('modalEditProduct')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" id="editProductId" name="product_id" value="">
+
+        <!-- Upload de Foto do Produto com Preview -->
+        <div class="form-group">
+          <label class="form-label">Foto do Produto</label>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <div id="editImgPreviewBox" style="width:70px; height:70px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+              <span id="editImgPlaceholder" style="font-size:1.8rem;">📷</span>
+              <img id="editImgPreview" src="" alt="" style="width:100%; height:100%; object-fit:cover; display:none;">
+            </div>
+            <div style="flex:1;">
+              <input type="file" name="image" id="editProductImageInput" accept="image/*" class="form-control" style="padding:7px;" onchange="previewProductImg(this, 'editImgPreview', 'editImgPlaceholder')">
+              <label style="font-size:0.75rem; color:#ef4444; margin-top:4px; display:inline-block; cursor:pointer;">
+                <input type="checkbox" name="remove_image" value="1"> Remover foto deste produto
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="editName">Nome do Produto *</label>
+          <input type="text" id="editName" name="name" class="form-control" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="editCategory">Categoria *</label>
+            <select id="editCategory" name="category" class="form-control" required>
+              {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editPrice">Preço Base (R$) *</label>
+            <input type="text" id="editPrice" name="price" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="editDesc">Descrição / Ingredientes</label>
+          <textarea id="editDesc" name="description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" id="editIsActive" name="is_active">
+            <span>Disponível para venda no cardápio</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEditProduct')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Criar Nova Categoria -->
+  <div id="modalCreateCategory" class="modal-backdrop">
+    <div class="modal-box" style="max-width:420px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-size:1.2rem; font-weight:800; margin:0; color:#0f172a;">Nova Categoria</h2>
+        <button type="button" onclick="closeModal('modalCreateCategory')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_category">
+        <div class="form-group">
+          <label class="form-label" for="categoryName">Nome da Categoria *</label>
+          <input type="text" id="categoryName" name="category_name" class="form-control" placeholder="Ex: Pizzas Doces, Porções, Bebidas" required autofocus>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateCategory')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Categoria</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function openCreateProductModal() {
+      // Se não há categorias, convida a criar categoria primeiro
+      const catSelect = document.getElementById('createCategory');
+      if (!catSelect || catSelect.options.length === 0 || !catSelect.value) {
+        alert("Cadastre pelo menos uma categoria antes de adicionar produtos.");
+        openModal('modalCreateCategory');
+        return;
+      }
+      openModal('modalCreateProduct');
+    }
+
+    function openEditModal(id, name, catId, price, desc, isActive, imageUrl) {
+      document.getElementById('editProductId').value = id;
+      document.getElementById('editName').value = name;
+      document.getElementById('editCategory').value = catId;
+      document.getElementById('editPrice').value = parseFloat(price).toFixed(2).replace('.', ',');
+      document.getElementById('editDesc').value = desc;
+      document.getElementById('editIsActive').checked = isActive;
+
+      const imgEl = document.getElementById('editImgPreview');
+      const placeholderEl = document.getElementById('editImgPlaceholder');
+      if (imageUrl) {
+        imgEl.src = imageUrl;
+        imgEl.style.display = 'block';
+        placeholderEl.style.display = 'none';
+      } else {
+        imgEl.style.display = 'none';
+        placeholderEl.style.display = 'block';
+      }
+
+      openModal('modalEditProduct');
+    }
+
+    function previewProductImg(input, imgId, placeholderId) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imgEl = document.getElementById(imgId);
+          const placeholderEl = document.getElementById(placeholderId);
+          imgEl.src = e.target.result;
+          imgEl.style.display = 'block';
+          if (placeholderEl) placeholderEl.style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+  </script>
+
+</body>
+</html>

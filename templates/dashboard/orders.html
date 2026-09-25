@@ -77,7 +77,32 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+    .dash-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+    .nav-tab-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .nav-tab-link:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+    .nav-tab-link.active {
+      color: #4f46e5;
+      background: #eef2ff;
+    }
+
     .btn-dash {
       display: inline-flex;
       align-items: center;
@@ -399,6 +424,19 @@
           <span style="font-weight:700; color:#334155; font-size:0.95rem;">🏪 {{ store.name }}</span>
         {% endif %}
       </div>
+
+      <!-- Links de Navegação Principal do Painel -->
+      <nav class="dash-nav-links">
+        <a href="/painel/{{ store.slug }}/" class="nav-tab-link active">
+          📋 Pedidos
+        </a>
+        <a href="/painel/{{ store.slug }}/produtos/" class="nav-tab-link">
+          🍕 Produtos & Fotos
+        </a>
+        <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link">
+          ⚙️ Capa & Logo
+        </a>
+      </nav>
 
       <div class="status-actions">
         <!-- Indicador de Status da Loja -->

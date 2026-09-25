@@ -24,36 +24,50 @@
     {{ products_catalog_json|safe }}
   </script>
 
-  <!-- Header da Loja -->
-  <header class="store-hero">
-    <div class="store-header-content">
-      {% if store.logo %}
-        <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-logo">
-      {% else %}
-        <div class="store-logo">🏬</div>
-      {% endif %}
+  <!-- Header com Capa / Banner e Logo da Loja -->
+  <header class="store-hero-container">
+    {% if store.banner %}
+      <div class="store-cover-banner" style="background-image: url('{{ store.banner.url }}');">
+        <div class="store-cover-overlay"></div>
+      </div>
+    {% else %}
+      <div class="store-cover-banner fallback-banner">
+        <div class="store-cover-overlay"></div>
+      </div>
+    {% endif %}
 
-      <div class="store-info">
-        <h1 class="store-title">{{ store.name }}</h1>
-        <div class="store-meta">
-          {% if store.is_paused %}
-            <span class="status-badge paused">⏸️ Pedidos Pausados</span>
-          {% elif is_open %}
-            <span class="status-badge open">🟢 Aberto Agora</span>
+    <div class="store-hero-card">
+      <div class="store-header-content">
+        <div class="store-logo-wrapper">
+          {% if store.logo %}
+            <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-logo">
           {% else %}
-            <span class="status-badge closed">🔴 Fechado</span>
-          {% endif %}
-
-          {% if store.allows_delivery %}
-            <span>🛵 Delivery (~{{ store.estimated_delivery_time_min }}-{{ store.estimated_delivery_time_max }} min)</span>
-          {% endif %}
-          {% if store.allows_pickup %}
-            <span>🛍️ Retirada</span>
+            <div class="store-logo">🍕</div>
           {% endif %}
         </div>
-        {% if store.description %}
-          <p style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">{{ store.description }}</p>
-        {% endif %}
+
+        <div class="store-info">
+          <h1 class="store-title">{{ store.name }}</h1>
+          <div class="store-meta">
+            {% if store.is_paused %}
+              <span class="status-badge paused">⏸️ Pedidos Pausados</span>
+            {% elif is_open %}
+              <span class="status-badge open">🟢 Aberto Agora</span>
+            {% else %}
+              <span class="status-badge closed">🔴 Fechado</span>
+            {% endif %}
+
+            {% if store.allows_delivery %}
+              <span>🛵 Delivery (~{{ store.estimated_delivery_time_min }}-{{ store.estimated_delivery_time_max }} min)</span>
+            {% endif %}
+            {% if store.allows_pickup %}
+              <span>🛍️ Retirada</span>
+            {% endif %}
+          </div>
+          {% if store.description %}
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:6px; line-height:1.4;">{{ store.description }}</p>
+          {% endif %}
+        </div>
       </div>
     </div>
   </header>
@@ -118,6 +132,11 @@
         <button type="button" id="btn-close-modal" class="btn-close-modal">&times;</button>
       </div>
       <div class="modal-body">
+        <!-- Foto em destaque do Produto no Modal -->
+        <div id="modal-product-image-container" style="display:none; margin-bottom:12px;">
+          <img id="modal-product-img" src="" alt="" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; border:1px solid var(--border-subtle);">
+        </div>
+
         <div class="modal-product-summary">
           <div>
             <p id="modal-product-desc" style="font-size:0.88rem; color:var(--text-muted);"></p>

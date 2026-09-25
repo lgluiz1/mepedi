@@ -49,42 +49,88 @@ body.menu-page {
   line-height: 1.5;
 }
 
-/* Header da Loja */
-.store-hero {
+/* Header com Capa / Banner da Loja */
+.store-hero-container {
   position: relative;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 24px 16px 20px;
+  background: #ffffff;
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.store-cover-banner {
+  width: 100%;
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  background-repeat: no-repeat;
+}
+
+.store-cover-banner.fallback-banner {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #ddd6fe 100%);
+}
+
+.store-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.35) 100%);
+}
+
+.store-hero-card {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px 20px;
+  position: relative;
 }
 
 .store-header-content {
-  max-width: 720px;
-  margin: 0 auto;
   display: flex;
-  gap: 16px;
-  align-items: center;
+  gap: 18px;
+  align-items: flex-end;
+  margin-top: -45px;
+}
+
+.store-logo-wrapper {
+  flex-shrink: 0;
+  z-index: 5;
 }
 
 .store-logo {
-  width: 76px;
-  height: 76px;
+  width: 90px;
+  height: 90px;
   border-radius: var(--radius-md);
   object-fit: cover;
   background: #ffffff;
-  border: 2px solid var(--border-subtle);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  border: 4px solid #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 2.2rem;
   color: var(--primary);
-  flex-shrink: 0;
 }
 
 .store-info {
   flex: 1;
   min-width: 0;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .store-cover-banner {
+    height: 135px;
+  }
+  .store-header-content {
+    margin-top: -38px;
+    gap: 12px;
+  }
+  .store-logo {
+    width: 74px;
+    height: 74px;
+    font-size: 1.8rem;
+  }
+  .store-title {
+    font-size: 1.25rem !important;
+  }
 }
 
 .store-title {

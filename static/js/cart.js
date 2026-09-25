@@ -160,6 +160,19 @@ class IAPedidosCart {
     document.getElementById('modal-product-desc').textContent = product.description || '';
     document.getElementById('modal-product-base-price').textContent = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
 
+    // Foto do produto no modal
+    const imgContainer = document.getElementById('modal-product-image-container');
+    const imgEl = document.getElementById('modal-product-img');
+    if (imgContainer && imgEl) {
+      if (product.image_url) {
+        imgEl.src = product.image_url;
+        imgEl.alt = product.name;
+        imgContainer.style.display = 'block';
+      } else {
+        imgContainer.style.display = 'none';
+      }
+    }
+
     const notesInput = document.getElementById('modal-notes-input');
     if (notesInput) notesInput.value = '';
 
