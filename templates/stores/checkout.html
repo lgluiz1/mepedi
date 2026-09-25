@@ -244,9 +244,12 @@
   <script>
     const storeSlug = "{{ store.slug }}";
     const storageKey = `ia_cart_${storeSlug}`;
+    const storeFixedFee = parseFloat("{{ store.fixed_delivery_fee|stringformat:'.2f'|default:'0.00' }}".replace(',', '.')) || 0;
+    const storeMinOrder = parseFloat("{{ store.minimum_order_value|stringformat:'.2f'|default:'0.00' }}".replace(',', '.')) || 0;
+
     let cartItems = [];
     let currentDeliveryType = "{% if store.allows_delivery %}DELIVERY{% else %}PICKUP{% endif %}";
-    let currentDeliveryFee = 0;
+    let currentDeliveryFee = currentDeliveryType === 'DELIVERY' ? storeFixedFee : 0;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadCartItems();
@@ -303,6 +306,8 @@
         if (btnPic) btnPic.classList.remove('active');
         if (addrFields) addrFields.style.display = 'block';
         if (feeRow) feeRow.style.display = 'flex';
+        currentDeliveryFee = storeFixedFee;
+        updateTotals();
         recalculateDeliveryFee();
       } else {
         if (btnDel) btnDel.classList.remove('active');
@@ -356,7 +361,17 @@
 
       const total = subtotal + (currentDeliveryType === 'DELIVERY' ? currentDeliveryFee : 0);
       document.getElementById('summary-subtotal').textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
-      document.getElementById('summary-fee').textContent = `R$ ${currentDeliveryFee.toFixed(2).replace('.', ',')}`;
+      
+      if (currentDeliveryType === 'DELIVERY') {
+        if (currentDeliveryFee > 0) {
+          document.getElementById('summary-fee').textContent = `R$ ${currentDeliveryFee.toFixed(2).replace('.', ',')}`;
+        } else {
+          document.getElementById('summary-fee').textContent = `Grátis (R$ 0,00)`;
+        }
+      } else {
+        document.getElementById('summary-fee').textContent = `R$ 0,00`;
+      }
+      
       document.getElementById('summary-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
     }
 
@@ -364,6 +379,19 @@
       const btn = document.getElementById('btn-submit-order');
       btn.disabled = true;
       btn.textContent = "Processando Pedido...";
+
+      // Validação de Pedido Mínimo
+      const currentSubtotal = cartItems.reduce((acc, item) => {
+        const opts = item.options.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+        return acc + ((Number(item.price) + opts) * item.quantity);
+      }, 0);
+
+      if (storeMinOrder > 0 && currentSubtotal < storeMinOrder) {
+        alert(`O valor mínimo para pedidos neste estabelecimento é de R$ ${storeMinOrder.toFixed(2).replace('.', ',')}.`);
+        btn.disabled = false;
+        btn.textContent = "Confirmar Pedido ➔";
+        return;
+      }
 
       const phone = document.getElementById('cust-phone').value.trim();
       const name = document.getElementById('cust-name').value.trim();

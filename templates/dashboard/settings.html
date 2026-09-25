@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Identidade Visual & Capa | {{ store.name }}</title>
+  <title>Configurações da Loja | {{ store.name }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -336,7 +336,7 @@
           🍕 Produtos & Fotos
         </a>
         <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link active">
-          ⚙️ Capa & Logo
+          ⚙️ Configurações
         </a>
       </nav>
 
@@ -482,6 +482,24 @@
               <input type="number" name="estimated_delivery_time_max" class="form-control" value="{{ store.estimated_delivery_time_max }}" style="width:80px;" placeholder="60">
               <span style="color:#64748b; font-size:0.85rem;">min</span>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="minOrderValue">Valor Mínimo do Pedido (R$)</label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; color:#64748b; font-size:0.95rem;">R$</span>
+              <input type="number" id="minOrderValue" name="minimum_order_value" class="form-control" value="{{ store.minimum_order_value|stringformat:'.2f' }}" step="0.50" min="0" style="max-width:140px;" placeholder="0.00">
+            </div>
+            <small style="color:#64748b; font-size:0.78rem;">Valor mínimo dos itens para liberar a compra. Deixe 0.00 para não exigir valor mínimo.</small>
+          </div>
+
+          <div class="form-group" id="fixedDeliveryFeeBox">
+            <label class="form-label" for="fixedDeliveryFee">Taxa Fixa de Entrega (R$)</label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; color:#64748b; font-size:0.95rem;">R$</span>
+              <input type="number" id="fixedDeliveryFee" name="fixed_delivery_fee" class="form-control" value="{{ store.fixed_delivery_fee|stringformat:'.2f' }}" step="0.50" min="0" style="max-width:140px;" placeholder="0.00">
+            </div>
+            <small style="color:#64748b; font-size:0.78rem;">Frete fixo cobrado por pedido de delivery. Se for 0.00, a entrega será grátis.</small>
           </div>
         </div>
       </div>

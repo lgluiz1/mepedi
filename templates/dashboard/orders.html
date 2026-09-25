@@ -513,7 +513,7 @@
           🍕 Produtos & Fotos
         </a>
         <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link">
-          ⚙️ Capa & Logo
+          ⚙️ Configurações
         </a>
       </nav>
 
@@ -700,6 +700,11 @@
           <div class="order-totals-box">
             <div style="font-size:0.85rem; color:var(--dash-muted);">
               <div>Pagamento: <strong>{{ order.get_payment_method_display }}</strong></div>
+              {% if order.delivery_fee > 0 %}
+                <div style="color:#2563eb; font-size:0.8rem; font-weight:600;">Frete: R$ {{ order.delivery_fee|floatformat:2 }}</div>
+              {% elif order.delivery_type == 'DELIVERY' %}
+                <div style="color:#16a34a; font-size:0.8rem; font-weight:600;">Frete: Grátis</div>
+              {% endif %}
               {% if order.change_for %}
                 <div style="color:#d97706;">Troco para: R$ {{ order.change_for|floatformat:2 }}</div>
               {% endif %}
@@ -850,6 +855,11 @@
                 <div class="receipt-row">
                   <span>Taxa de Entrega:</span>
                   <span>R$ {{ order.delivery_fee|floatformat:2 }}</span>
+                </div>
+              {% elif order.delivery_type == 'DELIVERY' %}
+                <div class="receipt-row">
+                  <span>Taxa de Entrega:</span>
+                  <span>Grátis (R$ 0,00)</span>
                 </div>
               {% endif %}
               <div class="receipt-row bold total-row">

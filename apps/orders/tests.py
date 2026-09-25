@@ -394,7 +394,7 @@ class MerchantDashboardTests(TestCase):
         self.assertEqual(get_resp.status_code, 200)
         self.assertContains(get_resp, 'Identidade Visual')
 
-        # Atualiza configurações
+        # Atualiza configurações com pedido mínimo e taxa fixa de entrega
         post_resp = self.client.post(f'/painel/{self.store.slug}/configuracoes/', {
             'name': 'Pizzaria do Bairro Atualizada',
             'description': 'Nova descrição da pizzaria',
@@ -404,11 +404,15 @@ class MerchantDashboardTests(TestCase):
             'allows_pickup': 'on',
             'estimated_delivery_time_min': '25',
             'estimated_delivery_time_max': '50',
+            'minimum_order_value': '35,50',
+            'fixed_delivery_fee': '7,90',
         })
         self.assertEqual(post_resp.status_code, 200)
         self.store.refresh_from_db()
         self.assertEqual(self.store.name, 'Pizzaria do Bairro Atualizada')
         self.assertEqual(self.store.description, 'Nova descrição da pizzaria')
+        self.assertEqual(self.store.minimum_order_value, Decimal('35.50'))
+        self.assertEqual(self.store.fixed_delivery_fee, Decimal('7.90'))
 
     def test_merchant_products_crud_lifecycle(self):
         """Lojista gerencia produtos (criação, listagem e exclusão) via painel."""

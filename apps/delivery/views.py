@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -93,7 +94,18 @@ class PublicCalculateDeliveryFeeView(APIView):
 
         neighborhood = serializer.validated_data.get('neighborhood', '').strip()
 
-        # Procura nas zonas ativas da loja se alguma atende este bairro
+        # 1. Se a loja possui taxa fixa de entrega positiva configurada:
+        if store.fixed_delivery_fee and store.fixed_delivery_fee > Decimal('0.00'):
+            return Response({
+                "matched": True,
+                "zone_id": None,
+                "zone_name": "Taxa Fixa de Entrega",
+                "delivery_fee": str(store.fixed_delivery_fee),
+                "estimated_time_min": store.estimated_delivery_time_min,
+                "estimated_time_max": store.estimated_delivery_time_max
+            })
+
+        # 2. Procura nas zonas ativas da loja se alguma atende este bairro
         zones = DeliveryZone.objects.filter(store=store, is_active=True)
         matched_zone = None
         for zone in zones:
@@ -111,7 +123,7 @@ class PublicCalculateDeliveryFeeView(APIView):
                 "estimated_time_max": matched_zone.estimated_time_max
             })
 
-        # Se não houver zona específica encontrada, retorna a primeira zona geral ou informa indisponível
+        # 3. Se não houver zona específica encontrada, retorna a primeira zona geral ou informa indisponível
         default_zone = zones.first()
         if default_zone:
             return Response({
@@ -121,6 +133,17 @@ class PublicCalculateDeliveryFeeView(APIView):
                 "delivery_fee": str(default_zone.fee),
                 "estimated_time_min": default_zone.estimated_time_min,
                 "estimated_time_max": default_zone.estimated_time_max
+            })
+
+        # 4. Se a loja não possui zonas cadastradas e fixed_delivery_fee é 0.00, entrega grátis!
+        if store.allows_delivery:
+            return Response({
+                "matched": True,
+                "zone_id": None,
+                "zone_name": "Entrega Grátis",
+                "delivery_fee": "0.00",
+                "estimated_time_min": store.estimated_delivery_time_min,
+                "estimated_time_max": store.estimated_delivery_time_max
             })
 
         return Response({

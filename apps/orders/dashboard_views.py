@@ -162,6 +162,10 @@ def merchant_store_settings_view(request, store_slug):
         state = request.POST.get('state', '').strip().upper()
         postal_code = request.POST.get('postal_code', '').strip()
 
+        # Valores Comerciais e Frete
+        min_order_raw = request.POST.get('minimum_order_value', '0').strip().replace('R$', '').replace(' ', '').replace(',', '.')
+        fixed_fee_raw = request.POST.get('fixed_delivery_fee', '0').strip().replace('R$', '').replace(' ', '').replace(',', '.')
+
         if not name or not whatsapp:
             error_msg = "Nome do estabelecimento e WhatsApp são campos obrigatórios."
         else:
@@ -179,6 +183,16 @@ def merchant_store_settings_view(request, store_slug):
             current_store.postal_code = postal_code
             if receipt_msg:
                 current_store.thermal_receipt_message = receipt_msg
+
+            try:
+                current_store.minimum_order_value = Decimal(min_order_raw) if min_order_raw else Decimal('0.00')
+            except Exception:
+                pass
+
+            try:
+                current_store.fixed_delivery_fee = Decimal(fixed_fee_raw) if fixed_fee_raw else Decimal('0.00')
+            except Exception:
+                pass
 
             try:
                 current_store.estimated_delivery_time_min = int(time_min)

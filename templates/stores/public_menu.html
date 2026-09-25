@@ -65,12 +65,21 @@
               </div>
             {% endif %}
 
-            <span style="font-weight:700; color:#334155; font-size:0.85rem;">
-              Pedido mínimo: R$ {{ store.minimum_order_value|floatformat:2 }}
-            </span>
+            {% if store.minimum_order_value > 0 %}
+              <span style="font-weight:700; color:#334155; font-size:0.85rem;">
+                Pedido mínimo: R$ {{ store.minimum_order_value|floatformat:2 }}
+              </span>
+            {% endif %}
 
             {% if store.allows_delivery %}
-              <span style="font-size:0.82rem; color:#64748b;">🛵 Delivery (~{{ store.estimated_delivery_time_min }}-{{ store.estimated_delivery_time_max }} min)</span>
+              <span style="font-size:0.82rem; color:#64748b;">
+                🛵 Delivery (~{{ store.estimated_delivery_time_min }}-{{ store.estimated_delivery_time_max }} min)
+                {% if store.fixed_delivery_fee > 0 %}
+                  • <strong>Taxa: R$ {{ store.fixed_delivery_fee|floatformat:2 }}</strong>
+                {% else %}
+                  • <strong style="color:#16a34a;">Grátis</strong>
+                {% endif %}
+              </span>
             {% endif %}
             {% if store.allows_pickup %}
               <span style="font-size:0.82rem; color:#64748b;">🛍️ Retirada</span>

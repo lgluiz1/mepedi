@@ -98,17 +98,20 @@ class OrderService:
         # 5. Cálculo do Frete
         delivery_fee = Decimal('0.00')
         if delivery_type == Order.TYPE_DELIVERY:
-            neighborhood = address_payload.get('neighborhood', '').strip()
-            zones = DeliveryZone.objects.filter(store=store, is_active=True)
-            matched_zone = None
-            for zone in zones:
-                if zone.match_neighborhood(neighborhood):
-                    matched_zone = zone
-                    break
-            if matched_zone:
-                delivery_fee = matched_zone.fee
-            elif zones.exists():
-                delivery_fee = zones.first().fee
+            if hasattr(store, 'fixed_delivery_fee') and store.fixed_delivery_fee is not None and store.fixed_delivery_fee > Decimal('0.00'):
+                delivery_fee = store.fixed_delivery_fee
+            else:
+                neighborhood = address_payload.get('neighborhood', '').strip()
+                zones = DeliveryZone.objects.filter(store=store, is_active=True)
+                matched_zone = None
+                for zone in zones:
+                    if zone.match_neighborhood(neighborhood):
+                        matched_zone = zone
+                        break
+                if matched_zone:
+                    delivery_fee = matched_zone.fee
+                elif zones.exists():
+                    delivery_fee = zones.first().fee
 
         # 6. Criação do cabeçalho inicial do Pedido
         order = Order(

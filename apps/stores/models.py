@@ -116,6 +116,13 @@ class Store(TimeStampedModel):
         _('Aceita Retirada no Local'),
         default=True
     )
+    fixed_delivery_fee = models.DecimalField(
+        _('Taxa Fixa de Entrega (R$)'),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=_('Valor fixo cobrado por entrega. Deixe 0.00 para entrega grátis.')
+    )
 
     # Operação de Cozinha e Cupom
     preparation_time_minutes = models.PositiveIntegerField(
