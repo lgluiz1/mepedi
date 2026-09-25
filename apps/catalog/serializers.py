@@ -61,11 +61,11 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         category = attrs.get('category') or getattr(self.instance, 'category', None)
-        store = attrs.get('store') or getattr(self.instance, 'store', None)
+        store = self.context.get('store') or attrs.get('store') or getattr(self.instance, 'store', None)
 
         if category and store and category.store_id != store.id:
             raise serializers.ValidationError({
-                "category": "A categoria selecionada não pertence à loja especificada."
+                "category": "A categoria selecionada não pertence a esta loja."
             })
         return attrs
 

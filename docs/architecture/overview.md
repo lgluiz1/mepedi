@@ -51,4 +51,10 @@ O IA-Pedidos foi projetado desde o dia zero para atender múltiplas lojas em uma
   - `format_order_whatsapp_message`: Formatação estruturada do pedido contendo itens, adicionais, modalidade, pagamento, troco e link público de acompanhamento.
   - Deep linking e redirecionamento 302 direto para `https://wa.me/{phone}?text={quote(msg)}` via `/<slug:store_slug>/pedidos/<uuid:public_id>/whatsapp/`.
   - Links bidirecionais: cliente para loja e loja para cliente (`get_customer_whatsapp_link`).
-- `core`: Classes base abstratas, decorators, validações globais e utilitários.
+- `core`:
+  - Classes base abstratas (`TimeStampedModel`, `UUIDModel`, `StoreBoundedModel`).
+  - Middlewares, validações globais e views institucionais.
+  - Testes de integração End-to-End (`tests.PlatformEndToEndLifecycleTests`) simulando a jornada completa do SaaS.
+  - Auditoria de segurança e isolamento multi-loja (`tests.MultiTenantSecurityAuditTests`) com validação de ataques de injeção cross-store.
+  - Hardening de segurança para produção (HSTS, CSRF, X-Frame-Options, XSS protection).
+

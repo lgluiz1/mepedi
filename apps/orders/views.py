@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from django.shortcuts import get_object_or_404, render
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from stores.models import Store
 from .models import Order
@@ -58,16 +59,20 @@ class PublicCreateOrderView(APIView):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-        order = OrderService.create_order(
-            store=store,
-            customer_payload=data['customer'],
-            delivery_type=data['delivery_type'],
-            address_payload=data.get('address'),
-            payment_method=data.get('payment_method', 'PIX'),
-            change_for=data.get('change_for'),
-            items_payload=data['items'],
-            order_notes=data.get('notes', '')
-        )
+        try:
+            order = OrderService.create_order(
+                store=store,
+                customer_payload=data['customer'],
+                delivery_type=data['delivery_type'],
+                address_payload=data.get('address'),
+                payment_method=data.get('payment_method', 'PIX'),
+                change_for=data.get('change_for'),
+                items_payload=data['items'],
+                order_notes=data.get('notes', '')
+            )
+        except DjangoValidationError as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             OrderDetailSerializer(order).data,
