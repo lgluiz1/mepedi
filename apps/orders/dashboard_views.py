@@ -280,3 +280,106 @@ def merchant_products_view(request, store_slug):
     }
     return render(request, 'dashboard/products.html', context)
 
+
+@login_required(login_url='/painel/login/')
+def merchant_product_options_view(request, store_slug, product_id):
+    """
+    Gestão de grupos de opções e adicionais (sabores, caldas, recheios, bordas, etc.)
+    do produto selecionado pelo lojista.
+    """
+    from catalog.models import Product, OptionGroup, OptionItem
+
+    current_store, active_stores = get_user_active_store(request.user, store_slug)
+    product = get_object_or_404(Product, id=product_id, store=current_store)
+    success_msg = None
+    error_msg = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # 1. Criar novo grupo de opções (ex: "Escolha até 4 Sabores")
+        if action == 'create_group':
+            name = request.POST.get('name', '').strip()
+            description = request.POST.get('description', '').strip()
+            min_opt = int(request.POST.get('min_options', 0))
+            max_opt = int(request.POST.get('max_options', 1))
+            is_req = request.POST.get('is_required') == 'on' or min_opt > 0
+
+            if not name:
+                error_msg = "Nome do grupo de opções é obrigatório."
+            elif min_opt > max_opt:
+                error_msg = "A quantidade mínima não pode ser maior que o máximo permitido."
+            else:
+                OptionGroup.objects.create(
+                    store=current_store,
+                    product=product,
+                    name=name,
+                    description=description,
+                    min_options=min_opt,
+                    max_options=max_opt,
+                    is_required=is_req
+                )
+                success_msg = f'Grupo "{name}" criado com sucesso!'
+
+        # 2. Excluir grupo de opções
+        elif action == 'delete_group':
+            group_id = request.POST.get('group_id')
+            grp = get_object_or_404(OptionGroup, id=group_id, product=product, store=current_store)
+            grp_name = grp.name
+            grp.delete()
+            success_msg = f'Grupo "{grp_name}" excluído!'
+
+        # 3. Adicionar item/sabor ao grupo
+        elif action == 'create_item':
+            group_id = request.POST.get('group_id')
+            grp = get_object_or_404(OptionGroup, id=group_id, product=product, store=current_store)
+            name = request.POST.get('name', '').strip()
+            price_raw = request.POST.get('price', '0').strip().replace(',', '.')
+            is_avail = request.POST.get('is_available') == 'on'
+
+            if not name:
+                error_msg = "Nome da opção / sabor é obrigatório."
+            else:
+                try:
+                    price = Decimal(price_raw)
+                    OptionItem.objects.create(
+                        option_group=grp,
+                        name=name,
+                        price=price,
+                        is_available=is_avail
+                    )
+                    success_msg = f'Opção "{name}" adicionada ao grupo "{grp.name}"!'
+                except Exception as e:
+                    error_msg = f"Erro ao adicionar opção: {e}"
+
+        # 4. Alternar disponibilidade (Disponível <-> Esgotado) com 1 clique!
+        elif action == 'toggle_item':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OptionItem, id=item_id, option_group__product=product)
+            item.is_available = not item.is_available
+            item.save()
+            status_text = "disponível" if item.is_available else "marcado como esgotado"
+            success_msg = f'Sabor/Opção "{item.name}" {status_text}!'
+
+        # 5. Excluir item
+        elif action == 'delete_item':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OptionItem, id=item_id, option_group__product=product)
+            item_name = item.name
+            item.delete()
+            success_msg = f'Opção "{item_name}" excluída!'
+
+    option_groups = OptionGroup.objects.filter(product=product).prefetch_related('items').order_by('order', 'id')
+
+    context = {
+        'store': current_store,
+        'user_stores': active_stores,
+        'product': product,
+        'option_groups': option_groups,
+        'success_msg': success_msg,
+        'error_msg': error_msg,
+        'active_tab': 'products',
+    }
+    return render(request, 'dashboard/product_options.html', context)
+
+

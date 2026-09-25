@@ -171,6 +171,56 @@ class Command(BaseCommand):
             }
         )
 
+        # Pizza Família (4 Sabores Obrigatórios - Caso de Uso Solicitado)
+        p_familia, _ = Product.objects.get_or_create(
+            store=store,
+            category=cat_espec,
+            name="Pizza Família (Escolha 4 Sabores)",
+            defaults={
+                "description": "Pizza gigante de 40cm. Monte sua pizza combinando exatamente 4 sabores favoritos entre tradicionais e especiais.",
+                "price": Decimal("74.00"),
+                "image": "products/images/pizza_calabresa.jpg",
+                "is_active": True,
+                "order": 0
+            }
+        )
+        grp_sabores, _ = OptionGroup.objects.get_or_create(
+            product=p_familia,
+            name="Escolha 4 Sabores",
+            defaults={
+                "description": "Obrigatório selecionar 4 sabores para compor os 4 quadrantes da pizza.",
+                "min_options": 4,
+                "max_options": 4,
+                "is_required": True,
+                "order": 1
+            }
+        )
+        sabores_data = [
+            ("Calabresa Especial", Decimal("0.00"), True),
+            ("Quatro Queijos Gratinado", Decimal("0.00"), True),
+            ("Frango Cremoso com Catupiry", Decimal("0.00"), True),
+            ("Margherita Clássica", Decimal("0.00"), True),
+            ("Portuguesa Completa", Decimal("0.00"), True),
+            ("Camarão Especial (+R$ 10,00)", Decimal("10.00"), True),
+            ("Lombo Canadense (Esgotado Hoje)", Decimal("0.00"), False),
+        ]
+        for s_name, s_price, s_avail in sabores_data:
+            OptionItem.objects.get_or_create(
+                option_group=grp_sabores,
+                name=s_name,
+                defaults={"price": s_price, "is_available": s_avail}
+            )
+
+        # Borda opcional para a Pizza Família
+        grp_borda_fam, _ = OptionGroup.objects.get_or_create(
+            product=p_familia,
+            name="Borda Recheada",
+            defaults={"min_options": 0, "max_options": 1, "is_required": False, "order": 2}
+        )
+        OptionItem.objects.get_or_create(option_group=grp_borda_fam, name="Borda Catupiry", defaults={"price": Decimal("9.00"), "is_available": True})
+        OptionItem.objects.get_or_create(option_group=grp_borda_fam, name="Borda Vulcão Cheddar", defaults={"price": Decimal("9.00"), "is_available": True})
+
+
         # Pizza Quatro Queijos
         Product.objects.get_or_create(
             store=store,

@@ -189,9 +189,16 @@ class IAPedidosCart {
         groupBox.setAttribute('data-max', group.max_options);
 
         const badgeClass = group.is_required || group.min_options > 0 ? 'required' : 'optional';
-        const badgeText = group.is_required || group.min_options > 0
-          ? `Obrigatório (mín. ${group.min_options})`
-          : (group.max_options > 1 ? `Escolha até ${group.max_options}` : 'Opcional');
+        let badgeText = 'Opcional';
+        if (group.min_options > 0 && group.min_options === group.max_options) {
+          badgeText = `Obrigatório (Escolha exatamente ${group.min_options})`;
+        } else if (group.min_options > 0 && group.max_options > group.min_options) {
+          badgeText = `Obrigatório (Escolha de ${group.min_options} a ${group.max_options})`;
+        } else if (group.min_options === 1 && group.max_options === 1) {
+          badgeText = 'Obrigatório (Escolha 1)';
+        } else if (group.max_options > 1) {
+          badgeText = `Opcional (Até ${group.max_options})`;
+        }
 
         let html = `
           <div class="option-group-header">
@@ -208,12 +215,17 @@ class IAPedidosCart {
         const inputName = `group_${group.id}`;
 
         group.items.forEach(item => {
-          const priceDisplay = item.price > 0 ? `+ R$ ${item.price.toFixed(2).replace('.', ',')}` : 'Grátis';
+          const isAvail = item.is_available !== false;
+          let priceDisplay = item.price > 0 ? `+ R$ ${item.price.toFixed(2).replace('.', ',')}` : 'Grátis';
+          if (!isAvail) {
+            priceDisplay = '<span style="color:#ef4444; font-size:0.8rem; font-weight:700;">(Esgotado)</span>';
+          }
+
           html += `
-            <label class="option-row">
+            <label class="option-row" style="${!isAvail ? 'opacity:0.55; cursor:not-allowed;' : ''}">
               <span class="option-label">
-                <input type="${inputType}" name="${inputName}" value="${item.id}" data-item-name="${item.name}" data-price="${item.price}" class="option-checkbox">
-                <span>${item.name}</span>
+                <input type="${inputType}" name="${inputName}" value="${item.id}" data-item-name="${item.name}" data-price="${item.price}" class="option-checkbox" ${!isAvail ? 'disabled' : ''}>
+                <span style="${!isAvail ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${item.name}</span>
               </span>
               <span class="option-price">${priceDisplay}</span>
             </label>
@@ -256,6 +268,8 @@ class IAPedidosCart {
 
     let optionsTotal = 0;
     let allRequiredSatisfied = true;
+    let unsatisfiedGroupName = '';
+    let missingCount = 0;
 
     // Calcula adicionais selecionados e valida grupos
     document.querySelectorAll('.option-group-box').forEach(box => {
@@ -263,6 +277,10 @@ class IAPedidosCart {
       const checked = box.querySelectorAll('input:checked');
       if (checked.length < min) {
         allRequiredSatisfied = false;
+        if (!unsatisfiedGroupName) {
+          unsatisfiedGroupName = box.querySelector('strong').textContent;
+          missingCount = min - checked.length;
+        }
       }
       checked.forEach(input => {
         optionsTotal += parseFloat(input.getAttribute('data-price')) || 0;
@@ -275,9 +293,22 @@ class IAPedidosCart {
     // Atualiza stepper
     document.getElementById('modal-step-quantity').textContent = this.modalQuantity;
 
-    // Atualiza botão
+    // Atualiza botão com mensagem dinâmica de pendência
     const btn = document.getElementById('btn-confirm-add-product');
-    btn.disabled = !allRequiredSatisfied;
+    const btnTextSpan = btn.querySelector('span:first-child');
+    if (!allRequiredSatisfied) {
+      btn.disabled = true;
+      btn.style.opacity = '0.65';
+      if (btnTextSpan) {
+        btnTextSpan.textContent = `Escolha mais ${missingCount} em "${unsatisfiedGroupName}"`;
+      }
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      if (btnTextSpan) {
+        btnTextSpan.textContent = 'Adicionar';
+      }
+    }
     document.getElementById('modal-total-value').textContent = `R$ ${finalTotal.toFixed(2).replace('.', ',')}`;
   }
 

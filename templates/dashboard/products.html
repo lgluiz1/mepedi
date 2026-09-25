@@ -426,6 +426,9 @@
               </td>
               <td style="text-align:right;">
                 <div style="display:inline-flex; gap:8px;">
+                  <a href="/painel/{{ store.slug }}/produtos/{{ product.id }}/opcoes/" class="btn-dash btn-dash-outline" style="border-color:#6366f1; color:#4f46e5; text-decoration:none;" title="Configurar Sabores, Caldas, Recheios e Adicionais">
+                    ⚙️ Sabores / Opções ({{ product.option_groups.count }})
+                  </a>
                   <button type="button" class="btn-dash btn-dash-outline" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
                     ✏️ Editar
                   </button>

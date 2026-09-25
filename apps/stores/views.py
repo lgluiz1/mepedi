@@ -201,9 +201,10 @@ def public_store_menu_view(request, store_slug):
                             {
                                 'id': item.id,
                                 'name': item.name,
-                                'price': float(item.price)
+                                'price': float(item.price),
+                                'is_available': item.is_available,
                             }
-                            for item in og.items.all()
+                            for item in og.items.all().order_by('order', 'name')
                         ]
                     }
                     for og in prod.option_groups.all()

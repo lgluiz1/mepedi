@@ -1,0 +1,604 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opções e Sabores: {{ product.name }} | {{ store.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --dash-bg: #f8fafc;
+      --dash-header: #ffffff;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
+    }
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .dash-header {
+      background: var(--dash-header);
+      border-bottom: 1px solid var(--dash-card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+    .header-content {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.25rem;
+      text-decoration: none;
+      color: #0f172a;
+    }
+
+    .dash-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-tab-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .nav-tab-link:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+    .nav-tab-link.active {
+      color: #4f46e5;
+      background: #eef2ff;
+    }
+
+    .btn-dash {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      font-family: inherit;
+    }
+    .btn-dash-outline {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    .btn-dash-outline:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .options-container {
+      max-width: 1000px;
+      margin: 24px auto 80px auto;
+      padding: 0 20px;
+    }
+
+    /* Product Header Card */
+    .product-header-card {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Group Card */
+    .group-card {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #f1f5f9;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .group-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pill-rule {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .pill-rule.required {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .pill-rule.highlight {
+      background: #eef2ff;
+      color: #4f46e5;
+    }
+
+    /* Items table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .items-table th {
+      text-align: left;
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.9rem;
+      vertical-align: middle;
+    }
+    .items-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-toggle-btn {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .status-toggle-btn.avail {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #059669;
+    }
+    .status-toggle-btn.unavail {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+
+    /* Modal Form */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      border: 1px solid #e2e8f0;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      color: #0f172a;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Superior -->
+  <header class="dash-header">
+    <div class="header-content">
+      <div class="brand-section">
+        <a href="/painel/" class="brand-logo">
+          <span class="logo-badge" style="margin:0; padding:4px 10px; font-size:0.95rem;">IA</span>
+          <span>Painel do Lojista</span>
+        </a>
+        <span style="font-weight:700; color:#334155; font-size:0.95rem;">🏪 {{ store.name }}</span>
+      </div>
+
+      <nav class="dash-nav-links">
+        <a href="/painel/{{ store.slug }}/" class="nav-tab-link">
+          📋 Pedidos
+        </a>
+        <a href="/painel/{{ store.slug }}/produtos/" class="nav-tab-link active">
+          🍕 Produtos & Fotos
+        </a>
+        <a href="/painel/{{ store.slug }}/configuracoes/" class="nav-tab-link">
+          ⚙️ Capa & Logo
+        </a>
+      </nav>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/{{ store.slug }}/" target="_blank" class="btn-dash btn-dash-outline">
+          🌐 Ver Cardápio
+        </a>
+        <a href="/painel/logout/" class="btn-dash btn-dash-outline" style="color:#fb7185;">
+          Sair
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="options-container">
+    <div style="margin-bottom:16px;">
+      <a href="/painel/{{ store.slug }}/produtos/" style="color:#4f46e5; text-decoration:none; font-weight:700; font-size:0.9rem;">
+        ← Voltar para a lista de produtos
+      </a>
+    </div>
+
+    {% if success_msg %}
+      <div class="alert-success">
+        ✅ {{ success_msg }}
+      </div>
+    {% endif %}
+
+    {% if error_msg %}
+      <div class="alert-error">
+        ❌ {{ error_msg }}
+      </div>
+    {% endif %}
+
+    <!-- Card de Resumo do Produto Selecionado -->
+    <div class="product-header-card">
+      <div style="display:flex; align-items:center; gap:16px;">
+        {% if product.image %}
+          <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:64px; height:64px; border-radius:12px; object-fit:cover; border:1px solid #e2e8f0;">
+        {% else %}
+          <div style="width:64px; height:64px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:1.8rem;">🍽️</div>
+        {% endif %}
+        <div>
+          <span style="font-size:0.8rem; font-weight:700; color:#4f46e5; text-transform:uppercase;">{{ product.category.name }}</span>
+          <h1 style="font-size:1.35rem; font-weight:800; margin:2px 0 4px 0; color:#0f172a;">{{ product.name }}</h1>
+          <span style="font-size:1.1rem; font-weight:800; color:#0f172a;">Preço Base: R$ {{ product.price|floatformat:2 }}</span>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" onclick="openModal('modalCreateGroup')">
+          + Criar Grupo de Opções
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de Grupos de Opções Cadastrados -->
+    {% for group in option_groups %}
+      <div class="group-card">
+        <div class="group-header">
+          <div>
+            <h2 style="font-size:1.2rem; font-weight:800; margin:0; color:#0f172a;">{{ group.name }}</h2>
+            {% if group.description %}
+              <p style="font-size:0.82rem; color:#64748b; margin:4px 0 0 0;">{{ group.description }}</p>
+            {% endif %}
+            <div class="group-badges">
+              {% if group.is_required or group.min_options > 0 %}
+                <span class="pill-rule required">Obrigatório</span>
+              {% else %}
+                <span class="pill-rule">Opcional</span>
+              {% endif %}
+
+              {% if group.min_options == group.max_options %}
+                <span class="pill-rule highlight">Exatamente {{ group.min_options }} {{ group.min_options|pluralize:"opção,opções" }}</span>
+              {% else %}
+                <span class="pill-rule highlight">De {{ group.min_options }} a {{ group.max_options }} opções</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-primary" style="padding:8px 14px; font-size:0.85rem;" onclick="openAddItemModal('{{ group.id }}', '{{ group.name|escapejs }}')">
+              + Adicionar Sabor/Item
+            </button>
+            <form method="post" action="" onsubmit="return confirm('Tem certeza que deseja excluir o grupo &quot;{{ group.name|escapejs }}&quot; e todas as suas opções?');" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_group">
+              <input type="hidden" name="group_id" value="{{ group.id }}">
+              <button type="submit" class="btn-dash btn-dash-outline" style="color:#ef4444;" title="Excluir Grupo">
+                🗑️
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Tabela de Itens deste Grupo -->
+        {% if group.items.all %}
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Nome da Opção / Sabor</th>
+                <th>Preço Adicional</th>
+                <th>Status (Disponibilidade)</th>
+                <th style="text-align:right;">Excluir</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in group.items.all %}
+                <tr>
+                  <td>
+                    <strong style="color:#0f172a;">{{ item.name }}</strong>
+                  </td>
+                  <td>
+                    {% if item.price > 0 %}
+                      <span style="font-weight:700; color:#4f46e5;">+ R$ {{ item.price|floatformat:2 }}</span>
+                    {% else %}
+                      <span style="color:#64748b;">Incluso (R$ 0,00)</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <form method="post" action="" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="toggle_item">
+                      <input type="hidden" name="item_id" value="{{ item.id }}">
+                      <button type="submit" class="status-toggle-btn {% if item.is_available %}avail{% else %}unavail{% endif %}" title="Clique para alternar disponibilidade">
+                        {% if item.is_available %}
+                          <span>🟢 Disponível</span>
+                        {% else %}
+                          <span>🔴 Esgotado</span>
+                        {% endif %}
+                      </button>
+                    </form>
+                  </td>
+                  <td style="text-align:right;">
+                    <form method="post" action="" onsubmit="return confirm('Excluir &quot;{{ item.name|escapejs }}&quot;?');" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_item">
+                      <input type="hidden" name="item_id" value="{{ item.id }}">
+                      <button type="submit" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1rem;" title="Excluir">
+                        🗑️
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div style="text-align:center; padding:24px 16px; background:#f8fafc; border-radius:10px; color:#64748b; font-size:0.88rem;">
+            Nenhum sabor ou item cadastrado neste grupo ainda.
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.82rem;" onclick="openAddItemModal('{{ group.id }}', '{{ group.name|escapejs }}')">
+                + Adicionar Primeiro Item
+              </button>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div style="text-align:center; padding:60px 20px; background:#ffffff; border-radius:16px; border:1px solid #e2e8f0;">
+        <div style="font-size:3rem; margin-bottom:12px;">🍕</div>
+        <h2 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-bottom:8px;">Nenhum grupo de opções criado</h2>
+        <p style="color:#64748b; max-width:500px; margin:0 auto 20px; font-size:0.92rem; line-height:1.5;">
+          Permita que seu cliente personalize este produto! Crie grupos como <strong>"Escolha até 4 Sabores"</strong> para pizzas, <strong>"Caldas e Frutas"</strong> para açaí, ou <strong>"Recheios e Massas"</strong> para bolos.
+        </p>
+        <button type="button" class="btn btn-primary" onclick="openModal('modalCreateGroup')">
+          + Criar Primeiro Grupo de Opções
+        </button>
+      </div>
+    {% endfor %}
+  </main>
+
+  <!-- Modal: Criar Grupo de Opções -->
+  <div id="modalCreateGroup" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">Novo Grupo de Opções</h2>
+        <button type="button" onclick="closeModal('modalCreateGroup')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_group">
+
+        <div class="form-group">
+          <label class="form-label" for="grpName">Nome do Grupo *</label>
+          <input type="text" id="grpName" name="name" class="form-control" placeholder="Ex: Escolha até 4 Sabores, Bordas, Caldas, Recheios" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="grpDesc">Instrução para o Cliente (Opcional)</label>
+          <input type="text" id="grpDesc" name="description" class="form-control" placeholder="Ex: Selecione exatamente 4 sabores para sua pizza família">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="grpMin">Mínimo Obrigatório</label>
+            <input type="number" id="grpMin" name="min_options" class="form-control" value="1" min="0" max="20" required>
+            <small style="color:#64748b; font-size:0.75rem;">0 = Opcional / 4 = Obriga 4 escolhas</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="grpMax">Máximo Permitido</label>
+            <input type="number" id="grpMax" name="max_options" class="form-control" value="4" min="1" max="20" required>
+            <small style="color:#64748b; font-size:0.75rem;">Limite de opções que podem ser marcadas</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" name="is_required" checked>
+            <span>Seleção obrigatória para adicionar à sacola</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateGroup')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Grupo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Adicionar Opção / Sabor ao Grupo -->
+  <div id="modalAddItem" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">Adicionar Opção / Sabor</h2>
+          <p id="modalAddItemSub" style="font-size:0.82rem; color:#64748b; margin:3px 0 0 0;"></p>
+        </div>
+        <button type="button" onclick="closeModal('modalAddItem')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_item">
+        <input type="hidden" id="addItemGroupId" name="group_id" value="">
+
+        <div class="form-group">
+          <label class="form-label" for="itemName">Nome da Opção / Sabor *</label>
+          <input type="text" id="itemName" name="name" class="form-control" placeholder="Ex: Calabresa Especial, Nutella, Borda Catupiry, Morango" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="itemPrice">Preço Adicional (R$)</label>
+          <input type="text" id="itemPrice" name="price" class="form-control" value="0,00" placeholder="0,00" required>
+          <small style="color:#64748b; font-size:0.75rem;">Deixe 0,00 se a opção/sabor já estiver inclusa no preço da pizza</small>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" name="is_available" checked>
+            <span>Disponível para os clientes selecionarem agora</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalAddItem')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar Opção</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+    function openAddItemModal(groupId, groupName) {
+      document.getElementById('addItemGroupId').value = groupId;
+      document.getElementById('modalAddItemSub').textContent = `Grupo: ${groupName}`;
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemPrice').value = '0,00';
+      openModal('modalAddItem');
+    }
+  </script>
+
+</body>
+</html>

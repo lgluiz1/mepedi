@@ -446,4 +446,71 @@ class MerchantDashboardTests(TestCase):
         self.assertEqual(del_resp.status_code, 200)
         self.assertFalse(Product.objects.filter(id=product.id).exists())
 
+    def test_merchant_product_options_and_availability_toggle(self):
+        """Lojista gerencia grupos de opções, sabores e alterna disponibilidade em tempo real."""
+        self.client.login(username='dono@pizzaria.com', password='secretpassword123')
+        cat = Category.objects.create(store=self.store, name="Pizzas Grandes")
+        prod = Product.objects.create(store=self.store, category=cat, name="Pizza Família 4 Sabores", price=Decimal("70.00"))
+
+        # 1. Acessa página de opções do produto
+        get_resp = self.client.get(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/')
+        self.assertEqual(get_resp.status_code, 200)
+        self.assertContains(get_resp, "Pizza Família 4 Sabores")
+
+        # 2. Cria grupo de opções (ex: 4 Sabores Obrigatórios)
+        create_grp_resp = self.client.post(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/', {
+            'action': 'create_group',
+            'name': 'Escolha 4 Sabores',
+            'description': 'Selecione exatamente 4 sabores',
+            'min_options': '4',
+            'max_options': '4',
+            'is_required': 'on'
+        })
+        self.assertEqual(create_grp_resp.status_code, 200)
+        group = OptionGroup.objects.filter(product=prod, name='Escolha 4 Sabores').first()
+        self.assertIsNotNone(group)
+        self.assertEqual(group.min_options, 4)
+        self.assertEqual(group.max_options, 4)
+        self.assertTrue(group.is_required)
+
+        # 3. Adiciona sabor ao grupo
+        create_item_resp = self.client.post(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/', {
+            'action': 'create_item',
+            'group_id': str(group.id),
+            'name': 'Calabresa Especial',
+            'price': '0,00',
+            'is_available': 'on'
+        })
+        self.assertEqual(create_item_resp.status_code, 200)
+        item = OptionItem.objects.filter(option_group=group, name='Calabresa Especial').first()
+        self.assertIsNotNone(item)
+        self.assertTrue(item.is_available)
+        self.assertEqual(item.price, Decimal('0.00'))
+
+        # 4. Alterna disponibilidade do sabor (marca como Esgotado)
+        toggle_resp = self.client.post(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/', {
+            'action': 'toggle_item',
+            'item_id': str(item.id)
+        })
+        self.assertEqual(toggle_resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertFalse(item.is_available)
+
+        # 5. Exclui sabor
+        del_item_resp = self.client.post(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/', {
+            'action': 'delete_item',
+            'item_id': str(item.id)
+        })
+        self.assertEqual(del_item_resp.status_code, 200)
+        self.assertFalse(OptionItem.objects.filter(id=item.id).exists())
+
+        # 6. Exclui grupo
+        del_grp_resp = self.client.post(f'/painel/{self.store.slug}/produtos/{prod.id}/opcoes/', {
+            'action': 'delete_group',
+            'group_id': str(group.id)
+        })
+        self.assertEqual(del_grp_resp.status_code, 200)
+        self.assertFalse(OptionGroup.objects.filter(id=group.id).exists())
+
+
 
