@@ -181,17 +181,37 @@ class MerchantOrderUpdateStatusView(APIView):
 
 def public_checkout_page(request, store_slug):
     """
-    Renderiza a tela de checkout mobile-first da loja.
+    Renderiza a tela de checkout mobile-first da loja com suporte a identificação do cliente e endereços salvos.
     """
+    from customers.models import Customer, clean_phone_number
+
     store = get_object_or_404(Store, slug=store_slug, is_active=True)
     delivery_zones = store.delivery_zones.filter(is_active=True) if hasattr(store, 'delivery_zones') else []
+
+    phone_raw = request.GET.get('phone') or request.session.get('customer_phone', '')
+    clean_phone = clean_phone_number(phone_raw) if phone_raw else ''
+    customer = None
+    saved_addresses = []
+
+    if clean_phone:
+        phone_variations = [clean_phone]
+        if clean_phone.startswith('55') and len(clean_phone) in (12, 13):
+            phone_variations.append(clean_phone[2:])
+        else:
+            phone_variations.append(f"55{clean_phone}")
+        customer = Customer.objects.filter(store=store, phone__in=phone_variations).prefetch_related('addresses').first()
+        if customer:
+            saved_addresses = list(customer.addresses.all())
 
     context = {
         'store': store,
         'delivery_zones': delivery_zones,
         'is_open': store.is_currently_open(),
+        'customer': customer,
+        'saved_addresses': saved_addresses,
     }
     return render(request, 'stores/checkout.html', context)
+
 
 
 def public_order_status_page(request, store_slug, public_id):

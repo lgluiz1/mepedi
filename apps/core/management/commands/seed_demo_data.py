@@ -6,7 +6,7 @@ from accounts.models import User, StoreMembership
 from stores.models import Store, BusinessHour
 from catalog.models import Category, Product, OptionGroup, OptionItem
 from delivery.models import DeliveryZone
-from customers.models import Customer
+from customers.models import Customer, CustomerAddress
 from orders.models import Order, OrderItem, OrderItemOption
 
 
@@ -287,6 +287,35 @@ class Command(BaseCommand):
             store=store,
             phone="11998877665",
             defaults={"name": "Ana Clara Santos"}
+        )
+
+        CustomerAddress.objects.get_or_create(
+            customer=customer,
+            street="Alameda Santos",
+            number="1200",
+            neighborhood="Cerqueira César",
+            city="São Paulo",
+            state="SP",
+            defaults={
+                "complement": "Apto 81",
+                "reference": "Em frente ao colégio",
+                "postal_code": "01418-100",
+                "is_default": True
+            }
+        )
+        CustomerAddress.objects.get_or_create(
+            customer=customer,
+            street="Avenida Paulista",
+            number="1000",
+            neighborhood="Bela Vista",
+            city="São Paulo",
+            state="SP",
+            defaults={
+                "complement": "Conjunto 42 - Escritório",
+                "reference": "Perto do Metrô Trianon",
+                "postal_code": "01310-100",
+                "is_default": False
+            }
         )
 
         demo_order, order_created = Order.objects.get_or_create(

@@ -126,3 +126,35 @@ class PublicCustomerIdentifyView(APIView):
             "created": created,
             "customer": CustomerSerializer(customer).data
         }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class PublicCustomerLookupView(APIView):
+    """
+    Busca rápida de cliente pelo telefone na loja para auto-preenchimento no checkout.
+    GET /api/v1/customers/public/{store_slug}/lookup/?phone=11988887777
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, store_slug):
+        store = get_object_or_404(Store, slug=store_slug, is_active=True)
+        phone_raw = request.query_params.get('phone', '').strip()
+        clean_phone = clean_phone_number(phone_raw)
+
+        if not clean_phone or len(clean_phone) < 8:
+            return Response({"found": False, "message": "Telefone inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        phone_variations = [clean_phone]
+        if clean_phone.startswith('55') and len(clean_phone) in (12, 13):
+            phone_variations.append(clean_phone[2:])
+        else:
+            phone_variations.append(f"55{clean_phone}")
+
+        customer = Customer.objects.filter(store=store, phone__in=phone_variations).prefetch_related('addresses').first()
+        if not customer:
+            return Response({"found": False})
+
+        return Response({
+            "found": True,
+            "customer": CustomerSerializer(customer).data
+        })
+

@@ -107,6 +107,101 @@
       border-top: 1px solid var(--border-subtle);
       padding-top: 10px;
     }
+    .address-option-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .address-option-card:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+    .address-option-card.active {
+      border-color: var(--primary);
+      background: #f5f3ff;
+    }
+    .address-option-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--primary);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .customer-recognized-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .customer-recognized-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .customer-avatar-badge {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      background: #059669;
+      color: white;
+      font-weight: 800;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+    }
+    .btn-edit-customer {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-edit-customer:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .btn-search-phone {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-search-phone:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
   </style>
 </head>
 <body class="menu-page">
@@ -129,24 +224,55 @@
     </div>
 
     <!-- 2. Dados do Cliente -->
-    <div class="checkout-card">
-      <h2 class="card-title">👤 Seus Dados</h2>
-      <div class="form-group">
-        <label class="form-label">Telefone Celular (WhatsApp) *</label>
-        <input type="tel" id="cust-phone" class="form-input" placeholder="(11) 98888-7777" required>
+    <div class="checkout-card" id="card-customer">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h2 class="card-title" style="margin-bottom:0;">👤 Seus Dados</h2>
+        <span id="lookup-spinner" style="display:none; font-size:0.85rem; color:var(--primary); font-weight:700;">
+          ⏳ Buscando cadastro...
+        </span>
       </div>
-      <div class="form-group">
-        <label class="form-label">Seu Nome Completo *</label>
-        <input type="text" id="cust-name" class="form-input" placeholder="Como deseja ser chamado(a)" required>
+
+      <!-- Banner de cliente reconhecido -->
+      <div id="customer-recognized-box" class="customer-recognized-banner" style="display:none;">
+        <div class="customer-recognized-info">
+          <div class="customer-avatar-badge" id="cust-badge-initials">CL</div>
+          <div>
+            <div style="font-weight:800; font-size:1.05rem; color:#065f46;" id="cust-recognized-name">Cliente</div>
+            <div style="font-size:0.85rem; color:#047857; margin-top:1px;" id="cust-recognized-phone">(00) 00000-0000</div>
+          </div>
+        </div>
+        <button type="button" class="btn-edit-customer" onclick="toggleEditCustomerFields()">
+          ✏️ Trocar número / Editar
+        </button>
       </div>
-      <div class="form-row">
+
+      <!-- Formulário de dados -->
+      <div id="customer-inputs-box">
         <div class="form-group">
-          <label class="form-label">CPF (Opcional)</label>
-          <input type="text" id="cust-doc" class="form-input" placeholder="000.000.000-00">
+          <label class="form-label">Telefone Celular (WhatsApp) *</label>
+          <div style="display:flex; gap:8px;">
+            <input type="tel" id="cust-phone" class="form-input" placeholder="(11) 98888-7777" required onblur="handlePhoneLookup(this.value)">
+            <button type="button" class="btn-search-phone" onclick="handlePhoneLookup(document.getElementById('cust-phone').value)">
+              🔍 Buscar
+            </button>
+          </div>
+          <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:4px;">
+            Digite seu WhatsApp para buscar seus endereços e dados salvos automaticamente.
+          </small>
         </div>
         <div class="form-group">
-          <label class="form-label">E-mail (Opcional)</label>
-          <input type="email" id="cust-email" class="form-input" placeholder="seu@email.com">
+          <label class="form-label">Seu Nome Completo *</label>
+          <input type="text" id="cust-name" class="form-input" placeholder="Como deseja ser chamado(a)" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">CPF (Opcional)</label>
+            <input type="text" id="cust-doc" class="form-input" placeholder="000.000.000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-mail (Opcional)</label>
+            <input type="email" id="cust-email" class="form-input" placeholder="seu@email.com">
+          </div>
         </div>
       </div>
     </div>
@@ -164,34 +290,50 @@
       </div>
 
       <div id="delivery-address-fields">
-        <div class="form-row">
-          <div class="form-group" style="grid-column: span 1;">
-            <label class="form-label">CEP</label>
-            <input type="text" id="addr-cep" class="form-input" placeholder="00000-000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Bairro *</label>
-            <input type="text" id="addr-neighborhood" class="form-input" placeholder="Seu bairro" onblur="recalculateDeliveryFee()">
-          </div>
-        </div>
-        <div class="form-row" style="grid-template-columns: 2fr 1fr;">
-          <div class="form-group">
-            <label class="form-label">Rua / Logradouro *</label>
-            <input type="text" id="addr-street" class="form-input" placeholder="Ex: Av. Brasil">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Número *</label>
-            <input type="text" id="addr-number" class="form-input" placeholder="123">
+        <!-- Seção de endereços salvos -->
+        <div id="saved-addresses-wrapper" style="display:none; margin-bottom:18px;">
+          <label class="form-label" style="font-weight:700; color:var(--text-main); margin-bottom:10px; display:block;">
+            📍 Escolha onde entregar:
+          </label>
+          <div id="saved-addresses-list" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- Preenchido dinamicamente via JS -->
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Complemento</label>
-            <input type="text" id="addr-comp" class="form-input" placeholder="Apto, Bloco">
+
+        <!-- Campos Manuais de Endereço -->
+        <div id="delivery-manual-fields">
+          <div id="new-address-header" style="display:none; font-weight:700; font-size:0.95rem; margin-bottom:12px; color:var(--primary);">
+            ➕ Digite o novo endereço para entrega:
           </div>
-          <div class="form-group">
-            <label class="form-label">Ponto de Referência</label>
-            <input type="text" id="addr-ref" class="form-input" placeholder="Ex: Ao lado do mercado">
+          <div class="form-row">
+            <div class="form-group" style="grid-column: span 1;">
+              <label class="form-label">CEP</label>
+              <input type="text" id="addr-cep" class="form-input" placeholder="00000-000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bairro *</label>
+              <input type="text" id="addr-neighborhood" class="form-input" placeholder="Seu bairro" onblur="recalculateDeliveryFee()">
+            </div>
+          </div>
+          <div class="form-row" style="grid-template-columns: 2fr 1fr;">
+            <div class="form-group">
+              <label class="form-label">Rua / Logradouro *</label>
+              <input type="text" id="addr-street" class="form-input" placeholder="Ex: Av. Brasil">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número *</label>
+              <input type="text" id="addr-number" class="form-input" placeholder="123">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Complemento</label>
+              <input type="text" id="addr-comp" class="form-input" placeholder="Apto, Bloco">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ponto de Referência</label>
+              <input type="text" id="addr-ref" class="form-input" placeholder="Ex: Ao lado do mercado">
+            </div>
           </div>
         </div>
       </div>
@@ -251,18 +393,256 @@
     let currentDeliveryType = "{% if store.allows_delivery %}DELIVERY{% else %}PICKUP{% endif %}";
     let currentDeliveryFee = currentDeliveryType === 'DELIVERY' ? storeFixedFee : 0;
 
+    let currentCustomer = null;
+    let savedAddresses = [];
+    let selectedAddressId = 'NEW';
+
+    function getInitials(name) {
+      if (!name) return 'CL';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function formatPhoneDisplay(raw) {
+      const d = String(raw || '').replace(/\D/g, '');
+      const num = (d.startsWith('55') && d.length > 10) ? d.slice(2) : d;
+      if (num.length === 11) {
+        return `(${num.slice(0, 2)}) ${num.slice(2, 7)}-${num.slice(7)}`;
+      } else if (num.length === 10) {
+        return `(${num.slice(0, 2)}) ${num.slice(2, 6)}-${num.slice(6)}`;
+      }
+      return raw || '';
+    }
+
+    function applyCustomerData(cust) {
+      if (!cust) return;
+      currentCustomer = cust;
+      savedAddresses = cust.addresses || [];
+
+      // Atualiza banner de cliente reconhecido
+      document.getElementById('cust-badge-initials').textContent = getInitials(cust.name);
+      document.getElementById('cust-recognized-name').textContent = cust.name || 'Cliente';
+      document.getElementById('cust-recognized-phone').textContent = formatPhoneDisplay(cust.phone);
+
+      document.getElementById('customer-recognized-box').style.display = 'flex';
+      document.getElementById('customer-inputs-box').style.display = 'none';
+
+      // Preenche os campos do formulário para envio
+      document.getElementById('cust-phone').value = formatPhoneDisplay(cust.phone);
+      document.getElementById('cust-name').value = cust.name || '';
+      document.getElementById('cust-doc').value = cust.document || '';
+      document.getElementById('cust-email').value = cust.email || '';
+
+      // Persiste no navegador para próximas compras
+      const cleanDigits = String(cust.phone).replace(/\D/g, '');
+      localStorage.setItem('ia_customer_phone', cleanDigits);
+      if (cust.name) localStorage.setItem('ia_customer_name', cust.name);
+
+      // Renderiza endereços salvos
+      renderSavedAddresses();
+    }
+
+    function toggleEditCustomerFields() {
+      const box = document.getElementById('customer-inputs-box');
+      if (box.style.display === 'none') {
+        box.style.display = 'block';
+        document.getElementById('cust-phone').focus();
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    function clearSavedCustomerUI() {
+      currentCustomer = null;
+      savedAddresses = [];
+      selectedAddressId = 'NEW';
+
+      document.getElementById('customer-recognized-box').style.display = 'none';
+      document.getElementById('customer-inputs-box').style.display = 'block';
+      document.getElementById('saved-addresses-wrapper').style.display = 'none';
+      document.getElementById('saved-addresses-list').innerHTML = '';
+      document.getElementById('delivery-manual-fields').style.display = 'block';
+      document.getElementById('new-address-header').style.display = 'none';
+    }
+
+    function renderSavedAddresses() {
+      const wrapper = document.getElementById('saved-addresses-wrapper');
+      const list = document.getElementById('saved-addresses-list');
+      const manual = document.getElementById('delivery-manual-fields');
+      const newHeader = document.getElementById('new-address-header');
+
+      if (!savedAddresses || savedAddresses.length === 0) {
+        wrapper.style.display = 'none';
+        list.innerHTML = '';
+        manual.style.display = 'block';
+        newHeader.style.display = 'none';
+        selectedAddressId = 'NEW';
+        return;
+      }
+
+      wrapper.style.display = 'block';
+      let html = '';
+
+      savedAddresses.forEach((addr, idx) => {
+        const isChecked = idx === 0 ? 'checked' : '';
+        const compStr = addr.complement ? ` • ${addr.complement}` : '';
+        const refStr = addr.reference ? ` • Ref: ${addr.reference}` : '';
+        const cepStr = addr.postal_code ? ` (CEP: ${addr.postal_code})` : '';
+
+        html += `
+          <label class="address-option-card ${idx === 0 ? 'active' : ''}" id="addr-card-${addr.id}" onclick="selectSavedAddress(${addr.id})">
+            <input type="radio" name="address_choice" value="${addr.id}" ${isChecked}>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:0.95rem; color:#1e293b;">
+                📍 ${addr.street}, ${addr.number}
+              </div>
+              <div style="font-size:0.83rem; color:#64748b; margin-top:2px;">
+                ${addr.neighborhood}${compStr}${refStr}${cepStr}
+              </div>
+            </div>
+          </label>
+        `;
+      });
+
+      // Opção para cadastrar novo endereço
+      html += `
+        <label class="address-option-card" id="addr-card-new" onclick="selectNewAddress()">
+          <input type="radio" name="address_choice" value="NEW">
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:0.95rem; color:var(--primary);">
+              ➕ Entregar em outro endereço
+            </div>
+            <div style="font-size:0.83rem; color:#64748b; margin-top:2px;">
+              Cadastre um novo endereço para esta entrega
+            </div>
+          </div>
+        </label>
+      `;
+
+      list.innerHTML = html;
+
+      // Seleciona o primeiro endereço salvo por padrão
+      selectSavedAddress(savedAddresses[0].id);
+    }
+
+    function selectSavedAddress(id) {
+      selectedAddressId = id;
+      const addr = savedAddresses.find(a => a.id === id);
+      if (!addr) return;
+
+      document.querySelectorAll('#saved-addresses-list .address-option-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`addr-card-${id}`);
+      if (activeCard) {
+        activeCard.classList.add('active');
+        const radio = activeCard.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      }
+
+      document.getElementById('delivery-manual-fields').style.display = 'none';
+      document.getElementById('new-address-header').style.display = 'none';
+
+      document.getElementById('addr-street').value = addr.street || '';
+      document.getElementById('addr-number').value = addr.number || '';
+      document.getElementById('addr-neighborhood').value = addr.neighborhood || '';
+      document.getElementById('addr-comp').value = addr.complement || '';
+      document.getElementById('addr-ref').value = addr.reference || '';
+      document.getElementById('addr-cep').value = addr.postal_code || '';
+
+      recalculateDeliveryFee();
+    }
+
+    function selectNewAddress() {
+      selectedAddressId = 'NEW';
+      document.querySelectorAll('#saved-addresses-list .address-option-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById('addr-card-new');
+      if (activeCard) {
+        activeCard.classList.add('active');
+        const radio = activeCard.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      }
+
+      document.getElementById('delivery-manual-fields').style.display = 'block';
+      document.getElementById('new-address-header').style.display = 'block';
+
+      document.getElementById('addr-street').value = '';
+      document.getElementById('addr-number').value = '';
+      document.getElementById('addr-neighborhood').value = '';
+      document.getElementById('addr-comp').value = '';
+      document.getElementById('addr-ref').value = '';
+      document.getElementById('addr-cep').value = '';
+
+      document.getElementById('addr-street').focus();
+      recalculateDeliveryFee();
+    }
+
+    async function handlePhoneLookup(rawPhone) {
+      if (!rawPhone) return;
+      const digits = String(rawPhone).replace(/\D/g, '');
+      if (digits.length < 8) return;
+
+      if (currentCustomer && String(currentCustomer.phone).replace(/\D/g, '') === digits) {
+        return;
+      }
+
+      const spinner = document.getElementById('lookup-spinner');
+      if (spinner) spinner.style.display = 'inline-block';
+
+      try {
+        const resp = await fetch(`/api/v1/customers/public/${storeSlug}/lookup/?phone=${encodeURIComponent(digits)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.found && data.customer) {
+            applyCustomerData(data.customer);
+          } else {
+            // Número não cadastrado anteriormente
+            clearSavedCustomerUI();
+            document.getElementById('cust-phone').value = formatPhoneDisplay(digits);
+            document.getElementById('cust-name').focus();
+          }
+        }
+      } catch(err) {
+        console.error("Erro ao buscar cliente:", err);
+      } finally {
+        if (spinner) spinner.style.display = 'none';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       loadCartItems();
+
+      {% if customer %}
+      const initialCust = {
+        id: {{ customer.id }},
+        name: "{{ customer.name|escapejs }}",
+        phone: "{{ customer.phone|escapejs }}",
+        document: "{{ customer.document|default:''|escapejs }}",
+        email: "{{ customer.email|default:''|escapejs }}",
+        addresses: [
+          {% for addr in saved_addresses %}
+          {
+            id: {{ addr.id }},
+            street: "{{ addr.street|escapejs }}",
+            number: "{{ addr.number|escapejs }}",
+            neighborhood: "{{ addr.neighborhood|escapejs }}",
+            complement: "{{ addr.complement|default:''|escapejs }}",
+            reference: "{{ addr.reference|default:''|escapejs }}",
+            postal_code: "{{ addr.postal_code|default:''|escapejs }}",
+            is_default: {% if addr.is_default %}true{% else %}false{% endif %}
+          }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ]
+      };
+      applyCustomerData(initialCust);
+      {% else %}
       const savedPhone = localStorage.getItem('ia_customer_phone');
-      const savedName = localStorage.getItem('ia_customer_name');
-      const phoneEl = document.getElementById('cust-phone');
-      const nameEl = document.getElementById('cust-name');
-      if (savedPhone && phoneEl && !phoneEl.value) {
-        phoneEl.value = savedPhone;
+      if (savedPhone) {
+        handlePhoneLookup(savedPhone);
+      } else {
+        const savedName = localStorage.getItem('ia_customer_name');
+        if (savedName) document.getElementById('cust-name').value = savedName;
       }
-      if (savedName && nameEl && !nameEl.value) {
-        nameEl.value = savedName;
-      }
+      {% endif %}
     });
 
     function loadCartItems() {
@@ -421,7 +801,7 @@
         const number = document.getElementById('addr-number').value.trim();
         const neighborhood = document.getElementById('addr-neighborhood').value.trim();
         if (!street || !number || !neighborhood) {
-          alert("Por favor informe rua, número e bairro para a entrega.");
+          alert("Por favor informe o endereço completo para a entrega (rua, número e bairro).");
           btn.disabled = false;
           btn.textContent = "Confirmar Pedido ➔";
           return;
