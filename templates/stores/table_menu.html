@@ -5,7 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mesa {{ table.number }} | {{ store.name }} - Cardápio Digital MePedi</title>
+  <meta name="description" content="Cardápio digital para pedidos na mesa {{ table.number }} do estabelecimento {{ store.name }}.">
   <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
 
   <!-- Google Fonts: Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,130 +17,106 @@
   <link rel="stylesheet" href="{% static 'css/menu.css' %}">
 
   <style>
-    /* Estilos Especiais do Modo Mesa */
-    .table-banner-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      color: #ffffff;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 800;
-      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
-      border: 1.5px solid rgba(255, 255, 255, 0.2);
-      animation: tableGlow 2.5s infinite alternate;
-    }
-
-    @keyframes tableGlow {
-      from { box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35); }
-      to { box-shadow: 0 4px 22px rgba(124, 58, 237, 0.65); }
-    }
-
-    .btn-comanda-header {
+    /* Estilos de Integração do Modo Mesa alinhados com o MePedi */
+    .btn-top-my-orders {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       background: #ffffff;
       color: #0f172a;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-weight: 800;
-      font-size: 0.88rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 9999px;
+      padding: 7px 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
       text-decoration: none;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-family: inherit;
     }
-    .btn-comanda-header:hover {
+    .btn-top-my-orders:hover {
       background: #f8fafc;
+      border-color: #94a3b8;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       transform: translateY(-1px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
     }
 
-    .table-status-bar {
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 10px 16px;
+    .table-banner-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #4f46e5;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn-comanda-floating {
+      width: 100%;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 14px 20px;
+      border-radius: var(--radius-full);
+      border: none;
+      box-shadow: var(--shadow-float);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      max-width: 900px;
-      margin: 0 auto;
-      font-size: 0.88rem;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+      transition: var(--transition);
+    }
+    .btn-comanda-floating:hover {
+      background: #1e293b;
+      transform: translateY(-2px);
+      box-shadow: 0 14px 35px -5px rgba(15, 23, 42, 0.45);
     }
 
-    /* Modal de Sucesso */
+    /* Modal de Confirmação de Sucesso */
     .success-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.65);
       backdrop-filter: blur(4px);
-      z-index: 999999;
-      display: flex;
+      z-index: 1000;
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 16px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
     }
-    .success-modal-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
+    .success-modal-overlay.active {
+      display: flex;
     }
-
     .success-modal-box {
       background: #ffffff;
-      border-radius: 20px;
+      border-radius: var(--radius-lg);
       width: 100%;
       max-width: 440px;
       padding: 32px 24px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      transform: translateY(16px);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .success-modal-overlay.open .success-modal-box {
-      transform: translateY(0);
-    }
-
-    .btn-floating-comanda {
-      position: fixed;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 89;
-      background: #0f172a;
-      color: #ffffff;
-      border: 1px solid #334155;
-      padding: 12px 24px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 800;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      transition: all 0.2s;
-    }
-    .btn-floating-comanda:hover {
-      background: #1e293b;
-      transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+      animation: popUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
   </style>
 </head>
 <body class="menu-page">
+
+  <!-- Identificador oculto da loja e mesa -->
+  <div id="store-slug-id" data-slug="{{ store.slug }}" data-qr-token="{{ table.qr_token }}" data-table-number="{{ table.number }}" style="display:none;"></div>
 
   <!-- Catálogo em JSON para o cliente -->
   <script id="store-catalog-data" type="application/json">
     {{ products_catalog_json|safe }}
   </script>
 
-  <!-- Header Hero com Identificação de Mesa -->
+  <!-- Header com Capa / Banner e Logo da Loja -->
   <header class="store-hero-container">
     {% if store.banner %}
       <div class="store-cover-banner" style="background-image: url('{{ store.banner.url }}');">
@@ -172,9 +150,8 @@
               </div>
             </div>
 
-            <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/comanda/" class="btn-comanda-header">
-              <span>🧾</span>
-              <span>Ver Comanda</span>
+            <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/comanda/" class="btn-top-my-orders">
+              🧾 Ver Comanda
             </a>
           </div>
 
@@ -186,40 +163,55 @@
     </div>
   </header>
 
-  <!-- Barra de Categorias com Navegação Fixa -->
-  <nav class="categories-nav-bar" id="categories-nav-bar">
-    <div class="categories-nav-scroll">
+  <!-- Navegação por Categorias (Sticky Horizontal Bar) -->
+  <nav class="categories-nav-wrapper">
+    <div class="categories-scroll" id="categoriesScroll">
       {% for category in categories %}
-        <a href="#cat-{{ category.id }}" class="cat-pill-link {% if forloop.first %}active{% endif %}">
-          {{ category.name }}
-        </a>
+        {% if category.products.all %}
+          <a href="#cat-{{ category.id }}" class="category-chip {% if forloop.first %}active{% endif %}">{{ category.name }}</a>
+        {% endif %}
+      {% empty %}
+        <span style="color:#94a3b8; font-size:0.85rem;">Nenhuma categoria disponível no momento.</span>
       {% endfor %}
     </div>
   </nav>
 
-  <!-- Lista de Categorias e Produtos -->
-  <main class="menu-main-content">
+  <!-- Container de Produtos -->
+  <main class="menu-container">
     {% for category in categories %}
       {% if category.products.all %}
       <section id="cat-{{ category.id }}" class="category-section">
-        <h2 class="category-heading">{{ category.name }}</h2>
-        {% if category.description %}
-          <p class="category-subdesc">{{ category.description }}</p>
-        {% endif %}
+        <div class="category-header">
+          <h2 class="category-title">{{ category.name }}</h2>
+          {% if category.description %}
+            <p class="category-desc">{{ category.description }}</p>
+          {% endif %}
+        </div>
 
-        <div class="products-grid">
+        <div class="products-list">
           {% for product in category.products.all %}
-            <article class="product-card" onclick="openProductModal({{ product.id }})">
-              <div class="product-info">
-                <h3 class="product-name">{{ product.name }}</h3>
+            <article class="product-card {% if product.track_stock and not product.is_in_stock %}out-of-stock-card{% endif %}" data-product-id="{{ product.id }}" onclick="openProductModal({{ product.id }})" style="{% if product.track_stock and not product.is_in_stock %}opacity:0.6; filter:grayscale(0.5); cursor:not-allowed;{% endif %}">
+              <div class="product-details">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <h3 class="product-name" style="margin:0;">{{ product.name }}</h3>
+                  {% if product.is_promotional and product.discount_percent > 0 %}
+                    <span style="background:#fee2e2; color:#dc2626; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px;">
+                      {{ product.discount_percent }}% OFF
+                    </span>
+                  {% endif %}
+                  {% if product.track_stock and not product.is_in_stock %}
+                    <span style="background:#fee2e2; color:#991b1b; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px;">
+                      ⚠️ Esgotado
+                    </span>
+                  {% endif %}
+                </div>
                 {% if product.description %}
-                  <p class="product-desc">{{ product.description }}</p>
+                  <p class="product-description">{{ product.description }}</p>
                 {% endif %}
-
-                <div class="product-bottom-row">
+                <div class="product-price-row">
                   {% if product.is_promotional and product.promotional_price %}
                     <div style="display:flex; flex-direction:column;">
-                      <span class="product-old-price" style="text-decoration:line-through; font-size:0.8rem; color:#94a3b8;">R$ {{ product.price|floatformat:2 }}</span>
+                      <span style="font-size:0.8rem; color:#94a3b8; text-decoration:line-through;">R$ {{ product.price|floatformat:2 }}</span>
                       <span class="product-price" style="color:#dc2626; font-size:1.1rem; font-weight:800;">R$ {{ product.promotional_price|floatformat:2 }}</span>
                     </div>
                   {% else %}
@@ -237,6 +229,8 @@
                 <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-thumb" loading="lazy">
               {% endif %}
             </article>
+          {% empty %}
+            <p style="color:#64748b; font-size:0.85rem;">Nenhum produto cadastrado nesta categoria.</p>
           {% endfor %}
         </div>
       </section>
@@ -249,11 +243,28 @@
     {% endfor %}
   </main>
 
-  <!-- Botão Flutuante de Comanda quando o carrinho estiver vazio -->
-  <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/comanda/" class="btn-floating-comanda" id="btnFloatingComanda">
-    <span>🧾</span>
-    <span>Acompanhar Comanda da Mesa</span>
-  </a>
+  <!-- Rodapé Global da Plataforma MePedi -->
+  {% include "includes/mepedi_footer.html" %}
+
+  <!-- Barra Flutuante de Comanda (Quando carrinho vazio) -->
+  <aside id="comanda-floating-bar" class="cart-floating-bar active">
+    <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/comanda/" class="btn-comanda-floating">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.2rem;">🧾</span>
+        <span>Acompanhar Comanda da Mesa {{ table.number }}</span>
+      </div>
+      <span style="background:rgba(255,255,255,0.18); padding:4px 12px; border-radius:9999px; font-size:0.8rem; font-weight:800;">Ver Itens &rsaquo;</span>
+    </a>
+  </aside>
+
+  <!-- Barra Flutuante do Carrinho / Pedido da Mesa (Quando houver itens) -->
+  <aside id="cart-floating-bar" class="cart-floating-bar">
+    <div id="btn-open-cart-drawer" class="cart-bar-btn" onclick="openCartDrawer()">
+      <span id="cart-floating-count" class="cart-badge-count">0 itens</span>
+      <span>Fazer Pedido na Mesa {{ table.number }}</span>
+      <span id="cart-floating-total">R$ 0,00</span>
+    </div>
+  </aside>
 
   <!-- Modal de Opções do Produto (Bottom Sheet) -->
   <div id="product-modal-overlay" class="modal-overlay">
@@ -263,8 +274,9 @@
         <button type="button" id="btn-close-modal" class="btn-close-modal" onclick="closeProductModal()">&times;</button>
       </div>
       <div class="modal-body">
+        <!-- Foto em destaque do Produto no Modal -->
         <div id="modal-product-image-container" style="display:none; margin-bottom:12px;">
-          <img id="modal-product-img" src="" alt="" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px;">
+          <img id="modal-product-img" src="" alt="" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; border:1px solid var(--border-subtle);">
         </div>
 
         <div class="modal-product-summary">
@@ -274,18 +286,20 @@
           <span id="modal-product-base-price" style="font-weight:800; color:var(--primary); font-size:1.1rem; white-space:nowrap;"></span>
         </div>
 
+        <!-- Container dinâmico de grupos de opções -->
         <div id="modal-options-container" style="display:flex; flex-direction:column; gap:16px;"></div>
 
+        <!-- Campo de Observação Livre -->
         <div>
-          <label style="display:block; font-size:0.85rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">Observação para este item:</label>
+          <label style="display:block; font-size:0.85rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">Alguma observação?</label>
           <textarea id="modal-notes-input" class="notes-input" placeholder="Ex: Sem cebola, gelo e limão, bem passado..."></textarea>
         </div>
       </div>
       <div class="modal-footer">
         <div class="quantity-stepper">
-          <button type="button" class="btn-step" onclick="stepQuantity(-1)">-</button>
+          <button type="button" id="btn-modal-minus" class="btn-step" onclick="stepQuantity(-1)">-</button>
           <span id="modal-step-quantity" class="step-value">1</span>
-          <button type="button" class="btn-step" onclick="stepQuantity(1)">+</button>
+          <button type="button" id="btn-modal-plus" class="btn-step" onclick="stepQuantity(1)">+</button>
         </div>
         <button type="button" id="btn-confirm-add-product" class="btn-confirm-add" onclick="confirmAddToCart()">
           <span>Adicionar</span>
@@ -295,21 +309,12 @@
     </div>
   </div>
 
-  <!-- Barra Flutuante da Sacola (Mobile Bottom Bar) -->
-  <aside id="cart-floating-bar" class="cart-floating-bar" style="display:none;">
-    <div id="btn-open-cart-drawer" class="cart-bar-btn" onclick="openCartDrawer()">
-      <span id="cart-floating-count" class="cart-badge-count">0 itens</span>
-      <span>Ver Pedido da Mesa</span>
-      <span id="cart-floating-total">R$ 0,00</span>
-    </div>
-  </aside>
-
   <!-- Drawer da Sacola / Envio para a Cozinha -->
   <div id="cart-drawer-overlay" class="cart-drawer-overlay">
     <div class="cart-drawer">
       <div class="modal-header">
         <h3 class="modal-title">🍽️ Pedido da Mesa {{ table.number }}</h3>
-        <button type="button" class="btn-close-modal" onclick="closeCartDrawer()">&times;</button>
+        <button type="button" id="btn-close-cart-drawer" class="btn-close-modal" onclick="closeCartDrawer()">&times;</button>
       </div>
 
       <div id="cart-drawer-items-list" class="modal-body" style="max-height:48vh;">
@@ -324,12 +329,12 @@
 
         <div style="width:100%;">
           <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:4px;">Seu Nome (opcional):</label>
-          <input type="text" id="tableCustomerNameInput" class="form-input" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-family:inherit;" placeholder="Ex: Luiz, Maria, Lucas">
+          <input type="text" id="tableCustomerNameInput" class="form-input" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-family:inherit; font-size:0.9rem;" placeholder="Ex: Luiz, Maria, Lucas">
         </div>
 
         <div style="width:100%;">
           <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:4px;">Observação Geral (opcional):</label>
-          <input type="text" id="tableOrderNotesInput" class="form-input" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-family:inherit;" placeholder="Ex: Trazer pratos e talheres adicionais">
+          <input type="text" id="tableOrderNotesInput" class="form-input" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-family:inherit; font-size:0.9rem;" placeholder="Ex: Trazer pratos e talheres adicionais">
         </div>
 
         <button type="button" id="btnSendTableOrder" class="btn-confirm-add" style="width:100%; justify-content:center; background:#10b981; font-size:1rem; padding:14px;" onclick="submitTableOrder()">
@@ -352,14 +357,14 @@
         <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/comanda/" class="btn-confirm-add" style="justify-content:center; text-decoration:none; background:#4f46e5;">
           <span>🧾 Acompanhar na Comanda</span>
         </a>
-        <button type="button" class="btn-comanda-header" style="justify-content:center;" onclick="closeSuccessModalAndContinue()">
+        <button type="button" class="btn-top-my-orders" style="justify-content:center; width:100%; padding:12px;" onclick="closeSuccessModalAndContinue()">
           <span>➕ Fazer Outro Pedido</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Script do Carrinho e Modais de Mesa -->
+  <!-- Script do Cardápio de Mesa -->
   <script>
     const QR_TOKEN = '{{ table.qr_token }}';
     const STORE_SLUG = '{{ store.slug }}';
@@ -399,16 +404,16 @@
       const totalVal = cart.reduce((sum, item) => sum + (item.unit_price_with_options * item.quantity), 0);
 
       const floatingBar = document.getElementById('cart-floating-bar');
-      const floatingComanda = document.getElementById('btnFloatingComanda');
+      const comandaBar = document.getElementById('comanda-floating-bar');
 
       if (totalCount > 0) {
-        floatingBar.style.display = 'block';
-        floatingComanda.style.display = 'none';
+        floatingBar.classList.add('active');
+        comandaBar.classList.remove('active');
         document.getElementById('cart-floating-count').textContent = `${totalCount} ${totalCount === 1 ? 'item' : 'itens'}`;
         document.getElementById('cart-floating-total').textContent = `R$ ${totalVal.toFixed(2).replace('.', ',')}`;
       } else {
-        floatingBar.style.display = 'none';
-        floatingComanda.style.display = 'inline-flex';
+        floatingBar.classList.remove('active');
+        comandaBar.classList.add('active');
       }
 
       document.getElementById('cart-drawer-subtotal').textContent = `R$ ${totalVal.toFixed(2).replace('.', ',')}`;
@@ -420,36 +425,36 @@
       if (!container) return;
 
       if (cart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8;">Nenhum item selecionado.</div>';
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:30px 0;">Sua sacola da mesa está vazia.</p>';
         return;
       }
 
       container.innerHTML = '';
       cart.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.style.cssText = 'display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid #f1f5f9;';
+        const row = document.createElement('div');
+        row.className = 'cart-item-row';
         
         let optsText = '';
         if (item.options && item.options.length > 0) {
-          optsText = `<div style="font-size:0.75rem; color:#64748b; margin-top:2px;">+ ${item.options.map(o => o.name).join(', ')}</div>`;
+          optsText = `<div class="cart-item-options">+ ${item.options.map(o => o.name).join(', ')}</div>`;
         }
         let noteText = '';
         if (item.notes) {
-          noteText = `<div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "${item.notes}"</div>`;
+          noteText = `<div class="cart-item-notes">Obs: "${item.notes}"</div>`;
         }
 
-        div.innerHTML = `
-          <div style="flex:1; padding-right:10px;">
-            <strong style="font-size:0.9rem; color:#0f172a;">${item.quantity}x ${item.name}</strong>
+        row.innerHTML = `
+          <div class="cart-item-info">
+            <div class="cart-item-title">${item.quantity}x ${item.name}</div>
             ${optsText}
             ${noteText}
-            <div style="font-weight:700; color:#4f46e5; font-size:0.85rem; margin-top:4px;">
+            <div class="cart-item-price" style="margin-top:4px;">
               R$ ${(item.unit_price_with_options * item.quantity).toFixed(2).replace('.', ',')}
             </div>
           </div>
-          <button type="button" style="background:#fee2e2; border:none; color:#dc2626; border-radius:6px; width:28px; height:28px; font-weight:700; cursor:pointer;" onclick="removeItemFromCart(${idx})">&times;</button>
+          <button type="button" class="btn-close-modal" style="width:28px; height:28px; font-size:1rem; color:#dc2626; background:#fee2e2;" onclick="removeItemFromCart(${idx})">&times;</button>
         `;
-        container.appendChild(div);
+        container.appendChild(row);
       });
     }
 
@@ -479,6 +484,7 @@
       const imgEl = document.getElementById('modal-product-img');
       if (prod.image_url) {
         imgEl.src = prod.image_url;
+        imgEl.alt = prod.name;
         imgBox.style.display = 'block';
       } else {
         imgBox.style.display = 'none';
@@ -490,25 +496,33 @@
 
       if (prod.option_groups && prod.option_groups.length > 0) {
         prod.option_groups.forEach(group => {
-          const groupDiv = document.createElement('div');
-          groupDiv.style.cssText = 'background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px;';
+          const groupBox = document.createElement('div');
+          groupBox.className = 'option-group-box';
+          groupBox.setAttribute('data-group-id', group.id);
+          groupBox.setAttribute('data-min', group.min_options || 0);
+          groupBox.setAttribute('data-max', group.max_options || 1);
           
-          let badge = '';
-          if (group.is_required) {
-            badge = '<span style="background:#fee2e2; color:#b91c1c; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px;">OBRIGATÓRIO</span>';
-          }
+          const isReq = group.is_required || group.min_options > 0;
+          const badgeClass = isReq ? 'required' : 'optional';
+          const badgeText = isReq ? 'Obrigatório' : 'Opcional';
           
-          groupDiv.innerHTML = `
-            <div style="font-weight:800; font-size:0.9rem; color:#0f172a; margin-bottom:8px;">
-              ${group.name} ${badge}
+          groupBox.innerHTML = `
+            <div class="option-group-header">
+              <div>
+                <strong style="color:var(--text-main); font-size:0.95rem;">${group.name}</strong>
+                <span class="group-badge ${badgeClass}" style="margin-left:6px;">${badgeText}</span>
+              </div>
+              <span style="font-size:0.75rem; color:var(--text-dim);">
+                ${group.max_options > 1 ? `Até ${group.max_options} opções` : 'Escolha 1'}
+              </span>
             </div>
             <div class="group-items-list" style="display:flex; flex-direction:column; gap:8px;"></div>
           `;
 
-          const listDiv = groupDiv.querySelector('.group-items-list');
+          const listDiv = groupBox.querySelector('.group-items-list');
           group.items.forEach(item => {
             const label = document.createElement('label');
-            label.style.cssText = 'display:flex; align-items:center; justify-content:space-between; font-size:0.85rem; cursor:pointer; padding:4px 0;';
+            label.style.cssText = 'display:flex; align-items:center; justify-content:space-between; font-size:0.88rem; cursor:pointer; padding:6px 0; border-bottom:1px solid #f1f5f9;';
             const priceText = item.price > 0 ? `+ R$ ${item.price.toFixed(2).replace('.', ',')}` : 'Incluso';
             
             const isSingle = group.max_options === 1;
@@ -518,24 +532,24 @@
             label.innerHTML = `
               <div style="display:flex; align-items:center; gap:8px;">
                 <input type="${inputType}" name="${inputName}" value="${item.id}" data-group-id="${group.id}" data-price="${item.price}" data-name="${item.name}" onchange="handleOptionChange(this, ${isSingle})">
-                <span>${item.name}</span>
+                <span style="color:var(--text-main);">${item.name}</span>
               </div>
-              <span style="font-weight:700; color:#64748b;">${priceText}</span>
+              <span style="font-weight:700; color:#64748b; font-size:0.85rem;">${priceText}</span>
             `;
             listDiv.appendChild(label);
           });
 
-          optsContainer.appendChild(groupDiv);
+          optsContainer.appendChild(groupBox);
         });
       }
 
       document.getElementById('modal-step-quantity').textContent = '1';
       recalcModalTotal();
-      document.getElementById('product-modal-overlay').classList.add('open');
+      document.getElementById('product-modal-overlay').classList.add('active');
     }
 
     function closeProductModal() {
-      document.getElementById('product-modal-overlay').classList.remove('open');
+      document.getElementById('product-modal-overlay').classList.remove('active');
     }
 
     function stepQuantity(delta) {
@@ -567,7 +581,7 @@
 
     function recalcModalTotal() {
       if (!currentSelectedProduct) return;
-      const basePrice = currentSelectedProduct.current_price;
+      const basePrice = currentSelectedProduct.current_price !== undefined ? currentSelectedProduct.current_price : currentSelectedProduct.price;
       const optionsSum = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
       const unitTotal = basePrice + optionsSum;
       const total = unitTotal * currentQuantity;
@@ -582,7 +596,7 @@
       // Validação de grupos obrigatórios
       if (currentSelectedProduct.option_groups) {
         for (const og of currentSelectedProduct.option_groups) {
-          if (og.is_required) {
+          if (og.is_required || og.min_options > 0) {
             const countInGroup = selectedOptions.filter(o => o.group_id === og.id).length;
             if (countInGroup === 0) {
               alert(`Por favor, selecione uma opção para "${og.name}".`);
@@ -592,7 +606,7 @@
         }
       }
 
-      const basePrice = currentSelectedProduct.current_price;
+      const basePrice = currentSelectedProduct.current_price !== undefined ? currentSelectedProduct.current_price : currentSelectedProduct.price;
       const optionsSum = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
       const unitPriceWithOptions = basePrice + optionsSum;
       const notes = document.getElementById('modal-notes-input').value.trim();
@@ -612,12 +626,20 @@
     }
 
     function openCartDrawer() {
-      document.getElementById('cart-drawer-overlay').classList.add('open');
+      document.getElementById('cart-drawer-overlay').classList.add('active');
     }
 
     function closeCartDrawer() {
-      document.getElementById('cart-drawer-overlay').classList.remove('open');
+      document.getElementById('cart-drawer-overlay').classList.remove('active');
     }
+
+    // Fechar modais ao clicar no overlay
+    document.getElementById('product-modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeProductModal();
+    });
+    document.getElementById('cart-drawer-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeCartDrawer();
+    });
 
     // Enviar Pedido para a Cozinha via API
     async function submitTableOrder() {
@@ -670,7 +692,7 @@
           Seu pedido <strong>#${data.order_number}</strong> foi enviado com sucesso para a cozinha e já está sendo preparado pela equipe!<br>
           Mesa: <strong>${TABLE_NUMBER}</strong> • Total: <strong>R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}</strong>
         `;
-        document.getElementById('orderSuccessModal').classList.add('open');
+        document.getElementById('orderSuccessModal').classList.add('active');
 
       } catch (err) {
         alert('Erro de conexão ao enviar o pedido.');
@@ -680,13 +702,45 @@
     }
 
     function closeSuccessModalAndContinue() {
-      document.getElementById('orderSuccessModal').classList.remove('open');
+      document.getElementById('orderSuccessModal').classList.remove('active');
       const btn = document.getElementById('btnSendTableOrder');
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = '<span>🚀 Enviar Pedido para a Cozinha</span>';
       }
     }
+
+    // ScrollSpy & Category Chips Navigation
+    document.addEventListener('DOMContentLoaded', () => {
+      const chips = document.querySelectorAll('.category-chip');
+      chips.forEach(chip => {
+        chip.addEventListener('click', (e) => {
+          chips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+      });
+
+      // Observer de Scroll para ativar a categoria visível
+      const sections = document.querySelectorAll('.category-section');
+      if ('IntersectionObserver' in window && sections.length > 0) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const id = entry.target.getAttribute('id');
+              chips.forEach(chip => {
+                if (chip.getAttribute('href') === `#${id}`) {
+                  chips.forEach(c => c.classList.remove('active'));
+                  chip.classList.add('active');
+                  chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+
+        sections.forEach(sec => observer.observe(sec));
+      }
+    });
 
     // Inicialização
     loadSavedCart();
