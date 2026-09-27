@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mesas &amp; Comandas | {{ store.name }} - MePedi SaaS</title>
   <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
 
   <!-- Google Fonts: Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,17 +19,17 @@
   <style>
     :root {
       --dash-bg: #f8fafc;
-      --dash-header-bg: #0f172a;
+      --dash-header: #ffffff;
       --dash-card: #ffffff;
       --dash-card-border: #e2e8f0;
       --dash-text: #0f172a;
       --dash-muted: #64748b;
-      --dash-primary: #6366f1;
-      --dash-primary-hover: #4f46e5;
-      --color-free: #10b981;
-      --color-occupied: #3b82f6;
-      --color-waiting: #f59e0b;
-      --color-danger: #ef4444;
+      --brand-primary: #4f46e5;
+      --brand-primary-hover: #4338ca;
+      --brand-success: #10b981;
+      --brand-warning: #f59e0b;
+      --brand-danger: #ef4444;
+      --brand-purple: #8b5cf6;
     }
 
     * {
@@ -38,285 +39,305 @@
     }
 
     body {
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--dash-bg);
+      background-color: var(--dash-bg);
       color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Header MePedi */
+    /* Header & Nav MePedi Style (100% idêntico às demais telas) */
     .dash-header {
-      background: var(--dash-header-bg);
-      color: #ffffff;
-      padding: 12px 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
       position: sticky;
       top: 0;
       z-index: 100;
+      padding: 10px 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     }
-
     .header-content {
       max-width: 1440px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
+    /* Linha 1: Marca, Loja e Abas */
     .dash-row-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
-
     .header-left-cluster {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
     }
-
+    .header-brand {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
     .mepedi-logo-img {
-      height: 32px;
+      height: 34px;
       width: auto;
       display: block;
+      object-fit: contain;
     }
-
     .h-divider {
       width: 1.5px;
       height: 22px;
-      background: #334155;
+      background: #e2e8f0;
+      flex-shrink: 0;
     }
-
     .panel-title-text {
-      font-size: 1.1rem;
+      font-size: 1.12rem;
       font-weight: 800;
-      color: #f1f5f9;
+      color: #1e293b;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-
     .store-badge-header {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
-
     .store-circle-avatar {
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       object-fit: cover;
-      border: 1.5px solid #475569;
-      background: #1e293b;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
-
+    .store-avatar-fallback {
+      font-size: 1.05rem;
+      background: #eff6ff;
+    }
     .store-header-name {
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      color: #f8fafc;
+      color: #1e293b;
+      white-space: nowrap;
     }
-
     .store-quick-switch {
-      background: #1e293b;
-      color: #f8fafc;
-      border: 1px solid #475569;
-      border-radius: 6px;
-      padding: 4px 8px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 3px 8px;
       font-family: inherit;
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 0.9rem;
+      outline: none;
       cursor: pointer;
     }
+    .store-quick-switch:focus {
+      border-color: #4f46e5;
+    }
 
+    /* Linha 1 Direita: Abas / Tabs */
     .dash-nav-tabs {
       display: flex;
       align-items: center;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      scrollbar-width: none;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
-    .dash-nav-tabs::-webkit-scrollbar { display: none; }
-
     .dash-tab-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 14px;
-      border-radius: 999px;
-      font-size: 0.85rem;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
       font-weight: 700;
+      color: #475569;
       text-decoration: none;
-      color: #cbd5e1;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
       white-space: nowrap;
     }
     .dash-tab-pill:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
+      color: #1e293b;
+      background: #f1f5f9;
     }
     .dash-tab-pill.active {
-      background: var(--dash-primary);
-      color: #ffffff;
-      border-color: var(--dash-primary);
-      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+      background: #eef2ff;
+      color: #4338ca;
+      border-color: #c7d2fe;
+    }
+    .dash-tab-pill .tab-icon {
+      font-size: 0.95rem;
+      display: inline-block;
     }
 
+    /* Linha 2: Ações Rápidas */
     .dash-row-bottom {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 10px;
       padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+      flex-wrap: nowrap;
+      overflow-x: auto;
     }
-
     .pill-actions-group {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
     }
-
     .pill-action-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-decoration: none;
-      background: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
       cursor: pointer;
-      transition: all 0.2s;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      outline: none;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .pill-action-btn:hover {
-      background: #334155;
-      color: #ffffff;
+    .pill-btn-menu {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+    .pill-btn-menu:hover {
+      background: #dbeafe;
+    }
+    .pill-btn-logout {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #ef4444;
+    }
+    .pill-btn-logout:hover {
+      background: #fee2e2;
     }
 
-    /* Main Container */
+    /* Container Principal */
     .tables-dashboard-container {
-      max-width: 1440px;
-      margin: 20px auto;
-      padding: 0 20px 40px;
+      max-width: 1400px;
+      margin: 20px auto 60px auto;
+      padding: 0 24px;
     }
 
-    /* Metrics Bar */
+    /* Metrics Grid (Padronizado com a tela de Pedidos) */
     .metrics-bar {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
-      margin-bottom: 20px;
+      gap: 16px;
+      margin-bottom: 24px;
     }
-
     .metric-card {
       background: var(--dash-card);
       border: 1px solid var(--dash-card-border);
       border-radius: 14px;
       padding: 16px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
     }
-
-    .metric-card.accent-free { border-left: 4px solid var(--color-free); }
-    .metric-card.accent-occupied { border-left: 4px solid var(--color-occupied); }
-    .metric-card.accent-waiting {
-      border-left: 4px solid var(--color-waiting);
-      background: #fffbeb;
-    }
-    .metric-card.accent-revenue { border-left: 4px solid #8b5cf6; }
-
     .metric-title {
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.82rem;
       color: var(--dash-muted);
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
-
     .metric-value {
-      font-size: 1.7rem;
-      font-weight: 900;
-      color: var(--dash-text);
+      font-size: 1.6rem;
+      font-weight: 800;
       margin-top: 6px;
+      color: #0f172a;
     }
 
-    /* Action & Filter Toolbar */
+    /* Toolbar de Abas de Filtro e Ação (Padronizado com a tela de Pedidos) */
     .tables-toolbar {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
-      margin-bottom: 20px;
-      background: #ffffff;
-      padding: 14px 18px;
-      border-radius: 14px;
-      border: 1px solid var(--dash-card-border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
 
-    .filter-pills {
+    .tab-btn {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      color: var(--dash-muted);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
-
-    .filter-btn {
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      border: 1px solid var(--dash-card-border);
-      background: #f8fafc;
-      color: var(--dash-muted);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .tab-btn:hover {
+      border-color: #cbd5e1;
+      color: #1e293b;
     }
-    .filter-btn:hover {
+    .tab-btn.active {
+      background: #4f46e5;
+      border-color: #4f46e5;
+      color: #ffffff;
+    }
+    .tab-badge {
       background: #f1f5f9;
-      color: var(--dash-text);
+      color: #475569;
+      font-size: 0.75rem;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-weight: 700;
     }
-    .filter-btn.active {
-      background: var(--dash-primary);
+    .tab-btn.active .tab-badge {
+      background: rgba(255, 255, 255, 0.25);
       color: #ffffff;
-      border-color: var(--dash-primary);
     }
 
-    .toolbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    /* Botão Nova Mesa Principal */
     .btn-create-table {
-      background: var(--dash-primary);
+      background: #4f46e5;
       color: #ffffff;
-      padding: 9px 16px;
+      padding: 9px 18px;
       border-radius: 10px;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       font-weight: 700;
       border: none;
       cursor: pointer;
@@ -324,55 +345,37 @@
       align-items: center;
       gap: 6px;
       font-family: inherit;
-      transition: background 0.2s, transform 0.1s;
-      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+      text-decoration: none;
     }
     .btn-create-table:hover {
-      background: var(--dash-primary-hover);
-      transform: translateY(-1px);
+      background: #4338ca;
     }
 
-    /* Grid of Tables */
+    /* Grade de Mesas */
     .tables-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
       gap: 16px;
     }
 
+    /* Card da Mesa */
     .table-card {
-      background: var(--dash-card);
-      border: 2px solid var(--dash-card-border);
-      border-radius: 16px;
-      padding: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       position: relative;
     }
     .table-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    }
-
-    .table-card.status-free {
-      border-color: #a7f3d0;
-      background: #ffffff;
-    }
-    .table-card.status-occupied {
-      border-color: #bfdbfe;
-      background: #ffffff;
-    }
-    .table-card.status-waiting {
-      border-color: #fde68a;
-      background: #fffdf5;
-      animation: waitingPulse 2s infinite ease-in-out;
-    }
-
-    @keyframes waitingPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     }
 
     .table-card-top {
@@ -384,8 +387,8 @@
     }
 
     .table-badge-num {
-      font-size: 1.4rem;
-      font-weight: 900;
+      font-size: 1.15rem;
+      font-weight: 800;
       color: #0f172a;
       display: flex;
       align-items: center;
@@ -400,36 +403,36 @@
     }
 
     .status-badge-pill {
-      font-size: 0.72rem;
+      font-size: 0.75rem;
       font-weight: 800;
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .badge-free {
       background: #ecfdf5;
-      color: #059669;
+      color: #065f46;
       border: 1px solid #a7f3d0;
     }
     .badge-occupied {
       background: #eff6ff;
-      color: #2563eb;
+      color: #1d4ed8;
       border: 1px solid #bfdbfe;
     }
     .badge-waiting {
       background: #fef3c7;
       color: #b45309;
       border: 1px solid #fde68a;
-      animation: pulse 1.5s infinite;
     }
 
     .table-body-info {
-      padding: 10px 0;
-      border-top: 1px dashed #e2e8f0;
-      border-bottom: 1px dashed #e2e8f0;
+      padding: 12px 0;
+      border-top: 1px solid #f1f5f9;
+      border-bottom: 1px solid #f1f5f9;
       margin: 10px 0 14px;
-      min-height: 80px;
+      min-height: 74px;
     }
 
     .free-placeholder-text {
@@ -439,7 +442,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 0;
+      padding: 8px 0;
     }
 
     .session-stats-row {
@@ -450,23 +453,23 @@
     }
 
     .session-total-val {
-      font-size: 1.35rem;
-      font-weight: 900;
+      font-size: 1.3rem;
+      font-weight: 800;
       color: #0f172a;
     }
 
     .session-rounds-tag {
       font-size: 0.78rem;
       font-weight: 700;
-      color: var(--dash-muted);
+      color: #475569;
       background: #f1f5f9;
-      padding: 2px 7px;
+      padding: 2px 8px;
       border-radius: 6px;
     }
 
     .session-items-preview {
-      font-size: 0.8rem;
-      color: #475569;
+      font-size: 0.82rem;
+      color: #64748b;
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -483,13 +486,13 @@
 
     .btn-action-sm {
       flex: 1;
-      padding: 8px 10px;
+      padding: 8px 12px;
       border-radius: 9px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 700;
-      border: 1px solid var(--dash-card-border);
+      border: 1px solid #cbd5e1;
       background: #ffffff;
-      color: #1e293b;
+      color: #334155;
       cursor: pointer;
       font-family: inherit;
       display: inline-flex;
@@ -497,17 +500,18 @@
       justify-content: center;
       gap: 5px;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
       white-space: nowrap;
     }
     .btn-action-sm:hover {
       background: #f8fafc;
-      border-color: #cbd5e1;
+      border-color: #94a3b8;
+      color: #0f172a;
     }
 
     .btn-action-pay {
       background: #ecfdf5;
-      color: #047857;
+      color: #065f46;
       border-color: #a7f3d0;
     }
     .btn-action-pay:hover {
@@ -517,19 +521,56 @@
     .btn-action-urgent {
       background: #f59e0b;
       color: #ffffff;
-      border-color: #f59e0b;
-      font-weight: 800;
-      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+      border-color: #d97706;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
     }
     .btn-action-urgent:hover {
       background: #d97706;
     }
 
-    /* Modal Overlay & Card */
+    /* Estado Vazio (Padronizado) */
+    .empty-state-card {
+      grid-column: 1 / -1;
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 56px 24px;
+      text-align: center;
+      max-width: 480px;
+      margin: 30px auto;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    }
+    .empty-icon-circle {
+      width: 64px;
+      height: 64px;
+      background: #eef2ff;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 16px;
+      border: 1px solid #c7d2fe;
+    }
+    .empty-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    .empty-text {
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    /* Modal Overlay & Card (Padronizado) */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.7);
+      background: rgba(15, 23, 42, 0.55);
       backdrop-filter: blur(4px);
       z-index: 99999;
       display: flex;
@@ -547,15 +588,16 @@
 
     .modal-card {
       background: #ffffff;
-      border-radius: 18px;
+      border-radius: 16px;
       width: 100%;
       max-width: 500px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
       padding: 24px;
       position: relative;
       max-height: 90vh;
       overflow-y: auto;
-      transform: translateY(12px) scale(0.98);
+      transform: translateY(10px) scale(0.98);
       transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .modal-overlay.open .modal-card {
@@ -570,16 +612,14 @@
       padding-bottom: 12px;
       border-bottom: 1px solid #f1f5f9;
     }
-
     .modal-title {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
-      color: #0f172a;
+      color: #1e293b;
     }
-
     .modal-close-btn {
-      background: #f1f5f9;
-      border: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -590,11 +630,11 @@
       color: #64748b;
       font-size: 1.1rem;
       font-weight: 700;
-      transition: background 0.15s;
+      transition: all 0.15s;
     }
     .modal-close-btn:hover {
-      background: #e2e8f0;
-      color: #0f172a;
+      background: #f1f5f9;
+      color: #1e293b;
     }
 
     .form-group {
@@ -617,11 +657,11 @@
       color: #0f172a;
       background: #ffffff;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: var(--dash-primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
 
     /* QR Code Display Card para Impressão */
@@ -633,20 +673,16 @@
       text-align: center;
       margin: 16px 0;
     }
-    .qr-print-logo {
-      height: 36px;
-      margin-bottom: 8px;
-    }
     .qr-print-table-title {
-      font-size: 1.5rem;
-      font-weight: 900;
+      font-size: 1.4rem;
+      font-weight: 800;
       color: #0f172a;
       margin-bottom: 4px;
     }
     .qr-print-instruction {
       font-size: 0.88rem;
       color: #64748b;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 14px;
     }
     .qr-code-canvas-box {
@@ -709,7 +745,7 @@
 </head>
 <body>
 
-  <!-- Header Global do Painel -->
+  <!-- Header Global do Painel (Exatamente igual a todas as outras telas) -->
   <header class="dash-header">
     <div class="header-content">
       <div class="dash-row-top">
@@ -718,13 +754,13 @@
             <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
           </a>
           <div class="h-divider"></div>
-          <span class="panel-title-text">Mesas &amp; Comandas</span>
+          <span class="panel-title-text">Painel de Pedidos</span>
           <div class="h-divider"></div>
           <div class="store-badge-header">
             {% if store.logo %}
               <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
             {% else %}
-              <div class="store-circle-avatar">🍕</div>
+              <div class="store-circle-avatar store-avatar-fallback">🍕</div>
             {% endif %}
             {% if user_stores|length > 1 %}
               <select class="store-quick-switch" onchange="window.location.href='/painel/' + this.value + '/mesas/'">
@@ -738,45 +774,49 @@
           </div>
         </div>
 
+        <!-- Links de Navegação da Direita -->
         <nav class="dash-nav-tabs">
           <a href="/painel/{{ store.slug }}/" class="dash-tab-pill">
-            <span>🧾</span>
+            <span class="tab-icon">🧾</span>
             <span>Meus Pedidos</span>
           </a>
           <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
-            <span>🖥️</span>
+            <span class="tab-icon">🖥️</span>
             <span>PDV Balcão</span>
           </a>
           <a href="/painel/{{ store.slug }}/mesas/" class="dash-tab-pill active">
-            <span>🍽️</span>
-            <span>Mesas &amp; QR Code</span>
+            <span class="tab-icon">🍽️</span>
+            <span>Mesas</span>
           </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
-            <span>🍕</span>
+            <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
           </a>
           <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
-            <span>⚙️</span>
+            <span class="tab-icon">⚙️</span>
             <span>Configurações</span>
           </a>
           <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
-            <span>📊</span>
+            <span class="tab-icon">📊</span>
             <span>Analytics</span>
           </a>
           <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
-            <span>💎</span>
+            <span class="tab-icon">💎</span>
             <span>Minha Assinatura</span>
           </a>
         </nav>
       </div>
 
+      <!-- Linha 2: Ações Rápidas -->
       <div class="dash-row-bottom">
         <div class="pill-actions-group">
-          <a href="/{{ store.slug }}/" target="_blank" class="pill-action-btn">
-            🌐 Ver Cardápio Online
+          <a href="/{{ store.slug }}/" target="_blank" class="pill-action-btn pill-btn-menu">
+            <span>🌐</span>
+            <span>Ver Cardápio Online</span>
           </a>
-          <a href="/painel/logout/" class="pill-action-btn" style="color:#ef4444; border-color:#fecaca;">
-            🚨 Sair
+          <a href="/painel/logout/" class="pill-action-btn pill-btn-logout">
+            <span>🚨</span>
+            <span>Sair</span>
           </a>
         </div>
       </div>
@@ -789,50 +829,51 @@
     <!-- SaaS Banner -->
     {% include 'dashboard/includes/saas_banner.html' %}
 
-    <!-- Métricas do Salão -->
+    <!-- Métricas Rápidas (Padronizadas com as demais páginas) -->
     <section class="metrics-bar">
       <div class="metric-card">
-        <span class="metric-title">Total de Mesas</span>
+        <div class="metric-title">Total de Mesas</div>
         <div class="metric-value">{{ total_tables }}</div>
       </div>
-      <div class="metric-card accent-free">
-        <span class="metric-title">Mesas Livres</span>
-        <div class="metric-value" style="color:var(--color-free);">{{ free_count }}</div>
+      <div class="metric-card">
+        <div class="metric-title">Mesas Livres</div>
+        <div class="metric-value" style="color:#10b981;">{{ free_count }}</div>
       </div>
-      <div class="metric-card accent-occupied">
-        <span class="metric-title">Em Consumo</span>
-        <div class="metric-value" style="color:var(--color-occupied);">{{ occupied_count }}</div>
+      <div class="metric-card">
+        <div class="metric-title">Em Consumo</div>
+        <div class="metric-value" style="color:#4f46e5;">{{ occupied_count }}</div>
       </div>
-      <div class="metric-card accent-waiting">
-        <span class="metric-title">Pediram a Conta 🔔</span>
-        <div class="metric-value" style="color:var(--color-waiting);">{{ waiting_pay_count }}</div>
+      <div class="metric-card">
+        <div class="metric-title">Pediram a Conta</div>
+        <div class="metric-value" style="color:#d97706;">{{ waiting_pay_count }}</div>
       </div>
-      <div class="metric-card accent-revenue">
-        <span class="metric-title">Consumo Aberto</span>
-        <div class="metric-value" style="color:#8b5cf6;">R$ {{ total_in_consumption|floatformat:2 }}</div>
+      <div class="metric-card">
+        <div class="metric-title">Consumo Aberto</div>
+        <div class="metric-value" style="color:#4338ca;">R$ {{ total_in_consumption|floatformat:2 }}</div>
       </div>
     </section>
 
-    <!-- Toolbar de Filtros e Adicionar Mesa -->
+    <!-- Toolbar de Abas de Filtro e Botão Nova Mesa -->
     <div class="tables-toolbar">
-      <div class="filter-pills">
-        <button type="button" class="filter-btn active" onclick="filterTables('all', this)">
-          Todas ({{ total_tables }})
+      <nav class="tabs-nav">
+        <button type="button" class="tab-btn active" data-status="all" onclick="filterTables('all', this)">
+          Todas <span class="tab-badge">{{ total_tables }}</span>
         </button>
-        <button type="button" class="filter-btn" onclick="filterTables('free', this)">
-          🟢 Livres ({{ free_count }})
+        <button type="button" class="tab-btn" data-status="free" onclick="filterTables('free', this)">
+          🟢 Livres <span class="tab-badge">{{ free_count }}</span>
         </button>
-        <button type="button" class="filter-btn" onclick="filterTables('occupied', this)">
-          🔵 Em Consumo ({{ occupied_count }})
+        <button type="button" class="tab-btn" data-status="occupied" onclick="filterTables('occupied', this)">
+          🔵 Em Consumo <span class="tab-badge">{{ occupied_count }}</span>
         </button>
-        <button type="button" class="filter-btn" onclick="filterTables('waiting', this)">
-          🔔 Pediram Conta ({{ waiting_pay_count }})
+        <button type="button" class="tab-btn" data-status="waiting" onclick="filterTables('waiting', this)">
+          🔔 Pediram Conta <span class="tab-badge">{{ waiting_pay_count }}</span>
         </button>
-      </div>
+      </nav>
 
-      <div class="toolbar-actions">
+      <div>
         <button type="button" class="btn-create-table" onclick="openNewTableModal()">
-          <span>➕ Nova Mesa</span>
+          <span>➕</span>
+          <span>Nova Mesa</span>
         </button>
       </div>
     </div>
@@ -841,7 +882,7 @@
     <div class="tables-grid" id="tablesGrid">
       {% for item in tables_data %}
         {% with table=item.table session=item.session %}
-          <div class="table-card {% if not item.is_occupied %}status-free{% elif session.status == 'WAITING_PAY' %}status-waiting{% else %}status-occupied{% endif %}"
+          <div class="table-card"
                id="tableCard_{{ table.id }}"
                data-status="{% if not item.is_occupied %}free{% elif session.status == 'WAITING_PAY' %}waiting{% else %}occupied{% endif %}"
                data-table-id="{{ table.id }}"
@@ -918,14 +959,13 @@
           </div>
         {% endwith %}
       {% empty %}
-        <div style="grid-column: 1 / -1; background:#ffffff; border-radius:16px; padding:48px 20px; text-align:center; border:1px solid #e2e8f0;">
-          <div style="font-size:3rem; margin-bottom:12px;">🍽️</div>
-          <h3 style="font-size:1.2rem; font-weight:800; color:#0f172a; margin-bottom:6px;">Nenhuma mesa cadastrada</h3>
-          <p style="color:#64748b; font-size:0.9rem; max-width:440px; margin:0 auto 18px;">
-            Cadastre as mesas do seu estabelecimento para gerar os QR Codes inteligentes e permitir que seus clientes peçam direto da mesa!
-          </p>
+        <div class="empty-state-card">
+          <div class="empty-icon-circle">🍽️</div>
+          <h3 class="empty-title">Nenhuma mesa cadastrada</h3>
+          <p class="empty-text">Cadastre as mesas do seu salão para gerar os QR Codes inteligentes e permitir que seus clientes peçam diretamente pelo celular.</p>
           <button type="button" class="btn-create-table" onclick="openNewTableModal()">
-            <span>➕ Cadastrar Primeira Mesa</span>
+            <span>➕</span>
+            <span>Cadastrar Primeira Mesa</span>
           </button>
         </div>
       {% endfor %}
@@ -976,7 +1016,7 @@
 
       <!-- Área de Impressão do Display de Mesa -->
       <div class="qr-print-card" id="qrPrintArea">
-        <div style="font-size:1.6rem; margin-bottom:4px;">🍽️</div>
+        <div style="font-size:1.8rem; margin-bottom:4px;">🍽️</div>
         <div class="qr-print-table-title" id="qrPrintTableNumber">Mesa 01</div>
         <div class="qr-print-instruction">Abra a câmera do celular e aponte para o QR Code abaixo para ver o cardápio e fazer seu pedido!</div>
 
@@ -991,7 +1031,7 @@
         <label class="form-label">Link Direto da Mesa</label>
         <div style="display:flex; gap:8px;">
           <input type="text" id="qrDirectLinkInput" class="form-input" readonly style="font-size:0.8rem; background:#f8fafc;">
-          <button type="button" class="pill-action-btn" onclick="copyQrLink()">Copiar</button>
+          <button type="button" class="btn-action-sm" style="flex:0 0 auto; padding:8px 14px;" onclick="copyQrLink()">Copiar</button>
         </div>
       </div>
 
@@ -1113,13 +1153,14 @@
 
     // Filtro visual das mesas
     function filterTables(filter, btn) {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn, .filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
       const cards = document.querySelectorAll('.table-card');
+      const f = filter.toLowerCase();
       cards.forEach(card => {
-        const status = card.dataset.status;
-        if (filter === 'all' || status === filter) {
+        const status = (card.dataset.status || '').toLowerCase();
+        if (f === 'all' || status === f) {
           card.style.display = 'flex';
         } else {
           card.style.display = 'none';
@@ -1214,10 +1255,6 @@
       openModal('comandaModal');
 
       try {
-        // Busca comanda pela sessão
-        const res = await fetch(`/api/v1/orders/merchant/${STORE_ID}/tables/`);
-        // Ou busca dados consolidados
-        // Para simplificar, buscamos via endpoint de mesa
         const card = document.querySelector(`[data-table-number="${tableNumber}"]`);
         const tableId = card.dataset.tableId;
 
