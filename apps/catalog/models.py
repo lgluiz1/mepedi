@@ -188,6 +188,7 @@ class StockMovement(StoreBoundedModel):
     """
     TYPE_SALE_ONLINE = 'SALE_ONLINE'
     TYPE_SALE_PDV = 'SALE_PDV'
+    TYPE_SALE_TABLE = 'SALE_TABLE'
     TYPE_CANCEL_RETURN = 'CANCEL_RETURN'
     TYPE_MANUAL_ADJUST = 'MANUAL_ADJUST'
     TYPE_RESTOCK = 'RESTOCK'
@@ -195,6 +196,7 @@ class StockMovement(StoreBoundedModel):
     MOVEMENT_CHOICES = [
         (TYPE_SALE_ONLINE, _('Venda Online')),
         (TYPE_SALE_PDV, _('Venda PDV (Balcão)')),
+        (TYPE_SALE_TABLE, _('Venda Mesa (QR Code)')),
         (TYPE_CANCEL_RETURN, _('Devolução por Cancelamento')),
         (TYPE_MANUAL_ADJUST, _('Ajuste Manual')),
         (TYPE_RESTOCK, _('Reposição de Estoque')),

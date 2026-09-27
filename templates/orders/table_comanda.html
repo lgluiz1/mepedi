@@ -1,0 +1,529 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Comanda - Mesa {{ table.number }} | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 90px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .comanda-header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .btn-back-menu {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.2s;
+    }
+    .btn-back-menu:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+
+    .table-title-box {
+      text-align: right;
+    }
+    .table-main-badge {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #f8fafc;
+    }
+    .store-sub-name {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    /* Main Container */
+    .comanda-container {
+      max-width: 680px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    /* Status Banner */
+    .status-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      border: 1.5px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .status-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .status-open {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+    .status-open .status-icon-box {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .status-waiting {
+      border-color: #fde68a;
+      background: #fffdf5;
+      animation: pulseBorder 2s infinite ease-in-out;
+    }
+    .status-waiting .status-icon-box {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    }
+
+    .status-closed {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+    }
+    .status-closed .status-icon-box {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .status-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .status-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Orders / Rodadas */
+    .order-round-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .order-round-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .order-round-title {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .order-status-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .badge-novo { background:#fee2e2; color:#b91c1c; }
+    .badge-aceito { background:#fef3c7; color:#b45309; }
+    .badge-preparando { background:#e0e7ff; color:#4338ca; }
+    .badge-pronto { background:#dcfce7; color:#15803d; }
+    .badge-concluido { background:#f1f5f9; color:#475569; }
+
+    .item-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.88rem;
+    }
+
+    /* Breakdown Consolidado */
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.92rem;
+    }
+    .breakdown-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Total Box */
+    .total-box {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+    .total-label {
+      font-size: 0.92rem;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+    .total-value {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #10b981;
+    }
+
+    /* Bottom Actions Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+      z-index: 80;
+    }
+    .bottom-bar-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-action-primary {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-more-items {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+    .btn-more-items:hover {
+      background: #4338ca;
+    }
+
+    .btn-ask-bill {
+      background: #f59e0b;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    .btn-ask-bill:hover {
+      background: #d97706;
+    }
+    .btn-ask-bill:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="comanda-header">
+    <div class="header-inner">
+      <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/" class="btn-back-menu">
+        <span>⬅️</span>
+        <span>Cardápio da Mesa</span>
+      </a>
+
+      <div class="table-title-box">
+        <div class="table-main-badge">Mesa {{ table.number }}</div>
+        <div class="store-sub-name">{{ store.name }}</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <main class="comanda-container">
+
+    <!-- Status da Mesa -->
+    {% if table_session %}
+      {% if table_session.status == 'WAITING_PAY' %}
+        <div class="status-card status-waiting" id="comandaStatusCard">
+          <div class="status-icon-box">🔔</div>
+          <div>
+            <div class="status-title">Conta Solicitada!</div>
+            <div class="status-desc">Um atendente está a caminho da sua mesa com a conta e a maquininha.</div>
+          </div>
+        </div>
+      {% elif table_session.status == 'CLOSED' %}
+        <div class="status-card status-closed" id="comandaStatusCard">
+          <div class="status-icon-box">✓</div>
+          <div>
+            <div class="status-title">Comanda Encerrada e Paga</div>
+            <div class="status-desc">Obrigado pela preferência e volte sempre!</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="status-card status-open" id="comandaStatusCard">
+          <div class="status-icon-box">🍽️</div>
+          <div>
+            <div class="status-title">Comanda Aberta em Consumo</div>
+            <div class="status-desc">Seus pedidos são preparados na hora. Peça novos itens a qualquer momento!</div>
+          </div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="status-card status-open">
+        <div class="status-icon-box">🍽️</div>
+        <div>
+          <div class="status-title">Mesa Sem Pedidos</div>
+          <div class="status-desc">Nenhum pedido foi realizado ainda nesta mesa.</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Resumo Geral do Consumo (Breakdown) -->
+    <section class="section-card">
+      <div class="section-title">
+        <span>🧾 Resumo do Consumo</span>
+        <span style="font-size:0.8rem; color:var(--muted); font-weight:600;">Todos os itens</span>
+      </div>
+
+      {% if items_breakdown %}
+        <div class="breakdown-list">
+          {% for item in items_breakdown %}
+            <div class="breakdown-row">
+              <div>
+                <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
+                {% if item.options %}
+                  <div style="font-size:0.75rem; color:#64748b;">
+                    + {% for opt in item.options %}{{ opt.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <strong style="color:#0f172a;">R$ {{ item.total|floatformat:2 }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="total-box">
+          <div>
+            <div class="total-label">TOTAL DA MESA</div>
+            <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Consumo de todas as rodadas</div>
+          </div>
+          <div class="total-value" id="comandaTotalDisplay">R$ {{ total|floatformat:2 }}</div>
+        </div>
+      {% else %}
+        <div style="text-align:center; padding:30px 10px; color:#94a3b8;">
+          <p style="font-size:0.9rem;">Você ainda não enviou nenhum pedido.</p>
+          <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/" class="btn-action-primary btn-more-items" style="display:inline-flex; margin-top:12px; text-decoration:none;">
+            <span>🍽️ Ver Cardápio e Pedir</span>
+          </a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Histórico de Rodadas / Pedidos -->
+    {% if orders %}
+      <section class="section-card">
+        <div class="section-title">
+          <span>🍳 Pedidos Realizados</span>
+          <span style="font-size:0.8rem; color:var(--muted); font-weight:600;">{{ orders|length }} envio(s)</span>
+        </div>
+
+        {% for ord in orders %}
+          <div class="order-round-card">
+            <div class="order-round-header">
+              <span class="order-round-title">Pedido {{ ord.display_number }} • {{ ord.created_at|date:"H:i" }}</span>
+              <span class="order-status-badge {% if ord.status == 'NOVO' %}badge-novo{% elif ord.status == 'ACEITO' %}badge-aceito{% elif ord.status == 'EM_PREPARACAO' %}badge-preparando{% elif ord.status == 'PRONTO' or ord.status == 'SAIU_PARA_ENTREGA' %}badge-pronto{% else %}badge-concluido{% endif %}">
+                {{ ord.get_status_display }}
+              </span>
+            </div>
+
+            {% for item in ord.items.all %}
+              <div class="item-row">
+                <div>
+                  <span>{{ item.quantity }}x {{ item.product_name }}</span>
+                  {% for opt in item.selected_options.all %}
+                    <span style="font-size:0.75rem; color:#64748b;">(+{{ opt.name }})</span>
+                  {% endfor %}
+                </div>
+                <span style="font-weight:700;">R$ {{ item.total|floatformat:2 }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+  </main>
+
+  <!-- Barra Fixa Inferior de Ações -->
+  <footer class="bottom-bar">
+    <div class="bottom-bar-inner">
+      <a href="/{{ store.slug }}/mesa/{{ table.qr_token }}/" class="btn-action-primary btn-more-items">
+        <span>➕</span>
+        <span>Pedir Mais Itens</span>
+      </a>
+
+      {% if table_session and table_session.status != 'CLOSED' %}
+        <button type="button" id="btnRequestBill" class="btn-action-primary btn-ask-bill"
+                onclick="requestBill()"
+                {% if table_session.status == 'WAITING_PAY' %}disabled{% endif %}>
+          <span>🔔</span>
+          <span>{% if table_session.status == 'WAITING_PAY' %}Conta Solicitada!{% else %}Pedir a Conta{% endif %}</span>
+        </button>
+      {% endif %}
+    </div>
+  </footer>
+
+  <script>
+    const QR_TOKEN = '{{ table.qr_token }}';
+
+    async function requestBill() {
+      if (!confirm('Deseja pedir o fechamento da conta? Um atendente virá à sua mesa.')) return;
+
+      const btn = document.getElementById('btnRequestBill');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Solicitando...</span>';
+
+      try {
+        const res = await fetch(`/api/v1/orders/table/${QR_TOKEN}/pedir-conta/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Erro ao pedir a conta.');
+          btn.disabled = false;
+          btn.innerHTML = '<span>🔔 Pedir a Conta</span>';
+          return;
+        }
+
+        alert('Conta solicitada com sucesso! Um atendente virá à sua mesa.');
+        btn.innerHTML = '<span>🔔 Conta Solicitada!</span>';
+        btn.disabled = true;
+
+        const card = document.getElementById('comandaStatusCard');
+        if (card) {
+          card.className = 'status-card status-waiting';
+          card.querySelector('.status-title').textContent = 'Conta Solicitada!';
+          card.querySelector('.status-desc').textContent = 'Um atendente está a caminho da sua mesa com a conta e a maquininha.';
+        }
+      } catch (err) {
+        alert('Erro de conexão ao solicitar a conta.');
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔔 Pedir a Conta</span>';
+      }
+    }
+
+    // Polling suave a cada 12 segundos para atualizar status dos preparos
+    setInterval(async () => {
+      try {
+        const res = await fetch(`/api/v1/orders/table/${QR_TOKEN}/comanda/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.has_active_session && data.status === 'CLOSED') {
+          window.location.reload();
+        }
+      } catch(e) {}
+    }, 12000);
+  </script>
+</body>
+</html>

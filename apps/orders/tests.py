@@ -14,7 +14,7 @@ from catalog.models import Category, Product, OptionGroup, OptionItem, StockMove
 from catalog.services import StockService
 from customers.models import Customer
 from delivery.models import DeliveryZone
-from orders.models import Order, OrderItem, OrderItemOption, Coupon
+from orders.models import Order, OrderItem, OrderItemOption, Coupon, Table, TableSession
 from orders.services import OrderService
 
 User = get_user_model()
@@ -1072,6 +1072,298 @@ class ProductOptionCloningDashboardViewTest(TestCase):
         acai_700 = Product.objects.get(name='Açaí no Copo 700ml', store=self.store)
         self.assertEqual(acai_700.option_groups.count(), 1)
         self.assertEqual(acai_700.option_groups.first().items.count(), 3)
+
+
+class TableAndSessionModelTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='table_owner@pedidos.com',
+            password='Password123!',
+            full_name='Table Owner'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Restaurante Central",
+            whatsapp="11988887777",
+            is_active=True,
+            is_open=True
+        )
+
+    def test_table_creation_and_unique_per_store(self):
+        from django.db import IntegrityError, transaction
+        t1 = Table.objects.create(store=self.store, number="01", name="Janela")
+        self.assertIsNotNone(t1.qr_token)
+        self.assertTrue(t1.is_active)
+
+        # Tentativa de criar outra mesa com mesmo número na mesma loja deve falhar
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                Table.objects.create(store=self.store, number="01", name="Outra")
+
+    def test_table_unique_active_session_constraint(self):
+        from django.db import IntegrityError, transaction
+        t1 = Table.objects.create(store=self.store, number="02")
+        s1 = TableSession.objects.create(store=self.store, table=t1, status=TableSession.STATUS_OPEN)
+
+        # Tentar abrir segunda sessão simultânea na mesma mesa deve violar constraint
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                TableSession.objects.create(store=self.store, table=t1, status=TableSession.STATUS_OPEN)
+
+        # Se a sessão for fechada, permite nova sessão aberta
+        s1.status = TableSession.STATUS_CLOSED
+        s1.closed_at = timezone.now()
+        s1.save()
+
+        s2 = TableSession.objects.create(store=self.store, table=t1, status=TableSession.STATUS_OPEN)
+        self.assertIsNotNone(s2.id)
+
+
+class TableOrderServiceTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='garcom@pedidos.com',
+            password='Password123!',
+            full_name='Garçom Chef'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Pizzaria Bella Mesa",
+            whatsapp="11977776666",
+            is_active=True,
+            is_open=True
+        )
+        self.cat = Category.objects.create(store=self.store, name="Pizzas")
+        self.prod = Product.objects.create(
+            store=self.store,
+            category=self.cat,
+            name="Pizza Margherita",
+            price=Decimal("45.00"),
+            track_stock=True,
+            stock_quantity=10
+        )
+        self.drink = Product.objects.create(
+            store=self.store,
+            category=self.cat,
+            name="Refrigerante Lata",
+            price=Decimal("6.00"),
+            track_stock=True,
+            stock_quantity=20
+        )
+        self.table = Table.objects.create(store=self.store, number="10", name="Varanda")
+
+    def test_get_or_create_table_session(self):
+        sess1, created1 = OrderService.get_or_create_table_session(self.table)
+        self.assertTrue(created1)
+        self.assertEqual(sess1.status, TableSession.STATUS_OPEN)
+
+        # Chamar novamente deve retornar a mesma sessão ativa
+        sess2, created2 = OrderService.get_or_create_table_session(self.table)
+        self.assertFalse(created2)
+        self.assertEqual(sess1.id, sess2.id)
+
+    def test_create_table_order_multi_round_and_stock(self):
+        session, _ = OrderService.get_or_create_table_session(self.table)
+
+        # Rodada 1: 1 Pizza Margherita
+        order1 = OrderService.create_table_order(
+            store=self.store,
+            table=self.table,
+            session=session,
+            items_payload=[{"product_id": self.prod.id, "quantity": 1}],
+            customer_name="Luiz Silva",
+            customer_phone="11999998888",
+            order_notes="Massa fina"
+        )
+        self.assertEqual(order1.origin, Order.ORIGIN_TABLE)
+        self.assertEqual(order1.delivery_type, Order.TYPE_DINE_IN)
+        self.assertEqual(order1.table, self.table)
+        self.assertEqual(order1.table_session, session)
+        self.assertEqual(order1.subtotal, Decimal("45.00"))
+        self.assertEqual(order1.total, Decimal("45.00"))
+
+        # Estoque foi debitado corretamente com SALE_TABLE
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock_quantity, 9)
+        movement = StockMovement.objects.filter(product=self.prod, order=order1).first()
+        self.assertIsNotNone(movement)
+        self.assertEqual(movement.movement_type, StockMovement.TYPE_SALE_TABLE)
+
+        # Rodada 2: 2 Refrigerantes
+        order2 = OrderService.create_table_order(
+            store=self.store,
+            table=self.table,
+            session=session,
+            items_payload=[{"product_id": self.drink.id, "quantity": 2}],
+            customer_name="Luiz Silva",
+            customer_phone="11999998888"
+        )
+        self.drink.refresh_from_db()
+        self.assertEqual(self.drink.stock_quantity, 18)
+
+        # Sessão consolidada reflete os dois pedidos
+        total_session = session.calculate_total()
+        self.assertEqual(total_session, Decimal("57.00"))
+        self.assertEqual(session.orders.count(), 2)
+
+    def test_request_table_bill(self):
+        session, _ = OrderService.get_or_create_table_session(self.table)
+        OrderService.create_table_order(
+            store=self.store,
+            table=self.table,
+            session=session,
+            items_payload=[{"product_id": self.prod.id, "quantity": 1}]
+        )
+        updated_sess = OrderService.request_table_bill(session)
+        self.assertEqual(updated_sess.status, TableSession.STATUS_WAITING_PAYMENT)
+
+    def test_close_table_session_atomic(self):
+        session, _ = OrderService.get_or_create_table_session(self.table)
+        order = OrderService.create_table_order(
+            store=self.store,
+            table=self.table,
+            session=session,
+            items_payload=[{"product_id": self.prod.id, "quantity": 2}]
+        )
+        self.assertEqual(order.status, Order.STATUS_NEW)
+
+        closed = OrderService.close_table_session(
+            session_id=session.id,
+            operator=self.owner,
+            payment_method=Order.PAY_PIX,
+            discount=Decimal("10.00"),
+            notes="Desconto cortesia"
+        )
+        self.assertEqual(closed.status, TableSession.STATUS_CLOSED)
+        self.assertEqual(closed.calculate_subtotal(), Decimal("90.00"))
+        self.assertEqual(closed.discount, Decimal("10.00"))
+        self.assertEqual(closed.total_paid, Decimal("80.00"))
+        self.assertIsNotNone(closed.closed_at)
+
+        # Pedidos devem estar marcados como COMPLETED com forma de pagamento
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_COMPLETED)
+        self.assertEqual(order.payment_method, Order.PAY_PIX)
+
+        # Tentar fechar novamente deve gerar erro (segurança contra duplo fechamento)
+        with self.assertRaises(ValidationError):
+            OrderService.close_table_session(
+                session_id=session.id,
+                operator=self.owner,
+                payment_method=Order.PAY_PIX
+            )
+
+
+class TableAPIsTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='lojista_table@pedidos.com',
+            password='Password123!',
+            full_name='Lojista Mesas'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Cantina Italiana",
+            whatsapp="11955554444",
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(store=self.store, user=self.owner, role="OWNER")
+        self.cat = Category.objects.create(store=self.store, name="Massas")
+        self.prod = Product.objects.create(
+            store=self.store,
+            category=self.cat,
+            name="Lasanha Bolonhesa",
+            price=Decimal("40.00")
+        )
+        self.table = Table.objects.create(store=self.store, number="05", name="Salão Nobre")
+        self.client = APIClient()
+
+    def test_public_create_table_order_flow(self):
+        url = f"/api/v1/orders/table/{self.table.qr_token}/"
+        payload = {
+            "customer_name": "Marcos",
+            "customer_phone": "11988887777",
+            "notes": "Sem cebola",
+            "items": [
+                {
+                    "product_id": self.prod.id,
+                    "quantity": 2,
+                    "notes": "Bem quente"
+                }
+            ]
+        }
+        resp = self.client.post(url, payload, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data["table_number"], "05")
+        self.assertEqual(Decimal(str(resp.data["subtotal"])), Decimal("80.00"))
+
+        # Comanda pública
+        url_comanda = f"/api/v1/orders/table/{self.table.qr_token}/comanda/"
+        resp_comanda = self.client.get(url_comanda)
+        self.assertEqual(resp_comanda.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_comanda.data["status"], "OPEN")
+        self.assertEqual(len(resp_comanda.data["orders"]), 1)
+
+        # Pedir conta
+        url_pedir = f"/api/v1/orders/table/{self.table.qr_token}/pedir-conta/"
+        resp_pedir = self.client.post(url_pedir)
+        self.assertEqual(resp_pedir.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_pedir.data["success"])
+        self.assertEqual(resp_pedir.data["status"], "WAITING_PAY")
+
+    def test_merchant_table_crud_and_close(self):
+        self.client.force_authenticate(user=self.owner)
+
+        # Criar nova mesa via API do lojista
+        url_create_table = f"/api/v1/orders/merchant/{self.store.id}/tables/"
+        resp = self.client.post(url_create_table, {"number": "06", "name": "Balcão"})
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data["number"], "06")
+
+        # Inicia pedido na mesa 06
+        t6 = Table.objects.get(id=resp.data["id"])
+        sess, _ = OrderService.get_or_create_table_session(t6)
+        OrderService.create_table_order(
+            store=self.store,
+            table=t6,
+            session=sess,
+            items_payload=[{"product_id": self.prod.id, "quantity": 1}]
+        )
+
+        # Consultar sessão ativa da mesa
+        url_sess = f"/api/v1/orders/merchant/{self.store.id}/tables/{t6.id}/session/"
+        resp_sess = self.client.get(url_sess)
+        self.assertEqual(resp_sess.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_sess.data["active"])
+        self.assertEqual(resp_sess.data["total"], 40.0)
+
+        # Fechar mesa no PDV com PIX e desconto
+        url_close = f"/api/v1/orders/merchant/{self.store.id}/table-sessions/{sess.public_id}/close/"
+        resp_close = self.client.post(url_close, {
+            "payment_method": "PIX",
+            "discount": "5.00",
+            "notes": "Desconto amigo"
+        }, format="json")
+        self.assertEqual(resp_close.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_close.data["success"])
+        self.assertEqual(resp_close.data["total_paid"], 35.0)
+        self.assertEqual(resp_close.data["status"], "CLOSED")
+
+    def test_public_pages_render(self):
+        # Página do Cardápio Digital da Mesa
+        resp_menu = self.client.get(f"/{self.store.slug}/mesa/{self.table.qr_token}/")
+        self.assertEqual(resp_menu.status_code, 200)
+
+        # Página da Comanda
+        resp_comanda = self.client.get(f"/{self.store.slug}/mesa/{self.table.qr_token}/comanda/")
+        self.assertEqual(resp_comanda.status_code, 200)
+
+        # Painel do Lojista: Gestão de Mesas
+        self.client.force_login(self.owner)
+        resp_painel = self.client.get(f"/painel/{self.store.slug}/mesas/")
+        self.assertEqual(resp_painel.status_code, 200)
+
 
 
 

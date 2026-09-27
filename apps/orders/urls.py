@@ -14,4 +14,16 @@ urlpatterns = [
     path('merchant/<int:store_id>/<int:id>/', views.MerchantOrderDetailView.as_view(), name='merchant-order-detail'),
     path('merchant/<int:store_id>/<int:id>/status/', views.MerchantOrderUpdateStatusView.as_view(), name='merchant-order-update-status'),
     path('merchant/<int:store_id>/pos/', views.POSCreateOrderView.as_view(), name='merchant-pos-create-order'),
+
+    # Rotas Públicas de Mesa (QR Code)
+    path('table/<uuid:qr_token>/', views.PublicCreateTableOrderView.as_view(), name='public-create-table-order'),
+    path('table/<uuid:qr_token>/comanda/', views.PublicTableComandaView.as_view(), name='public-table-comanda'),
+    path('table/<uuid:qr_token>/pedir-conta/', views.PublicRequestTableBillView.as_view(), name='public-request-table-bill'),
+
+    # Rotas do Lojista para Gestão de Mesas e Fechamento no PDV
+    path('merchant/<int:store_id>/tables/', views.MerchantTableListCreateView.as_view(), name='merchant-table-list-create'),
+    path('merchant/<int:store_id>/tables/<int:table_id>/', views.MerchantTableDetailView.as_view(), name='merchant-table-detail'),
+    path('merchant/<int:store_id>/tables/<int:table_id>/session/', views.MerchantActiveSessionByTableView.as_view(), name='merchant-table-active-session'),
+    path('merchant/<int:store_id>/table-sessions/<uuid:session_id>/close/', views.MerchantTableSessionCloseView.as_view(), name='merchant-table-session-close'),
 ]
+

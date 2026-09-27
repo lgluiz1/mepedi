@@ -9,12 +9,16 @@ from django.utils import timezone
 
 from stores.models import Store
 from catalog.services import StockService
-from .models import Order, Coupon
+from .models import Order, Coupon, Table, TableSession
 from .services import OrderService
 from .serializers import (
     OrderDetailSerializer,
     CreateOrderRequestSerializer,
-    UpdateOrderStatusSerializer
+    UpdateOrderStatusSerializer,
+    TableSerializer,
+    TableSessionDetailSerializer,
+    CreateTableOrderRequestSerializer,
+    CloseTableSessionRequestSerializer
 )
 
 
@@ -468,4 +472,356 @@ def public_customer_orders_page(request, store_slug):
         'completed_count': len(completed_orders),
     }
     return render(request, 'stores/my_orders.html', context)
+
+
+# =====================================================================
+# Endpoints de Mesa / Cardápio Digital QR Code (Público)
+# =====================================================================
+
+class PublicCreateTableOrderView(APIView):
+    """
+    Submissão de rodada de pedido realizada pelo cliente na mesa física via QR Code.
+    POST /api/v1/orders/table/<uuid:qr_token>/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, qr_token):
+        table = get_object_or_404(Table, qr_token=qr_token, is_active=True)
+        store = table.store
+
+        if not store.is_active:
+            return Response({"error": "Este estabelecimento está inativo no momento."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = CreateTableOrderRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            session, _ = OrderService.get_or_create_table_session(table)
+            order = OrderService.create_table_order(
+                store=store,
+                table=table,
+                session=session,
+                items_payload=data['items'],
+                customer_name=data.get('customer_name', ''),
+                customer_phone=data.get('customer_phone', ''),
+                order_notes=data.get('notes', '')
+            )
+        except (DjangoValidationError, ValidationError) as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            OrderDetailSerializer(order).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class PublicTableComandaView(APIView):
+    """
+    Retorna os dados completos da comanda/sessão de consumo da mesa.
+    GET /api/v1/orders/table/<uuid:qr_token>/comanda/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, qr_token):
+        table = get_object_or_404(Table, qr_token=qr_token, is_active=True)
+        session = table.current_session
+        if not session:
+            return Response({
+                "has_active_session": False,
+                "table_number": table.number,
+                "table_name": table.name,
+                "message": "Nenhum pedido realizado nesta mesa até o momento."
+            })
+
+        data = TableSessionDetailSerializer(session).data
+        data["has_active_session"] = True
+        return Response(data)
+
+
+class PublicRequestTableBillView(APIView):
+    """
+    Cliente solicita a conta / encerramento da mesa.
+    POST /api/v1/orders/table/<uuid:qr_token>/pedir-conta/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, qr_token):
+        table = get_object_or_404(Table, qr_token=qr_token, is_active=True)
+        session = table.current_session
+        if not session:
+            return Response(
+                {"error": "Nenhuma comanda aberta nesta mesa para solicitar a conta."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            updated_session = OrderService.request_table_bill(session)
+        except (DjangoValidationError, ValidationError) as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "success": True,
+            "message": "Conta solicitada com sucesso! Um atendente virá à sua mesa.",
+            "status": updated_session.status,
+            "total": float(updated_session.calculate_total())
+        })
+
+
+# =====================================================================
+# Endpoints do Lojista para Gestão de Mesas e Fechamento no PDV
+# =====================================================================
+
+class MerchantTableListCreateView(APIView):
+    """
+    Lista e cria mesas para a loja.
+    GET /api/v1/orders/merchant/<int:store_id>/tables/
+    POST /api/v1/orders/merchant/<int:store_id>/tables/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def get(self, request, store_id):
+        store = get_user_store(request.user, store_id)
+        tables = Table.objects.filter(store=store).order_by('number')
+        serializer = TableSerializer(tables, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, store_id):
+        store = get_user_store(request.user, store_id)
+        number = str(request.data.get('number', '')).strip()
+        name = str(request.data.get('name', '')).strip()
+        is_active = bool(request.data.get('is_active', True))
+
+        if not number:
+            return Response({"error": "O número da mesa é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Table.objects.filter(store=store, number=number).exists():
+            return Response({"error": f"Já existe uma mesa com o número '{number}' nesta loja."}, status=status.HTTP_400_BAD_REQUEST)
+
+        table = Table.objects.create(
+            store=store,
+            number=number,
+            name=name,
+            is_active=is_active
+        )
+        return Response(TableSerializer(table).data, status=status.HTTP_201_CREATED)
+
+
+class MerchantTableDetailView(APIView):
+    """
+    Atualiza ou exclui uma mesa da loja.
+    PATCH /api/v1/orders/merchant/<int:store_id>/tables/<int:table_id>/
+    DELETE /api/v1/orders/merchant/<int:store_id>/tables/<int:table_id>/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def patch(self, request, store_id, table_id):
+        store = get_user_store(request.user, store_id)
+        table = get_object_or_404(Table, id=table_id, store=store)
+
+        if 'number' in request.data:
+            num = str(request.data['number']).strip()
+            if not num:
+                return Response({"error": "O número da mesa não pode ser vazio."}, status=status.HTTP_400_BAD_REQUEST)
+            if Table.objects.filter(store=store, number=num).exclude(id=table.id).exists():
+                return Response({"error": f"Já existe outra mesa com o número '{num}'."}, status=status.HTTP_400_BAD_REQUEST)
+            table.number = num
+
+        if 'name' in request.data:
+            table.name = str(request.data['name']).strip()
+
+        if 'is_active' in request.data:
+            table.is_active = bool(request.data['is_active'])
+
+        table.save()
+        return Response(TableSerializer(table).data)
+
+    def delete(self, request, store_id, table_id):
+        store = get_user_store(request.user, store_id)
+        table = get_object_or_404(Table, id=table_id, store=store)
+
+        if table.orders.exists():
+            table.is_active = False
+            table.save(update_fields=['is_active'])
+            return Response({"detail": "Mesa desativada para manter o histórico de vendas."}, status=status.HTTP_200_OK)
+
+        table.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MerchantActiveSessionByTableView(APIView):
+    """
+    Retorna a comanda ativa de uma mesa (para consumo imediato no PDV).
+    GET /api/v1/orders/merchant/<int:store_id>/tables/<int:table_id>/session/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def get(self, request, store_id, table_id):
+        store = get_user_store(request.user, store_id)
+        table = get_object_or_404(Table, id=table_id, store=store)
+        sess = table.current_session
+        if not sess:
+            return Response({"active": False, "message": "Mesa livre no momento."}, status=status.HTTP_200_OK)
+
+        data = TableSessionDetailSerializer(sess).data
+        data["active"] = True
+        return Response(data)
+
+
+class MerchantTableSessionCloseView(APIView):
+    """
+    Encerra comanda/sessão de mesa pelo PDV ou Garçom recebendo o pagamento.
+    POST /api/v1/orders/merchant/<int:store_id>/table-sessions/<uuid:session_id>/close/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def post(self, request, store_id, session_id):
+        store = get_user_store(request.user, store_id)
+        session = get_object_or_404(TableSession, public_id=session_id, store=store)
+
+        serializer = CloseTableSessionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            closed_sess = OrderService.close_table_session(
+                session_id=session.id,
+                operator=request.user,
+                payment_method=data.get('payment_method', Order.PAY_PIX),
+                discount=Decimal(str(data.get('discount', '0.00'))),
+                notes=data.get('notes', '')
+            )
+        except (DjangoValidationError, ValidationError) as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "success": True,
+            "session_id": str(closed_sess.public_id),
+            "table_number": closed_sess.table.number,
+            "total_paid": float(closed_sess.total_paid),
+            "status": closed_sess.status
+        })
+
+
+# =====================================================================
+# Páginas Web Públicas de Mesa
+# =====================================================================
+
+def public_table_menu_page(request, store_slug, qr_token):
+    """
+    Página pública do Cardápio Digital da Mesa via QR Code.
+    Identifica a mesa, abre/recupera a comanda e exibe os produtos com visual mobile-first.
+    """
+    import json
+    from django.db.models import Prefetch
+    from catalog.models import Category, Product, OptionGroup, OptionItem
+
+    store = get_object_or_404(Store.objects.prefetch_related('business_hours'), slug=store_slug, is_active=True)
+    table = get_object_or_404(Table, store=store, qr_token=qr_token, is_active=True)
+    session, _ = OrderService.get_or_create_table_session(table)
+
+    categories = Category.objects.filter(
+        store=store,
+        is_active=True
+    ).prefetch_related(
+        Prefetch(
+            'products',
+            queryset=Product.objects.filter(is_active=True).prefetch_related(
+                Prefetch(
+                    'option_groups',
+                    queryset=OptionGroup.objects.prefetch_related(
+                        Prefetch('items', queryset=OptionItem.objects.filter(is_available=True))
+                    )
+                )
+            )
+        )
+    )
+
+    products_catalog = {}
+    for cat in categories:
+        for prod in cat.products.all():
+            products_catalog[prod.id] = {
+                'id': prod.id,
+                'code': prod.code or '',
+                'name': prod.name,
+                'description': prod.description,
+                'price': float(prod.price),
+                'current_price': float(prod.current_price),
+                'is_promotional': prod.is_promotional,
+                'promotional_price': float(prod.promotional_price) if prod.promotional_price else None,
+                'discount_percent': prod.discount_percent,
+                'track_stock': prod.track_stock,
+                'stock_quantity': prod.stock_quantity,
+                'is_in_stock': prod.is_in_stock,
+                'image_url': prod.image.url if prod.image else None,
+                'category_id': cat.id,
+                'category_name': cat.name,
+                'option_groups': [
+                    {
+                        'id': og.id,
+                        'name': og.name,
+                        'description': og.description,
+                        'min_options': og.min_options,
+                        'max_options': og.max_options,
+                        'is_required': og.is_required,
+                        'items': [
+                            {
+                                'id': item.id,
+                                'name': item.name,
+                                'price': float(item.price),
+                                'is_available': item.is_available,
+                            }
+                            for item in og.items.all().order_by('order', 'name')
+                        ]
+                    }
+                    for og in prod.option_groups.all()
+                ]
+            }
+
+    context = {
+        'store': store,
+        'table': table,
+        'table_session': session,
+        'categories': categories,
+        'products_catalog_json': json.dumps(products_catalog),
+        'is_table_mode': True,
+        'is_open': store.is_currently_open(),
+        'status_label': store.status_label,
+        'current_year': timezone.localtime().year,
+    }
+    return render(request, 'stores/table_menu.html', context)
+
+
+def public_table_comanda_page(request, store_slug, qr_token):
+    """
+    Página do cliente para acompanhar a Comanda da Mesa em tempo real.
+    Exibe todas as rodadas pedidas, status de preparo, itens agregados e botão de pedir a conta.
+    """
+    store = get_object_or_404(Store, slug=store_slug, is_active=True)
+    table = get_object_or_404(Table, store=store, qr_token=qr_token, is_active=True)
+    session = table.current_session
+
+    orders = session.get_valid_orders() if session else []
+    items_breakdown = session.get_items_breakdown() if session else []
+    subtotal = session.calculate_subtotal() if session else Decimal('0.00')
+    total = session.calculate_total() if session else Decimal('0.00')
+
+    context = {
+        'store': store,
+        'table': table,
+        'table_session': session,
+        'orders': orders,
+        'items_breakdown': items_breakdown,
+        'subtotal': subtotal,
+        'total': total,
+        'current_year': timezone.localtime().year,
+    }
+    return render(request, 'orders/table_comanda.html', context)
+
 

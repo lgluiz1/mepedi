@@ -937,6 +937,10 @@
             <span class="tab-icon">🖥️</span>
             <span>PDV Balcão</span>
           </a>
+          <a href="/painel/{{ store.slug }}/mesas/" class="dash-tab-pill">
+            <span class="tab-icon">🍽️</span>
+            <span>Mesas</span>
+          </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
             <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
@@ -1062,8 +1066,8 @@
           <div class="order-card-header">
             <div>
               <span class="order-card-num">{{ order.display_number }}</span>
-              <span class="order-origin-pill origin-{{ order.origin }}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; {% if order.origin == 'PDV' %}background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;{% else %}background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;{% endif %}">
-                {% if order.origin == 'PDV' %}🖥️ PDV{% else %}🌐 Online{% endif %}
+              <span class="order-origin-pill origin-{{ order.origin }}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; {% if order.origin == 'PDV' %}background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;{% elif order.origin == 'TABLE' %}background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe;{% else %}background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;{% endif %}">
+                {% if order.origin == 'PDV' %}🖥️ PDV{% elif order.origin == 'TABLE' %}🍽️ Mesa {{ order.table.number }}{% else %}🌐 Online{% endif %}
               </span>
               <span class="order-card-time">• {{ order.created_at|date:"H:i" }}</span>
             </div>
@@ -1105,7 +1109,9 @@
               </a>
             </div>
             <div style="font-size:0.82rem; color:var(--dash-muted); margin-top:4px;">
-              {% if order.delivery_type == 'DELIVERY' %}
+              {% if order.delivery_type == 'DINE_IN' %}
+                🍽️ <strong>Consumo no Local:</strong> Mesa {{ order.table.number }}{% if order.table.name %} ({{ order.table.name }}){% endif %}
+              {% elif order.delivery_type == 'DELIVERY' %}
                 🛵 <strong>Entrega:</strong> {{ order.formatted_delivery_address }}
                 {% if order.reference %}
                   <div style="color:#64748b; font-size:0.78rem;">📌 Ref: {{ order.reference }}</div>

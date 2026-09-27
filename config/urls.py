@@ -7,7 +7,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from stores.views import public_store_menu_view
-from orders.views import public_checkout_page, public_order_status_page, public_customer_orders_page
+from orders.views import (
+    public_checkout_page,
+    public_order_status_page,
+    public_customer_orders_page,
+    public_table_menu_page,
+    public_table_comanda_page,
+)
 from orders.dashboard_views import (
     merchant_login_view,
     merchant_logout_view,
@@ -17,6 +23,7 @@ from orders.dashboard_views import (
     merchant_product_options_view,
     merchant_store_settings_view,
     merchant_pos_view,
+    merchant_tables_view,
 )
 from analytics.views import (
     merchant_analytics_view,
@@ -52,6 +59,7 @@ urlpatterns = [
     path('painel/', merchant_dashboard_root_view, name='merchant_dashboard_root'),
     path('painel/<slug:store_slug>/', merchant_dashboard_store_view, name='merchant_dashboard_store'),
     path('painel/<slug:store_slug>/pdv/', merchant_pos_view, name='merchant_pos'),
+    path('painel/<slug:store_slug>/mesas/', merchant_tables_view, name='merchant_tables'),
     path('painel/<slug:store_slug>/produtos/', merchant_products_view, name='merchant_products'),
     path('painel/<slug:store_slug>/produtos/<int:product_id>/opcoes/', merchant_product_options_view, name='merchant_product_options'),
     path('painel/<slug:store_slug>/configuracoes/', merchant_store_settings_view, name='merchant_store_settings'),
@@ -67,6 +75,8 @@ urlpatterns = [
     # Rotas públicas do cardápio e fluxo de pedidos da loja
     path('<slug:store_slug>/checkout/', public_checkout_page, name='public_checkout'),
     path('<slug:store_slug>/meus-pedidos/', public_customer_orders_page, name='public_customer_orders'),
+    path('<slug:store_slug>/mesa/<uuid:qr_token>/comanda/', public_table_comanda_page, name='public_table_comanda'),
+    path('<slug:store_slug>/mesa/<uuid:qr_token>/', public_table_menu_page, name='public_table_menu'),
     path('<slug:store_slug>/pedidos/<uuid:public_id>/whatsapp/', order_whatsapp_redirect_view, name='order_whatsapp_redirect'),
     path('<slug:store_slug>/pedidos/<uuid:public_id>/', public_order_status_page, name='public_order_status'),
     path('<slug:store_slug>/', public_store_menu_view, name='store_public_menu'),

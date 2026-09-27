@@ -1,5 +1,29 @@
 from django.contrib import admin
-from .models import Order, OrderItem, OrderItemOption
+from .models import Order, OrderItem, OrderItemOption, Coupon, Table, TableSession
+
+
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    list_display = ('number', 'name', 'store', 'is_active', 'qr_token')
+    list_filter = ('store', 'is_active')
+    search_fields = ('number', 'name', 'store__name')
+    readonly_fields = ('qr_token',)
+
+
+@admin.register(TableSession)
+class TableSessionAdmin(admin.ModelAdmin):
+    list_display = ('table', 'store', 'status', 'opened_at', 'closed_at', 'total_paid')
+    list_filter = ('store', 'status', 'opened_at')
+    search_fields = ('table__number', 'store__name')
+    readonly_fields = ('session_token', 'opened_at')
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('code', 'store', 'discount_type', 'discount_value', 'times_used', 'is_active')
+    list_filter = ('store', 'is_active', 'discount_type')
+    search_fields = ('code', 'store__name')
+
 
 
 class OrderItemOptionInline(admin.TabularInline):

@@ -452,12 +452,16 @@
                 const payload = JSON.parse(event.data);
                 if (payload.type === 'ORDER_CREATED') {
                   const order = payload.data;
-                  if (order && order.origin === 'ONLINE' && order.status === 'NOVO') {
+                  if (order && (order.origin === 'ONLINE' || order.origin === 'TABLE') && order.status === 'NOVO') {
                     if (!this.pendingOrders.some(o => o.id === order.id)) {
                       this.pendingOrders.unshift(order);
                       this.handleStateUpdate();
                     }
                   }
+                } else if (payload.type === 'TABLE_BILL_REQUESTED') {
+                  const billData = payload.data;
+                  alert(`🔔 CONTA SOLICITADA NA MESA ${billData.table_number}! Total: R$ ${parseFloat(billData.total).toFixed(2)}`);
+                  this.playSound();
                 } else if (payload.type === 'ORDER_UPDATED') {
                   const order = payload.data;
                   if (order && order.status !== 'NOVO') {
@@ -493,9 +497,9 @@
           const data = await res.json();
           const allOrders = Array.isArray(data) ? data : (data.results || []);
 
-          // FILTRO PRINCIPAL: Notificar apenas pedidos novos do Catálogo Web (ONLINE)
-          const onlineNewOrders = allOrders.filter(o => o.origin === 'ONLINE' && o.status === 'NOVO');
-          this.pendingOrders = onlineNewOrders;
+          // FILTRO PRINCIPAL: Notificar pedidos pendentes do Catálogo Web (ONLINE) e Mesas (TABLE)
+          const newOrders = allOrders.filter(o => (o.origin === 'ONLINE' || o.origin === 'TABLE') && o.status === 'NOVO');
+          this.pendingOrders = newOrders;
 
           this.handleStateUpdate();
         } catch (err) {
@@ -506,7 +510,7 @@
       handleStateUpdate() {
         const count = this.pendingOrders.length;
 
-        // Se NÃO há pedidos online pendentes: para o som e oculta a barra
+        // Se NÃO há pedidos online/mesa pendentes: para o som e oculta a barra
         if (count === 0) {
           this.stopSound();
           if (this.bannerEl) this.bannerEl.style.display = 'none';
@@ -517,19 +521,31 @@
           return;
         }
 
-        // Se HÁ pedidos online novos pendentes:
+        // Se HÁ pedidos novos pendentes:
         const latest = this.pendingOrders[0];
+        const isTable = latest.origin === 'TABLE';
         const rawNum = latest.display_number || latest.order_number || '';
         const orderNumFormatted = String(rawNum).startsWith('#') ? String(rawNum) : `#${rawNum}`;
-        const custName = latest.customer ? (latest.customer.name || 'Cliente Online') : (latest.customer_name || 'Cliente Online');
+        const custName = latest.customer ? (latest.customer.name || 'Cliente') : (latest.customer_name || 'Cliente');
         const formattedTotal = 'R$ ' + (parseFloat(latest.total) || 0).toFixed(2).replace('.', ',');
-        const delType = latest.delivery_type_display || (latest.delivery_type === 'PICKUP' ? 'Retirada' : 'Entrega');
+        const delType = isTable ? `🍽️ Mesa ${latest.table_number || ''}` : (latest.delivery_type_display || (latest.delivery_type === 'PICKUP' ? 'Retirada' : 'Entrega'));
+
+        const badgeOriginEl = this.bannerEl ? this.bannerEl.querySelector('.order-notifier-badge-origin') : null;
+        if (badgeOriginEl) {
+          if (isTable) {
+            badgeOriginEl.textContent = `🍽️ MESA ${latest.table_number || ''}`;
+            badgeOriginEl.style.background = '#7c3aed';
+          } else {
+            badgeOriginEl.textContent = 'ONLINE';
+            badgeOriginEl.style.background = '#6366f1';
+          }
+        }
 
         if (this.bannerEl) this.bannerEl.style.display = 'block';
 
         if (count === 1) {
-          this.titleEl.textContent = `NOVO PEDIDO ${orderNumFormatted}`;
-          this.detailsEl.textContent = `Cliente: ${custName} • ${formattedTotal} • ${delType}`;
+          this.titleEl.textContent = isTable ? `NOVO PEDIDO ${orderNumFormatted} - MESA ${latest.table_number || ''}` : `NOVO PEDIDO ${orderNumFormatted}`;
+          this.detailsEl.textContent = isTable ? `Mesa: ${latest.table_number || ''} • ${custName} • ${formattedTotal}` : `Cliente: ${custName} • ${formattedTotal} • ${delType}`;
           this.countBadgeEl.style.display = 'none';
           if (this.btnAcceptEl) {
             this.btnAcceptEl.style.display = 'inline-flex';
@@ -537,7 +553,7 @@
             this.btnAcceptEl.innerHTML = `<span>✓ Aceitar ${orderNumFormatted}</span>`;
           }
         } else {
-          this.titleEl.textContent = `${count} NOVOS PEDIDOS ONLINE PENDENTES!`;
+          this.titleEl.textContent = `${count} NOVOS PEDIDOS PENDENTES!`;
           this.detailsEl.textContent = `Último: ${orderNumFormatted} (${custName} - ${formattedTotal}) • Total de ${count} aguardando`;
           this.countBadgeEl.textContent = `${count} pedidos`;
           this.countBadgeEl.style.display = 'inline-block';

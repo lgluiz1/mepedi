@@ -40,11 +40,12 @@ class StockService:
             locked_product.stock_quantity -= quantity
             locked_product.save(update_fields=['stock_quantity'])
 
-            movement_type = (
-                StockMovement.TYPE_SALE_PDV
-                if origin == 'PDV'
-                else StockMovement.TYPE_SALE_ONLINE
-            )
+            if origin == 'PDV':
+                movement_type = StockMovement.TYPE_SALE_PDV
+            elif origin == 'TABLE':
+                movement_type = StockMovement.TYPE_SALE_TABLE
+            else:
+                movement_type = StockMovement.TYPE_SALE_ONLINE
 
             StockMovement.objects.create(
                 store=locked_product.store,

@@ -8,7 +8,7 @@ from catalog.models import Product, OptionItem, OptionGroup
 from catalog.services import StockService
 from customers.models import Customer, CustomerAddress, clean_phone_number
 from delivery.models import DeliveryZone
-from .models import Order, OrderItem, OrderItemOption, Coupon
+from .models import Order, OrderItem, OrderItemOption, Coupon, Table, TableSession
 
 
 class OrderService:
@@ -443,4 +443,273 @@ class OrderService:
             logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket ORDER_CREATED (PDV): {ws_err}")
 
         return order
+
+    @classmethod
+    @transaction.atomic
+    def get_or_create_table_session(cls, table: Table) -> tuple[TableSession, bool]:
+        """
+        Obtém a comanda/sessão aberta da mesa ou cria uma nova com segurança transacional.
+        """
+        session = TableSession.objects.filter(
+            table=table,
+            status__in=[TableSession.STATUS_OPEN, TableSession.STATUS_WAITING_PAYMENT]
+        ).select_for_update().first()
+
+        if session:
+            return session, False
+
+        session = TableSession.objects.create(
+            store=table.store,
+            table=table,
+            status=TableSession.STATUS_OPEN
+        )
+        return session, True
+
+    @classmethod
+    @transaction.atomic
+    def create_table_order(
+        cls,
+        store: Store,
+        table: Table,
+        session: TableSession,
+        items_payload: list,
+        customer_name: str = None,
+        customer_phone: str = None,
+        order_notes: str = ''
+    ) -> Order:
+        """
+        Registra uma nova rodada de pedido realizada pelo cliente na mesa via QR Code.
+        Reaproveita o mesmo modelo Order, a mesma sequência global #1001, #1002 e
+        o mesmo motor atômico de estoque (StockService.decrement_stock).
+        """
+        if not items_payload:
+            raise ValidationError("O pedido da mesa deve conter ao menos um item.")
+
+        if not table.is_active:
+            raise ValidationError("Esta mesa está desativada no momento.")
+
+        if session.status not in [TableSession.STATUS_OPEN, TableSession.STATUS_WAITING_PAYMENT]:
+            raise ValidationError("A comanda desta mesa já foi encerrada ou cancelada.")
+
+        # Se a mesa estava aguardando pagamento e o cliente solicitou novos itens,
+        # reabre a sessão para EM CONSUMO
+        if session.status == TableSession.STATUS_WAITING_PAYMENT:
+            session.status = TableSession.STATUS_OPEN
+            session.save(update_fields=['status'])
+
+        # 1. Identificação do Cliente (Nome ou 'Mesa X')
+        clean_phone = clean_phone_number(customer_phone) if customer_phone else ''
+        name_clean = customer_name.strip() if customer_name else ''
+
+        if clean_phone:
+            customer, _ = Customer.objects.get_or_create(
+                store=store,
+                phone=clean_phone,
+                defaults={'name': name_clean or f'Mesa {table.number}'}
+            )
+            if name_clean and customer.name != name_clean:
+                customer.name = name_clean
+                customer.save(update_fields=['name'])
+        else:
+            # Cliente anônimo de mesa
+            table_phone = f"8888{table.id:06d}"[:11]
+            customer, _ = Customer.objects.get_or_create(
+                store=store,
+                phone=table_phone,
+                defaults={'name': name_clean or f'Cliente Mesa {table.number}'}
+            )
+            if name_clean and customer.name != name_clean:
+                customer.name = name_clean
+                customer.save(update_fields=['name'])
+
+        # 2. Mesma numeração sequencial atômica (#1001, #1002...)
+        next_order_number = cls.get_next_order_number(store)
+
+        # 3. Criação do cabeçalho Order vinculado à Mesa e à Sessão Contínua
+        order = Order(
+            store=store,
+            customer=customer,
+            order_number=next_order_number,
+            origin=Order.ORIGIN_TABLE,
+            status=Order.STATUS_NEW,
+            delivery_type=Order.TYPE_DINE_IN,
+            table=table,
+            table_session=session,
+            payment_method=Order.PAY_OTHER,  # Ficará pendente até o fechamento da mesa
+            delivery_fee=Decimal('0.00'),
+            subtotal=Decimal('0.00'),
+            discount=Decimal('0.00'),
+            total=Decimal('0.00'),
+            notes=order_notes
+        )
+        order.save()
+
+        # 4. Inserção de itens, congelamento de preços e débito no MESMO estoque central
+        accumulated_subtotal = Decimal('0.00')
+
+        for item_data in items_payload:
+            product_id = item_data.get('product_id')
+            quantity = int(item_data.get('quantity', 1))
+            if quantity <= 0:
+                raise ValidationError("A quantidade do produto deve ser maior que zero.")
+
+            try:
+                product = Product.objects.get(id=product_id, store=store, is_active=True)
+            except Product.DoesNotExist:
+                raise ValidationError(f"Produto #{product_id} não encontrado ou indisponível nesta loja.")
+
+            unit_price = product.current_price
+            item_notes = item_data.get('notes', '').strip()
+            options_payload = item_data.get('options', [])
+
+            options_total_unit = Decimal('0.00')
+            valid_options_records = []
+
+            for opt_data in options_payload:
+                option_id = opt_data.get('id') if isinstance(opt_data, dict) else opt_data
+                try:
+                    option_item = OptionItem.objects.select_related('option_group').get(
+                        id=option_id,
+                        option_group__product=product,
+                        is_available=True
+                    )
+                except OptionItem.DoesNotExist:
+                    raise ValidationError(f"Opção #{option_id} inválida para o produto {product.name}.")
+
+                options_total_unit += option_item.price
+                valid_options_records.append(option_item)
+
+            item_unit_with_options = unit_price + options_total_unit
+            item_total = item_unit_with_options * quantity
+            item_subtotal = unit_price * quantity
+
+            accumulated_subtotal += item_total
+
+            order_item = OrderItem.objects.create(
+                order=order,
+                product=product,
+                product_name=product.name,
+                unit_price=unit_price,
+                quantity=quantity,
+                subtotal=item_subtotal,
+                total=item_total,
+                notes=item_notes
+            )
+
+            for opt_record in valid_options_records:
+                OrderItemOption.objects.create(
+                    order_item=order_item,
+                    option_item=opt_record,
+                    name=opt_record.name,
+                    price=opt_record.price,
+                    group_name=opt_record.option_group.name
+                )
+
+            # Baixa atômica no estoque com rastreabilidade TABLE
+            StockService.decrement_stock(
+                product=product,
+                quantity=quantity,
+                order=order,
+                origin='TABLE'
+            )
+
+        order.subtotal = accumulated_subtotal
+        order.total = accumulated_subtotal
+        order.save(update_fields=['subtotal', 'total'])
+
+        # 5. Notificação via WebSocket em tempo real (Gera aviso sonoro no painel e badge Mesa)
+        try:
+            from .consumers import broadcast_order_event
+            from .serializers import OrderDetailSerializer
+            broadcast_order_event(store.id, 'ORDER_CREATED', OrderDetailSerializer(order).data)
+        except Exception as ws_err:
+            import logging
+            logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket ORDER_CREATED (Mesa): {ws_err}")
+
+        return order
+
+    @classmethod
+    @transaction.atomic
+    def request_table_bill(cls, session: TableSession) -> TableSession:
+        """
+        Cliente solicita o fechamento da conta na mesa.
+        Atualiza o status para WAITING_PAY e notifica a equipe do salão/caixa.
+        """
+        locked_session = TableSession.objects.select_for_update().get(id=session.id)
+        if locked_session.status != TableSession.STATUS_OPEN:
+            raise ValidationError("Esta mesa não possui comanda aberta em consumo.")
+
+        locked_session.status = TableSession.STATUS_WAITING_PAYMENT
+        locked_session.save(update_fields=['status'])
+
+        try:
+            from .consumers import broadcast_order_event
+            broadcast_order_event(locked_session.store_id, 'TABLE_BILL_REQUESTED', {
+                'table_id': locked_session.table_id,
+                'table_number': locked_session.table.number,
+                'session_id': str(locked_session.public_id),
+                'total': float(locked_session.calculate_total()),
+            })
+        except Exception as ws_err:
+            import logging
+            logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket TABLE_BILL_REQUESTED: {ws_err}")
+
+        return locked_session
+
+    @classmethod
+    @transaction.atomic
+    def close_table_session(
+        cls,
+        session_id,
+        operator,
+        payment_method: str = Order.PAY_PIX,
+        discount: Decimal = Decimal('0.00'),
+        notes: str = ''
+    ) -> TableSession:
+        """
+        Encerramento atômico definitivo da sessão/comanda da mesa pelo PDV ou Garçom.
+        Bloqueia via select_for_update para evitar encerramento concorrente / pagamento duplicado.
+        """
+        from django.utils import timezone
+
+        locked_session = TableSession.objects.select_for_update().get(id=session_id)
+        if locked_session.status in [TableSession.STATUS_CLOSED, TableSession.STATUS_CANCELLED]:
+            raise ValidationError("Esta mesa/comanda já foi encerrada ou cancelada.")
+
+        # Soma os valores válidos
+        subtotal = locked_session.calculate_subtotal()
+        disc = Decimal(str(discount or '0.00'))
+        final_total = max(Decimal('0.00'), subtotal - disc)
+
+        # Atualiza todos os pedidos da mesa para CONCLUIDO e com a forma de pagamento selecionada
+        valid_orders = locked_session.get_valid_orders()
+        for ord in valid_orders:
+            if ord.status != Order.STATUS_CANCELLED:
+                ord.status = Order.STATUS_COMPLETED
+                ord.payment_method = payment_method
+                ord.save(update_fields=['status', 'payment_method'])
+
+        locked_session.status = TableSession.STATUS_CLOSED
+        locked_session.closed_at = timezone.now()
+        locked_session.closed_by = operator
+        locked_session.payment_method = payment_method
+        locked_session.discount = disc
+        locked_session.total_paid = final_total
+        locked_session.notes = notes
+        locked_session.save()
+
+        try:
+            from .consumers import broadcast_order_event
+            broadcast_order_event(locked_session.store_id, 'TABLE_SESSION_CLOSED', {
+                'table_id': locked_session.table_id,
+                'table_number': locked_session.table.number,
+                'session_id': str(locked_session.public_id),
+                'total_paid': float(final_total),
+            })
+        except Exception as ws_err:
+            import logging
+            logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket TABLE_SESSION_CLOSED: {ws_err}")
+
+        return locked_session
+
 

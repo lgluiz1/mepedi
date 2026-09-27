@@ -889,6 +889,10 @@
           <span>🧾</span>
           <span>Pedidos Online</span>
         </a>
+        <a href="/painel/{{ store.slug }}/mesas/" class="pos-nav-link">
+          <span>🍽️</span>
+          <span>Mesas</span>
+        </a>
         <a href="/painel/{{ store.slug }}/produtos/" class="pos-nav-link">
           <span>🍕</span>
           <span>Produtos</span>
@@ -918,6 +922,10 @@
         <span style="font-size: 1.2rem;">🔍</span>
         <input type="text" id="posSearchInput" class="pos-search-input" placeholder="Buscar por Nome ou Código do Produto (ex: FAT001)..." autofocus autocomplete="off">
         <button type="button" id="posSearchClear" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.1rem; display:none;" onclick="clearSearch()">✕</button>
+        <button type="button" class="pos-cat-pill" style="background:#eff6ff; color:#2563eb; border-color:#bfdbfe; font-weight:800; display:inline-flex; align-items:center; gap:6px; flex-shrink:0;" onclick="openPosTableModal()">
+          <span>🍽️</span>
+          <span>Consultar Mesa</span>
+        </button>
       </div>
 
       <!-- Filtro de Categorias -->
@@ -1105,6 +1113,71 @@
       <div class="pos-modal-footer">
         <button type="button" class="pos-btn-outline" onclick="closeReceiptModal()">✕ Nova Venda (Esc)</button>
         <button type="button" class="pos-btn-checkout" style="padding:10px 22px; margin:0;" onclick="printReceipt()">🖨️ Imprimir Cupom</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Consultar e Fechar Mesa no PDV -->
+  <div class="pos-modal-backdrop" id="posTableModalBackdrop">
+    <div class="pos-modal-box" style="max-width: 540px;">
+      <div class="pos-modal-header">
+        <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0f172a;">
+          🍽️ Mesas do Salão - Consultar e Fechar
+        </h3>
+        <button type="button" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#64748b;" onclick="closePosTableModal()">&times;</button>
+      </div>
+
+      <div class="pos-modal-body" style="padding:16px 20px;">
+        <div id="posTableListLoading" style="text-align:center; padding:20px; color:#64748b;">
+          Carregando mesas do salão...
+        </div>
+
+        <div id="posTableSelectionSection" style="display:none;">
+          <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:8px;">
+            Selecione a Mesa para carregar a comanda:
+          </label>
+          <div id="posTableBadgesGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px; max-height:200px; overflow-y:auto; margin-bottom:16px;"></div>
+        </div>
+
+        <div id="posTableSelectedDetails" style="display:none; border-top:1px solid #e2e8f0; padding-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:1.05rem; color:#0f172a;" id="posTableSelectedHeader">Mesa 01</strong>
+            <span class="pos-badge" id="posTableSelectedStatus">EM CONSUMO</span>
+          </div>
+
+          <div style="max-height:160px; overflow-y:auto; border:1px solid #f1f5f9; border-radius:10px; padding:8px; margin-bottom:12px;" id="posTableItemsBreakdown"></div>
+
+          <div style="background:#f8fafc; border-radius:12px; padding:12px; margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px;">
+              <span style="color:#64748b;">Subtotal do Consumo:</span>
+              <strong id="posTableSubtotal">R$ 0,00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="color:#64748b; font-size:0.85rem;">Desconto (R$):</span>
+              <input type="number" step="0.01" min="0" id="posTableDiscountInput" value="0.00" style="width:100px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; text-align:right;" oninput="recalcPosTableTotal()">
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:900; color:#0f172a; border-top:1px dashed #cbd5e1; padding-top:6px;">
+              <span>Total a Receber:</span>
+              <span style="color:#10b981;" id="posTableFinalTotal">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:4px;">Forma de Pagamento:</label>
+            <select id="posTablePaymentMethod" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:600; font-family:inherit;">
+              <option value="PIX">Pix</option>
+              <option value="CREDIT_CARD">Cartão de Crédito</option>
+              <option value="DEBIT_CARD">Cartão de Débito</option>
+              <option value="MONEY">Dinheiro</option>
+              <option value="MEAL_VOUCHER">Vale-Refeição</option>
+              <option value="OTHER">Outros</option>
+            </select>
+          </div>
+
+          <button type="button" class="pos-btn-checkout" style="width:100%; background:#10b981;" id="btnPosConfirmCloseTable" onclick="submitPosCloseTable()">
+            ✓ Receber Pagamento e Encerrar Mesa
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1854,6 +1927,169 @@
       } else {
         document.exitFullscreen().catch(() => {});
       }
+    }
+
+    // Funções de Consulta e Encerramento de Mesas no PDV
+    let currentPosTableSession = null;
+    let currentPosTableSubtotal = 0;
+
+    async function openPosTableModal() {
+      const backdrop = document.getElementById('posTableModalBackdrop');
+      backdrop.style.display = 'flex';
+      document.getElementById('posTableListLoading').style.display = 'block';
+      document.getElementById('posTableSelectionSection').style.display = 'none';
+      document.getElementById('posTableSelectedDetails').style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/v1/orders/merchant/${storeId}/tables/`);
+        const tables = await res.json();
+        document.getElementById('posTableListLoading').style.display = 'none';
+        document.getElementById('posTableSelectionSection').style.display = 'block';
+
+        const grid = document.getElementById('posTableBadgesGrid');
+        grid.innerHTML = '';
+
+        if (!tables || tables.length === 0) {
+          grid.innerHTML = '<div style="grid-column:1/-1; color:#94a3b8; text-align:center; padding:12px;">Nenhuma mesa cadastrada.</div>';
+          return;
+        }
+
+        tables.forEach(t => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          let borderCol = '#cbd5e1';
+          let bgCol = '#ffffff';
+          let statusText = 'Livre';
+          if (t.is_occupied) {
+            if (t.current_session_status === 'WAITING_PAY') {
+              borderCol = '#f59e0b';
+              bgCol = '#fffbeb';
+              statusText = '🔔 Pede Conta';
+            } else {
+              borderCol = '#3b82f6';
+              bgCol = '#eff6ff';
+              statusText = `R$ ${(t.current_session_total || 0).toFixed(2)}`;
+            }
+          }
+          btn.style.cssText = `padding:8px 10px; border:1.5px solid ${borderCol}; background:${bgCol}; border-radius:10px; text-align:left; cursor:pointer; font-family:inherit;`;
+          btn.innerHTML = `
+            <div style="font-weight:800; font-size:0.92rem; color:#0f172a;">Mesa ${t.number}</div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:700;">${statusText}</div>
+          `;
+          btn.onclick = () => selectPosTable(t);
+          grid.appendChild(btn);
+        });
+      } catch (err) {
+        document.getElementById('posTableListLoading').textContent = 'Erro ao carregar mesas.';
+      }
+    }
+
+    function closePosTableModal() {
+      document.getElementById('posTableModalBackdrop').style.display = 'none';
+    }
+
+    async function selectPosTable(table) {
+      if (!table.is_occupied) {
+        alert(`A Mesa ${table.number} está livre no momento.`);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/v1/orders/merchant/${storeId}/tables/${table.id}/session/`);
+        const sessionData = await res.json();
+        if (!sessionData.active) {
+          alert('Esta mesa não possui comanda ativa.');
+          return;
+        }
+
+        currentPosTableSession = sessionData;
+        currentPosTableSubtotal = parseFloat(sessionData.subtotal) || 0;
+
+        document.getElementById('posTableSelectedHeader').textContent = `Mesa ${table.number}${table.name ? ' - ' + table.name : ''}`;
+        document.getElementById('posTableSelectedStatus').textContent = sessionData.status_display;
+        document.getElementById('posTableSubtotal').textContent = `R$ ${currentPosTableSubtotal.toFixed(2).replace('.', ',')}`;
+        document.getElementById('posTableDiscountInput').value = '0.00';
+        recalcPosTableTotal();
+
+        const itemsBox = document.getElementById('posTableItemsBreakdown');
+        itemsBox.innerHTML = '';
+        if (sessionData.items_breakdown && sessionData.items_breakdown.length > 0) {
+          sessionData.items_breakdown.forEach(item => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; justify-content:space-between; font-size:0.85rem; padding:4px 0; border-bottom:1px solid #f1f5f9;';
+            row.innerHTML = `
+              <span>${item.quantity}x ${item.product_name}</span>
+              <strong>R$ ${parseFloat(item.total).toFixed(2).replace('.', ',')}</strong>
+            `;
+            itemsBox.appendChild(row);
+          });
+        } else {
+          itemsBox.innerHTML = '<div style="color:#94a3b8; font-size:0.8rem;">Sem itens registrados.</div>';
+        }
+
+        document.getElementById('posTableSelectedDetails').style.display = 'block';
+      } catch (e) {
+        alert('Erro ao carregar detalhes da comanda da mesa.');
+      }
+    }
+
+    function recalcPosTableTotal() {
+      const disc = parseFloat(document.getElementById('posTableDiscountInput').value) || 0;
+      const finalTot = Math.max(0, currentPosTableSubtotal - disc);
+      document.getElementById('posTableFinalTotal').textContent = `R$ ${finalTot.toFixed(2).replace('.', ',')}`;
+    }
+
+    async function submitPosCloseTable() {
+      if (!currentPosTableSession) return;
+      const disc = parseFloat(document.getElementById('posTableDiscountInput').value) || 0;
+      const method = document.getElementById('posTablePaymentMethod').value;
+      const btn = document.getElementById('btnPosConfirmCloseTable');
+      btn.disabled = true;
+      btn.textContent = 'Processando encerramento...';
+
+      try {
+        const res = await fetch(`/api/v1/orders/merchant/${storeId}/table-sessions/${currentPosTableSession.public_id}/close/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            discount: disc,
+            payment_method: method,
+            notes: 'Encerrado pelo PDV Balcão'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Erro ao fechar mesa.');
+          btn.disabled = false;
+          btn.textContent = '✓ Receber Pagamento e Encerrar Mesa';
+          return;
+        }
+
+        alert(`Mesa ${data.table_number} encerrada com sucesso! R$ ${parseFloat(data.total_paid).toFixed(2)} recebido.`);
+        closePosTableModal();
+      } catch (e) {
+        alert('Erro de conexão ao encerrar mesa.');
+        btn.disabled = false;
+        btn.textContent = '✓ Receber Pagamento e Encerrar Mesa';
+      }
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
     }
 
     // Inicialização

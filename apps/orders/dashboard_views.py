@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from stores.models import Store
 from subscriptions.decorators import feature_required
-from .models import Order, Coupon
+from .models import Order, Coupon, Table, TableSession
 
 
 def merchant_login_view(request):
@@ -769,6 +769,70 @@ def merchant_pos_view(request, store_slug):
         'active_tab': 'pos',
     }
     return render(request, 'dashboard/pos.html', context)
+
+
+@login_required(login_url='/painel/login/')
+def merchant_tables_view(request, store_slug):
+    """
+    Gestão visual de Mesas, status em tempo real (Livre, Em Consumo, Pediu a Conta),
+    geração de QR Code e comanda agregada.
+    """
+    current_store, active_stores = get_user_active_store(request.user, store_slug)
+
+    tables = Table.objects.filter(store=current_store).prefetch_related(
+        'sessions__orders__items'
+    ).order_by('number')
+
+    # Monta status consolidado de cada mesa para o grid visual
+    tables_data = []
+    for table in tables:
+        sess = table.current_session
+        session_info = None
+        if sess:
+            session_info = {
+                'id': str(sess.public_id),
+                'session_token': str(sess.session_token),
+                'status': sess.status,
+                'status_display': sess.get_status_display(),
+                'opened_at': sess.opened_at,
+                'orders_count': sess.get_valid_orders().count(),
+                'subtotal': float(sess.calculate_subtotal()),
+                'total': float(sess.calculate_total()),
+                'breakdown': sess.get_items_breakdown(),
+            }
+
+        # URL pública para o QR Code da mesa
+        qr_url = request.build_absolute_uri(f"/{current_store.slug}/mesa/{table.qr_token}/")
+
+        tables_data.append({
+            'table': table,
+            'is_occupied': table.is_occupied,
+            'session': session_info,
+            'qr_url': qr_url,
+        })
+
+    # Estatísticas do salão
+    total_tables = len(tables_data)
+    occupied_count = sum(1 for t in tables_data if t['is_occupied'])
+    waiting_pay_count = sum(1 for t in tables_data if t['session'] and t['session']['status'] == 'WAITING_PAY')
+    free_count = total_tables - occupied_count
+    total_in_consumption = sum(t['session']['total'] for t in tables_data if t['session'])
+
+    context = {
+        'store': current_store,
+        'current_store': current_store,
+        'user_stores': active_stores,
+        'active_stores': active_stores,
+        'tables_data': tables_data,
+        'total_tables': total_tables,
+        'free_count': free_count,
+        'occupied_count': occupied_count,
+        'waiting_pay_count': waiting_pay_count,
+        'total_in_consumption': total_in_consumption,
+        'active_tab': 'mesas',
+    }
+    return render(request, 'dashboard/tables.html', context)
+
 
 
 
