@@ -40,6 +40,12 @@ class Category(StoreBoundedModel):
     def __str__(self):
         return f"{self.name} ({self.store.name})"
 
+    def save(self, *args, **kwargs):
+        from .category_catalog import format_category_name_with_icon
+        if self.name:
+            self.name = format_category_name_with_icon(self.name)
+        super().save(*args, **kwargs)
+
 
 class Product(StoreBoundedModel):
     """
@@ -72,6 +78,36 @@ class Product(StoreBoundedModel):
         blank=True,
         null=True
     )
+    code = models.CharField(
+        _('Código PDV'),
+        max_length=30,
+        blank=True,
+        null=True,
+        help_text=_('Identificador amigável e único por loja para busca rápida no PDV (ex: FAT001).')
+    )
+    track_stock = models.BooleanField(
+        _('Controlar Estoque'),
+        default=False,
+        help_text=_('Se ativado, as vendas online e no PDV debitam o saldo deste produto.')
+    )
+    stock_quantity = models.IntegerField(
+        _('Quantidade em Estoque'),
+        default=0,
+        help_text=_('Saldo físico disponível para venda.')
+    )
+    is_promotional = models.BooleanField(
+        _('Em Promoção'),
+        default=False,
+        help_text=_('Ativa o preço promocional de venda deste produto.')
+    )
+    promotional_price = models.DecimalField(
+        _('Preço Promocional (R$)'),
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_('Valor com desconto para venda online e PDV.')
+    )
     is_active = models.BooleanField(
         _('Disponível / Ativo'),
         default=True,
@@ -86,21 +122,135 @@ class Product(StoreBoundedModel):
         verbose_name = _('Produto')
         verbose_name_plural = _('Produtos')
         ordering = ['order', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['store', 'code'],
+                condition=models.Q(code__isnull=False) & ~models.Q(code=''),
+                name='unique_store_product_code'
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} - R$ {self.price:.2f} ({self.store.name})"
 
+    @property
+    def current_price(self) -> Decimal:
+        """Retorna o preço promocional caso a promoção esteja ativa e válida, senão o preço base."""
+        if self.is_promotional and self.promotional_price is not None:
+            if Decimal('0.00') < self.promotional_price < self.price:
+                return self.promotional_price
+        return self.price
+
+    @property
+    def discount_percent(self) -> int:
+        """Calcula o percentual de desconto com base no preço base e no preço promocional."""
+        if self.is_promotional and self.promotional_price is not None:
+            if Decimal('0.00') < self.promotional_price < self.price:
+                diff = self.price - self.promotional_price
+                percent = (diff / self.price) * Decimal('100.0')
+                return int(round(percent))
+        return 0
+
+    @property
+    def is_in_stock(self) -> bool:
+        """Indica se o produto possui estoque disponível para compra."""
+        if not self.track_stock:
+            return True
+        return self.stock_quantity > 0
+
     def clean(self):
         super().clean()
+        if self.code:
+            self.code = self.code.strip().upper()
         if self.category_id and self.store_id:
             if self.category.store_id != self.store_id:
                 raise ValidationError({
                     'category': _('A categoria selecionada não pertence a esta loja.')
                 })
+        if self.is_promotional and self.promotional_price is not None:
+            if self.promotional_price <= Decimal('0.00'):
+                raise ValidationError({
+                    'promotional_price': _('O preço promocional deve ser maior que zero.')
+                })
+            if self.promotional_price >= self.price:
+                raise ValidationError({
+                    'promotional_price': _('O preço promocional deve ser menor que o preço base do produto.')
+                })
 
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class StockMovement(StoreBoundedModel):
+    """
+    Registro detalhado de auditoria de todas as entradas, saídas e ajustes de estoque.
+    """
+    TYPE_SALE_ONLINE = 'SALE_ONLINE'
+    TYPE_SALE_PDV = 'SALE_PDV'
+    TYPE_CANCEL_RETURN = 'CANCEL_RETURN'
+    TYPE_MANUAL_ADJUST = 'MANUAL_ADJUST'
+    TYPE_RESTOCK = 'RESTOCK'
+
+    MOVEMENT_CHOICES = [
+        (TYPE_SALE_ONLINE, _('Venda Online')),
+        (TYPE_SALE_PDV, _('Venda PDV (Balcão)')),
+        (TYPE_CANCEL_RETURN, _('Devolução por Cancelamento')),
+        (TYPE_MANUAL_ADJUST, _('Ajuste Manual')),
+        (TYPE_RESTOCK, _('Reposição de Estoque')),
+    ]
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='stock_movements',
+        verbose_name=_('Produto')
+    )
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name=_('Pedido Vinculado')
+    )
+    operator = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name=_('Operador / Responsável')
+    )
+    movement_type = models.CharField(
+        _('Tipo de Movimentação'),
+        max_length=20,
+        choices=MOVEMENT_CHOICES
+    )
+    quantity = models.IntegerField(
+        _('Quantidade Movimentada'),
+        help_text=_('Valor negativo para saídas/vendas e positivo para entradas/estornos.')
+    )
+    previous_stock = models.IntegerField(
+        _('Saldo Anterior')
+    )
+    current_stock = models.IntegerField(
+        _('Saldo Atual')
+    )
+    notes = models.CharField(
+        _('Observações / Motivo'),
+        max_length=255,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = _('Movimentação de Estoque')
+        verbose_name_plural = _('Movimentações de Estoque')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.product.name} ({self.quantity:+d}) - {self.get_movement_type_display()} [{self.store.name}]"
+
 
 
 class OptionGroup(StoreBoundedModel):

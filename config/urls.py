@@ -16,8 +16,19 @@ from orders.dashboard_views import (
     merchant_products_view,
     merchant_product_options_view,
     merchant_store_settings_view,
+    merchant_pos_view,
+)
+from analytics.views import (
+    merchant_analytics_view,
+    create_trackable_link_view,
+    track_event_api_view,
 )
 from whatsapp.views import order_whatsapp_redirect_view
+from subscriptions.views import (
+    merchant_subscription_view,
+    merchant_subscription_checkout_view,
+    merchant_subscription_return_view,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,15 +40,23 @@ urlpatterns = [
     path('api/v1/delivery/', include('delivery.urls', namespace='delivery')),
     path('api/v1/orders/', include('orders.urls', namespace='orders')),
     path('api/v1/whatsapp/', include('whatsapp.urls', namespace='whatsapp')),
+    path('api/v1/subscriptions/', include('subscriptions.urls', namespace='subscriptions')),
+    path('api/v1/analytics/<slug:store_slug>/event/', track_event_api_view, name='analytics_track_event_api'),
 
     # Painel do Lojista (Web Dashboard)
     path('painel/login/', merchant_login_view, name='merchant_login'),
     path('painel/logout/', merchant_logout_view, name='merchant_logout'),
     path('painel/', merchant_dashboard_root_view, name='merchant_dashboard_root'),
     path('painel/<slug:store_slug>/', merchant_dashboard_store_view, name='merchant_dashboard_store'),
+    path('painel/<slug:store_slug>/pdv/', merchant_pos_view, name='merchant_pos'),
     path('painel/<slug:store_slug>/produtos/', merchant_products_view, name='merchant_products'),
     path('painel/<slug:store_slug>/produtos/<int:product_id>/opcoes/', merchant_product_options_view, name='merchant_product_options'),
     path('painel/<slug:store_slug>/configuracoes/', merchant_store_settings_view, name='merchant_store_settings'),
+    path('painel/<slug:store_slug>/analytics/', merchant_analytics_view, name='merchant_analytics'),
+    path('painel/<slug:store_slug>/analytics/links/create/', create_trackable_link_view, name='merchant_analytics_create_link'),
+    path('painel/<slug:store_slug>/assinatura/', merchant_subscription_view, name='merchant_subscription'),
+    path('painel/<slug:store_slug>/assinatura/checkout/<slug:plan_slug>/', merchant_subscription_checkout_view, name='merchant_subscription_checkout'),
+    path('painel/<slug:store_slug>/assinatura/retorno/', merchant_subscription_return_view, name='merchant_subscription_return'),
 
     # Página institucional da plataforma
     path('', include('core.urls', namespace='core')),

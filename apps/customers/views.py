@@ -84,6 +84,7 @@ class PublicCustomerIdentifyView(APIView):
     - Se o cliente já existir naquela loja: recupera o cadastro e seus endereços salvos.
     - Se não existir: cadastra o novo cliente na loja.
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     @transaction.atomic
@@ -133,6 +134,7 @@ class PublicCustomerLookupView(APIView):
     Busca rápida de cliente pelo telefone na loja para auto-preenchimento no checkout.
     GET /api/v1/customers/public/{store_slug}/lookup/?phone=11988887777
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, store_slug):

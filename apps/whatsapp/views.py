@@ -33,6 +33,7 @@ class OrderWhatsAppLinkAPIView(APIView):
     Endpoint para obter a mensagem estruturada e os links dinâmicos do WhatsApp do pedido.
     GET /api/v1/whatsapp/orders/{public_id}/link/
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, public_id):

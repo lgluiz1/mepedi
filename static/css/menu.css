@@ -763,3 +763,491 @@ body.menu-page {
   padding: 20px;
   box-shadow: var(--shadow-card);
 }
+
+/* ==========================================================================
+   MePedi Global Platform Footer (Minimalista & Elegante - Estilo Yooga)
+   ========================================================================== */
+.mepedi-global-footer {
+  margin-top: 40px;
+  background: transparent;
+  border-top: 1px solid #e2e8f0;
+  padding: 30px 16px 36px;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+.mepedi-footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mepedi-footer-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #334155;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.mepedi-footer-link:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.mepedi-footer-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #334155;
+  letter-spacing: -0.2px;
+}
+
+.mepedi-footer-logo {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   Banner Superior de Loja Fechada / Pausada (Public Menu)
+   ========================================================================== */
+.store-closed-top-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
+  color: #ffffff;
+  border-bottom: 2px solid #e11d48;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 90;
+}
+
+.store-closed-top-banner .banner-container {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.store-closed-top-banner .banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.store-closed-top-banner .banner-icon {
+  font-size: 1.5rem;
+  background: rgba(225, 29, 72, 0.2);
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.store-closed-top-banner .banner-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.store-closed-top-banner .banner-subtitle {
+  font-size: 0.82rem;
+  color: #fbcfe8;
+  margin: 2px 0 0 0;
+}
+
+.store-closed-top-banner .banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-closed-top-banner .btn-banner-action {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.store-closed-top-banner .btn-banner-info {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.store-closed-top-banner .btn-banner-info:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.store-closed-top-banner .btn-banner-wa {
+  background: #22c55e;
+  color: #ffffff !important;
+  border: none;
+}
+
+.store-closed-top-banner .btn-banner-wa:hover {
+  background: #16a34a;
+}
+
+/* ==========================================================================
+   Modal de Loja Fechada / Pausada (Public Menu)
+   ========================================================================== */
+.closed-store-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: closedModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes closedModalFadeIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.closed-store-modal-box {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  position: relative;
+  text-align: center;
+}
+
+.closed-modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 5;
+}
+
+.closed-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.closed-modal-header-bg {
+  background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
+  padding: 30px 20px 22px;
+  position: relative;
+}
+
+.closed-modal-avatar-wrap {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.closed-modal-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.closed-modal-avatar-fallback {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.closed-modal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  margin-top: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.closed-modal-status-badge.closed {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.closed-modal-status-badge.paused {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.closed-modal-body {
+  padding: 22px 24px 20px;
+}
+
+.closed-modal-store-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.closed-modal-headline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 8px 0;
+}
+
+.closed-modal-headline.paused {
+  color: #d97706;
+}
+
+.closed-modal-desc {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 18px 0;
+}
+
+.closed-modal-info-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.closed-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.closed-info-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.closed-info-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.closed-info-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.closed-info-today {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+  font-size: 0.82rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.closed-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-closed-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #22c55e;
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 14px 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-closed-whatsapp:hover {
+  background: #16a34a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.45);
+}
+
+.closed-modal-whatsapp-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.btn-closed-browse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.btn-closed-browse:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.closed-modal-footer-brand {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.closed-modal-footer-brand img {
+  height: 20px;
+  width: auto;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Checkout Closed Alert Banner & Modal de Erro do Checkout
+   ========================================================================== */
+.checkout-closed-banner {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 22px;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.08);
+}
+
+.btn-checkout-back-menu {
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.btn-checkout-back-menu:hover {
+  background: #fee2e2;
+}
+
+.btn-checkout-wa {
+  background: #22c55e;
+  border: none;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.btn-checkout-wa:hover {
+  background: #16a34a;
+}
+
+.checkout-error-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: closedModalFadeIn 0.2s ease-out;
+}
+
+.checkout-error-modal-box {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}

@@ -1,0 +1,172 @@
+{% if current_subscription or saas_subscription %}
+  {% with sub=current_subscription|default:saas_subscription info=trial_info|default:saas_trial_info %}
+    {% if sub.status == 'TRIAL' %}
+      {% if info.is_active %}
+        <!-- Banner de Trial Ativo -->
+        <div id="mepediTrialBanner" class="saas-trial-banner">
+          <div class="saas-banner-inner">
+            <div class="saas-banner-left">
+              <span class="saas-pulse-badge">⚡ TESTES GRATUITOS</span>
+              <span class="saas-banner-text">
+                Restam <strong>{{ info.days_remaining }} dias</strong> ou
+                <strong>{{ info.orders_count }}/300 pedidos</strong> ou
+                <strong>R$ {{ info.revenue_total }}/R$ 2.000</strong> em vendas.
+                <span class="hide-mobile">Todas as funcionalidades liberadas!</span>
+              </span>
+            </div>
+            <div class="saas-banner-right">
+              <a href="/painel/{{ store.slug }}/assinatura/"
+                 class="saas-btn-action">
+                Ver Planos Ilimitados
+              </a>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Banner de Trial Expirado -->
+        <div id="mepediTrialExpiredBanner" class="saas-trial-banner expired">
+          <div class="saas-banner-inner">
+            <div class="saas-banner-left">
+              <span class="saas-pulse-badge expired">⚠️ TRIAL ENCERRADO</span>
+              <span class="saas-banner-text">
+                Limite atingido (<strong>{{ info.expired_reason }}</strong>). Seus dados e cardápio continuam 100% seguros!
+                Ative um plano comercial para continuar vendendo sem limites.
+              </span>
+            </div>
+            <div class="saas-banner-right">
+              <a href="/painel/{{ store.slug }}/assinatura/"
+                 class="saas-btn-action expired">
+                Reativar Loja Agora
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+    {% elif sub.status == 'PAST_DUE' %}
+      <!-- Banner de Pagamento Pendente -->
+      <div class="saas-trial-banner warning">
+        <div class="saas-banner-inner">
+          <div class="saas-banner-left">
+            <span class="saas-pulse-badge warning">⚠️ PAGAMENTO PENDENTE</span>
+            <span class="saas-banner-text">
+              Sua última mensalidade está pendente. Regularize para evitar interrupção dos recursos.
+            </span>
+          </div>
+          <div class="saas-banner-right">
+            <a href="/painel/{{ store.slug }}/assinatura/"
+               class="saas-btn-action warning">
+              Regularizar Assinatura
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <style>
+    .saas-trial-banner {
+      background: linear-gradient(90deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+      border-bottom: 1px solid rgba(129, 140, 248, 0.3);
+      color: #ffffff;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 105;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .saas-trial-banner.expired {
+      background: linear-gradient(90deg, #450a0a 0%, #7f1d1d 50%, #450a0a 100%);
+      border-bottom: 1px solid rgba(248, 113, 113, 0.4);
+    }
+    .saas-trial-banner.warning {
+      background: linear-gradient(90deg, #451a03 0%, #78350f 50%, #451a03 100%);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.4);
+    }
+    .saas-banner-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .saas-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .saas-pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(165, 180, 252, 0.4);
+      color: #e0e7ff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    .saas-pulse-badge.expired {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: rgba(252, 165, 165, 0.4);
+      color: #fecaca;
+    }
+    .saas-pulse-badge.warning {
+      background: rgba(245, 158, 11, 0.3);
+      border-color: rgba(253, 230, 138, 0.4);
+      color: #fef3c7;
+    }
+    .saas-banner-text {
+      color: #f1f5f9;
+      font-weight: 500;
+    }
+    .saas-banner-text strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .saas-btn-action {
+      display: inline-flex;
+      align-items: center;
+      background: #4f46e5;
+      color: #ffffff;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
+    }
+    .saas-btn-action:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+    }
+    .saas-btn-action.expired {
+      background: #dc2626;
+    }
+    .saas-btn-action.expired:hover {
+      background: #b91c1c;
+    }
+    .saas-btn-action.warning {
+      background: #d97706;
+    }
+    .saas-btn-action.warning:hover {
+      background: #b45309;
+    }
+    @media (max-width: 768px) {
+      .saas-banner-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .saas-banner-text {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+{% endif %}

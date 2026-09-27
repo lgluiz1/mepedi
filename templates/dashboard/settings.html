@@ -539,9 +539,102 @@
       font-weight: 600;
       margin-bottom: 20px;
     }
+
+    /* Botões Padrão */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      border: 1px solid transparent;
+      box-sizing: border-box;
+      line-height: 1.4;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    }
+    .btn-primary:hover {
+      background: #4338ca;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+    }
+    .btn-outline {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+    .btn-outline:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    /* Modal Backdrop & Box */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+      border: 1px solid #e2e8f0;
+      animation: modalZoom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+    }
+    @keyframes modalZoom {
+      from { transform: scale(0.94) translateY(10px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .modal-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 600px) {
+      .modal-box {
+        padding: 22px 18px;
+        border-radius: 16px;
+        max-height: 85vh;
+      }
+      .modal-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
   </style>
 </head>
 <body>
+  {% include 'dashboard/includes/saas_banner.html' %}
 
   <!-- Header Superior MePedi -->
   <header class="dash-header">
@@ -583,6 +676,10 @@
             <span class="tab-icon">🧾</span>
             <span>Meus Pedidos</span>
           </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
             <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
@@ -590,6 +687,14 @@
           <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill active">
             <span class="tab-icon">⚙️</span>
             <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
           </a>
         </nav>
       </div>
@@ -874,9 +979,215 @@
         </button>
       </div>
     </form>
+
+    <!-- 6. GESTÃO DE CUPONS DE DESCONTO -->
+    <div class="card-settings" style="margin-top:30px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <h2 class="card-title" style="margin:0;">🎟️ Cupons de Desconto Promocionais</h2>
+          <p class="card-subtitle" style="margin:4px 0 0 0;">
+            Crie cupons com desconto em porcentagem (%) ou valor fixo (R$), defina pedido mínimo, validade e limite de usos.
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="openModal('modalCreateCoupon')">
+          + Criar Novo Cupom
+        </button>
+      </div>
+
+      <div class="items-table-responsive" style="overflow-x:auto;">
+        <table class="dash-table" style="width:100%; min-width:650px;">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Desconto</th>
+              <th>Pedido Mínimo</th>
+              <th>Usos / Limite</th>
+              <th>Validade</th>
+              <th>Cardápio</th>
+              <th>Status</th>
+              <th style="text-align:right;">Excluir</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for coupon in coupons %}
+              <tr>
+                <td>
+                  <strong style="font-family:'JetBrains Mono',monospace; font-size:1rem; color:#4f46e5;">{{ coupon.code }}</strong>
+                </td>
+                <td>
+                  {% if coupon.discount_type == 'PERCENTAGE' %}
+                    <span style="font-weight:800; color:#059669; background:#ecfdf5; padding:3px 8px; border-radius:6px;">
+                      {{ coupon.discount_value|floatformat:0 }}% OFF
+                    </span>
+                  {% else %}
+                    <span style="font-weight:800; color:#059669; background:#ecfdf5; padding:3px 8px; border-radius:6px;">
+                      R$ {{ coupon.discount_value|floatformat:2 }} OFF
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if coupon.min_order_value > 0 %}
+                    <span style="font-size:0.85rem; color:#334155; font-weight:600;">R$ {{ coupon.min_order_value|floatformat:2 }}</span>
+                  {% else %}
+                    <span style="font-size:0.85rem; color:#64748b;">Sem mínimo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span style="font-size:0.85rem; font-weight:700;">
+                    {{ coupon.times_used }} {% if coupon.max_uses %}/ {{ coupon.max_uses }}{% else %}usos{% endif %}
+                  </span>
+                </td>
+                <td>
+                  {% if coupon.valid_until %}
+                    <span style="font-size:0.82rem; color:#475569;">Até {{ coupon.valid_until|date:"d/m/Y H:i" }}</span>
+                  {% else %}
+                    <span style="font-size:0.82rem; color:#10b981; font-weight:600;">Indeterminada</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if coupon.is_public %}
+                    <span style="font-size:0.75rem; background:#e0e7ff; color:#3730a3; font-weight:700; padding:2px 7px; border-radius:4px;">🌐 Banner Público</span>
+                  {% else %}
+                    <span style="font-size:0.75rem; background:#f1f5f9; color:#64748b; font-weight:600; padding:2px 7px; border-radius:4px;">🤫 Secreto</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="post" action="" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_coupon">
+                    <input type="hidden" name="coupon_id" value="{{ coupon.id }}">
+                    <button type="submit" style="background:transparent; border:none; cursor:pointer;" title="Clique para ativar/pausar cupom">
+                      {% if coupon.is_active %}
+                        <span class="status-dot active">🟢 Ativo</span>
+                      {% else %}
+                        <span class="status-dot inactive">🔴 Pausado</span>
+                      {% endif %}
+                    </button>
+                  </form>
+                </td>
+                <td style="text-align:right;">
+                  <form method="post" action="" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir o cupom &quot;{{ coupon.code }}&quot;?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_coupon">
+                    <input type="hidden" name="coupon_id" value="{{ coupon.id }}">
+                    <button type="submit" class="btn-dash btn-dash-outline" style="color:#ef4444; padding:4px 8px;" title="Excluir Cupom">
+                      🗑️
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" style="text-align:center; padding:30px; color:#64748b;">
+                  <div style="font-size:2rem; margin-bottom:6px;">🎟️</div>
+                  <strong style="color:#1e293b;">Nenhum cupom cadastrado</strong>
+                  <p style="margin:4px 0 0 0; font-size:0.85rem;">Crie cupons promocionais para atrair e fidelizar mais clientes.</p>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </main>
 
+  <!-- MODAL: Criar Novo Cupom -->
+  <div id="modalCreateCoupon" class="modal-backdrop">
+    <div class="modal-box" style="max-width:500px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h2 style="font-size:1.3rem; font-weight:800; margin:0; color:#0f172a;">Novo Cupom de Desconto</h2>
+        <button type="button" onclick="closeModal('modalCreateCoupon')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_coupon">
+
+        <div class="form-group">
+          <label class="form-label" for="couponCode">Código do Cupom *</label>
+          <input type="text" id="couponCode" name="coupon_code" class="form-control" placeholder="Ex: BEMVINDO10, PIZZA5" required style="text-transform:uppercase; font-weight:700;">
+          <small style="color:#64748b; font-size:0.75rem;">O cliente digitará este código no checkout para aplicar o desconto.</small>
+        </div>
+
+        <div class="modal-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="discountType">Tipo de Desconto *</label>
+            <select id="discountType" name="discount_type" class="form-control" required onchange="updateDiscountLabel()">
+              <option value="PERCENTAGE">Porcentagem (%)</option>
+              <option value="FIXED">Valor Fixo (R$)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="discountValueLabel" for="discountValue">Valor do Desconto (%) *</label>
+            <input type="text" id="discountValue" name="discount_value" class="form-control" placeholder="10" required>
+          </div>
+        </div>
+
+        <div class="modal-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="minOrderVal">Pedido Mínimo (R$)</label>
+            <input type="text" id="minOrderVal" name="min_order_value" class="form-control" placeholder="0,00" value="0,00">
+            <small style="color:#64748b; font-size:0.75rem;">0 = sem valor mínimo</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="maxUses">Limite de Usos (Total)</label>
+            <input type="number" id="maxUses" name="max_uses" class="form-control" placeholder="Ex: 50" min="1">
+            <small style="color:#64748b; font-size:0.75rem;">Vazio = usos ilimitados</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="validUntil">Válido Até</label>
+          <input type="datetime-local" id="validUntil" name="valid_until" class="form-control">
+          <small style="color:#64748b; font-size:0.75rem;">Deixe vazio caso o cupom não expire.</small>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.88rem; cursor:pointer;">
+            <input type="checkbox" name="apply_to_delivery">
+            <span>Permitir abater também da taxa de entrega</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.88rem; cursor:pointer;">
+            <input type="checkbox" name="is_public" checked>
+            <span>Divulgar publicamente no cardápio online com banner de destaque</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateCoupon')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Cupom</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function updateDiscountLabel() {
+      const type = document.getElementById('discountType').value;
+      const label = document.getElementById('discountValueLabel');
+      const input = document.getElementById('discountValue');
+      if (type === 'PERCENTAGE') {
+        label.textContent = 'Valor do Desconto (%) *';
+        input.placeholder = '10';
+      } else {
+        label.textContent = 'Valor do Desconto (R$) *';
+        input.placeholder = '15,00';
+      }
+    }
+
     function previewBanner(input) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -901,7 +1212,23 @@
         reader.readAsDataURL(input.files[0]);
       }
     }
+
+    window.addEventListener('click', function(e) {
+      const modal = document.getElementById('modalCreateCoupon');
+      if (e.target === modal) {
+        closeModal('modalCreateCoupon');
+      }
+    });
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal('modalCreateCoupon');
+      }
+    });
   </script>
+
+  <!-- Inclusão do Notificador Global de Pedidos Online -->
+  {% include 'dashboard/includes/order_notifier.html' %}
 
 </body>
 </html>

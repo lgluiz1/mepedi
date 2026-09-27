@@ -1,0 +1,2268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MePedi - Analytics & Inteligência | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --dash-bg: #f8fafc;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
+      --brand-primary: #4f46e5;
+      --brand-success: #10b981;
+      --brand-warning: #f59e0b;
+      --brand-danger: #ef4444;
+      --brand-purple: #8b5cf6;
+    }
+
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Header & Nav MePedi Style */
+    .dash-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 10px 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    .header-content {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dash-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+    .header-left-cluster {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+    }
+    .header-brand {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .mepedi-logo-img {
+      height: 34px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+    .h-divider {
+      width: 1.5px;
+      height: 22px;
+      background: #e2e8f0;
+      flex-shrink: 0;
+    }
+    .panel-title-text {
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .store-badge-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .store-circle-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .store-avatar-fallback {
+      font-size: 1.05rem;
+      background: #eff6ff;
+    }
+    .store-header-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      white-space: nowrap;
+    }
+    .store-quick-switch {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-family: inherit;
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .store-quick-switch:focus {
+      border-color: #4f46e5;
+    }
+
+    /* Linha 1 Direita: Abas / Tabs */
+    .dash-nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .dash-tab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #475569;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .dash-tab-pill:hover {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+    .dash-tab-pill.active {
+      background: #eef2ff;
+      color: #4338ca;
+      border-color: #c7d2fe;
+    }
+    .dash-tab-pill .tab-icon {
+      font-size: 0.95rem;
+      display: inline-block;
+    }
+
+    /* Container Principal */
+    .analytics-container {
+      max-width: 1440px;
+      margin: 20px auto 60px auto;
+      padding: 0 24px;
+    }
+
+    /* Barra Superior: Período e Identificação */
+    .analytics-toolbar {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+    .period-badge-active {
+      background: #eef2ff;
+      color: #4f46e5;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid #c7d2fe;
+    }
+    .tz-badge {
+      background: #f1f5f9;
+      color: #64748b;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .period-selector-group {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .period-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #475569;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    .period-btn:hover {
+      color: #0f172a;
+      background: #e2e8f0;
+    }
+    .period-btn.active {
+      background: #ffffff;
+      color: #4338ca;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* Sub-Abas do Analytics */
+    .subtabs-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .subtab-link {
+      padding: 10px 18px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #64748b;
+      text-decoration: none;
+      border-radius: 10px 10px 0 0;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+    .subtab-link:hover {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+    .subtab-link.active {
+      color: #4f46e5;
+      background: #ffffff;
+    }
+    .subtab-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #4f46e5;
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Grid de Métricas / KPIs */
+    .metrics-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metrics-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metrics-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .kpi-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--dash-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .kpi-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+    }
+    .kpi-icon-indigo { background: #eef2ff; color: #4f46e5; }
+    .kpi-icon-green  { background: #ecfdf5; color: #10b981; }
+    .kpi-icon-amber  { background: #fffbeb; color: #f59e0b; }
+    .kpi-icon-rose   { background: #fff1f2; color: #f43f5e; }
+    .kpi-icon-purple { background: #f5f3ff; color: #8b5cf6; }
+    .kpi-icon-blue   { background: #eff6ff; color: #3b82f6; }
+
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .kpi-footer {
+      font-size: 0.78rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Cards de Gráfico e Tabelas */
+    .dash-card {
+      background: #ffffff;
+      border: 1px solid var(--dash-card-border);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .dash-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+    .dash-card-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dash-card-subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .chart-container-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+    }
+
+    /* Tabelas Elegantes */
+    .analytics-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+    .analytics-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    .analytics-table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .analytics-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+    .analytics-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-status-green { background: #dcfce7; color: #15803d; }
+    .badge-status-amber { background: #fef3c7; color: #b45309; }
+    .badge-status-red   { background: #fee2e2; color: #b91c1c; }
+    .badge-status-blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge-status-gray  { background: #f1f5f9; color: #475569; }
+
+    /* Funil de Conversão */
+    .funnel-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .funnel-step {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .funnel-step-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(99, 102, 241, 0.08);
+      z-index: 1;
+      border-radius: 12px 0 0 12px;
+    }
+    .funnel-step-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    .funnel-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .funnel-step-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #0f172a;
+    }
+    .funnel-step-metrics {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      text-align: right;
+    }
+    .funnel-count {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .funnel-pct {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    /* Modal Criar Link */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 540px;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      border: 1px solid #e2e8f0;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      color: #0f172a;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #4338ca;
+    }
+    .btn-outline {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+    .btn-outline:hover {
+      background: #f8fafc;
+    }
+
+    /* Alerta de Dados Insuficientes */
+    .insufficient-data-box {
+      background: #f8fafc;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      color: #64748b;
+    }
+    .insufficient-data-icon {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* Toast Notification */
+    .toast-copy {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      display: none;
+      z-index: 300;
+      animation: toastFade 0.2s ease-out;
+    }
+    @keyframes toastFade {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal Personalizado de Período */
+    .custom-period-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      display: none;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .custom-period-box.active {
+      display: flex;
+    }
+
+    /* Responsividade */
+    @media (max-width: 1024px) {
+      .metrics-grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .metrics-grid-3 { grid-template-columns: 1fr; }
+      .metrics-grid-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .metrics-grid-4 { grid-template-columns: 1fr; }
+      .analytics-container { padding: 0 14px; }
+      .analytics-toolbar { padding: 14px; flex-direction: column; align-items: stretch; }
+      .kpi-value { font-size: 1.45rem; }
+    }
+  </style>
+</head>
+<body>
+  {% include 'dashboard/includes/saas_banner.html' %}
+
+  <!-- Header Superior MePedi (Padrão Nativo) -->
+  <header class="dash-header">
+    <div class="header-content">
+      <div class="dash-row-top">
+        <div class="header-left-cluster">
+          <a href="/painel/{{ store.slug }}/" class="header-brand" title="MePedi">
+            <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
+          </a>
+          <div class="h-divider"></div>
+          <span class="panel-title-text">Analytics & Inteligência</span>
+          <div class="h-divider"></div>
+          <div class="store-badge-header">
+            {% if store.logo %}
+              <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
+            {% else %}
+              <div class="store-circle-avatar store-avatar-fallback">🍕</div>
+            {% endif %}
+            <div class="store-name-select-box">
+              {% if user_stores|length > 1 %}
+                <select class="store-quick-switch" onchange="window.location.href='/painel/' + this.value + '/analytics/'">
+                  {% for s in user_stores %}
+                    <option value="{{ s.slug }}" {% if s.slug == store.slug %}selected{% endif %}>
+                      {{ s.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <span class="store-header-name">{{ store.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Links de Navegação Principal do Header -->
+        <nav class="dash-nav-tabs">
+          <a href="/painel/{{ store.slug }}/" class="dash-tab-pill">
+            <span class="tab-icon">🧾</span>
+            <span>Meus Pedidos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
+            <span class="tab-icon">🍕</span>
+            <span>Produtos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
+            <span class="tab-icon">⚙️</span>
+            <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill active">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="analytics-container">
+
+    <!-- Mensagens do Django -->
+    {% if messages %}
+      <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+          <div style="padding: 12px 18px; border-radius: 12px; margin-bottom: 8px; font-weight: 700; font-size: 0.9rem; {% if message.tags == 'success' %}background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;{% else %}background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Barra de Período e Identificação -->
+    <div class="analytics-toolbar">
+      <div class="toolbar-left">
+        <h1 class="toolbar-title">
+          <span>📊 Painel de Performance</span>
+        </h1>
+        <span class="period-badge-active">📅 {{ period_label }}</span>
+        <span class="tz-badge">🕒 Fuso: América/São Paulo</span>
+      </div>
+
+      <!-- Seletor de Período -->
+      <div>
+        <div class="period-selector-group">
+          <a href="?tab={{ active_tab }}&period=hoje" class="period-btn {% if period == 'hoje' %}active{% endif %}">Hoje</a>
+          <a href="?tab={{ active_tab }}&period=ontem" class="period-btn {% if period == 'ontem' %}active{% endif %}">Ontem</a>
+          <a href="?tab={{ active_tab }}&period=7d" class="period-btn {% if period == '7d' %}active{% endif %}">7 dias</a>
+          <a href="?tab={{ active_tab }}&period=30d" class="period-btn {% if period == '30d' %}active{% endif %}">30 dias</a>
+          <a href="?tab={{ active_tab }}&period=90d" class="period-btn {% if period == '90d' %}active{% endif %}">90 dias</a>
+          <button type="button" onclick="toggleCustomPeriod()" class="period-btn {% if period == 'custom' %}active{% endif %}">Personalizado</button>
+        </div>
+
+        <!-- Formulário de Período Customizado -->
+        <form method="GET" id="customPeriodForm" class="custom-period-box {% if period == 'custom' %}active{% endif %}">
+          <input type="hidden" name="tab" value="{{ active_tab }}">
+          <input type="hidden" name="period" value="custom">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">De:</span>
+          <input type="date" name="start_date" value="{{ start_date_str }}" class="form-control" style="width: auto; padding: 5px 8px;" required>
+          <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Até:</span>
+          <input type="date" name="end_date" value="{{ end_date_str }}" class="form-control" style="width: auto; padding: 5px 8px;" required>
+          <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem;">Filtrar</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Navegação das 7 Abas Secundárias -->
+    <nav class="subtabs-nav">
+      <a href="?tab=overview&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'overview' %}active{% endif %}">
+        <span>📈 Visão Geral</span>
+      </a>
+      <a href="?tab=traffic&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'traffic' %}active{% endif %}">
+        <span>🌐 Tráfego & Funil</span>
+      </a>
+      <a href="?tab=sales&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'sales' %}active{% endif %}">
+        <span>💰 Vendas</span>
+      </a>
+      <a href="?tab=products&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'products' %}active{% endif %}">
+        <span>🍕 Produtos</span>
+      </a>
+      <a href="?tab=operations&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'operations' %}active{% endif %}">
+        <span>⏱️ Operação & Atrasos</span>
+      </a>
+      <a href="?tab=pos&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'pos' %}active{% endif %}">
+        <span>🖥️ PDV (Balcão)</span>
+      </a>
+      <a href="?tab=stock&period={{ period }}{% if period == 'custom' %}&start_date={{ start_date_str }}&end_date={{ end_date_str }}{% endif %}" class="subtab-link {% if active_tab == 'stock' %}active{% endif %}">
+        <span>📦 Estoque</span>
+      </a>
+    </nav>
+
+    <!-- =================================================================== -->
+    <!-- ABA 1: VISÃO GERAL -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'overview' %}
+      <div class="tab-pane active" id="pane-overview">
+        <!-- Grid de KPIs Primários -->
+        <div class="metrics-grid-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Faturamento Total</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">💵</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.overview.total_revenue|floatformat:2 }}</div>
+            <div class="kpi-footer">
+              <span>{{ metrics.overview.valid_orders }} pedidos concluídos/válidos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Total de Pedidos</span>
+              <div class="kpi-icon-wrap kpi-icon-purple">🧾</div>
+            </div>
+            <div class="kpi-value">{{ metrics.overview.total_orders }}</div>
+            <div class="kpi-footer">
+              <span>Online: {{ metrics.overview.online_orders_count }} | PDV: {{ metrics.overview.pdv_orders_count }}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Ticket Médio</span>
+              <div class="kpi-icon-wrap kpi-icon-green">🎯</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.overview.ticket_medio|floatformat:2 }}</div>
+            <div class="kpi-footer">
+              <span>Média por pedido aprovado</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Taxa de Conversão</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">⚡</div>
+            </div>
+            <div class="kpi-value">{{ metrics.overview.conversion_rate }}%</div>
+            <div class="kpi-footer">
+              <span>{{ metrics.overview.online_orders_count }} pedidos / {{ metrics.overview.total_visits }} visitas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid de KPIs Secundários -->
+        <div class="metrics-grid-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Vendas Online (Cardápio)</span>
+              <div class="kpi-icon-wrap kpi-icon-blue">📱</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.overview.online_revenue|floatformat:2 }}</div>
+            <div class="kpi-footer">
+              <span>{{ metrics.overview.online_orders_count }} pedidos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Vendas PDV (Balcão)</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">🖥️</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.overview.pdv_revenue|floatformat:2 }}</div>
+            <div class="kpi-footer">
+              <span>{{ metrics.overview.pdv_orders_count }} pedidos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Visitas ao Cardápio</span>
+              <div class="kpi-icon-wrap kpi-icon-purple">🌐</div>
+            </div>
+            <div class="kpi-value">{{ metrics.overview.total_visits }}</div>
+            <div class="kpi-footer">
+              <span>{{ metrics.overview.unique_sessions }} sessões únicas</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Cancelamentos</span>
+              <div class="kpi-icon-wrap kpi-icon-rose">🚫</div>
+            </div>
+            <div class="kpi-value">{{ metrics.overview.cancelled_orders }} <span style="font-size: 0.95rem; font-weight: 600; color: #ef4444;">({{ metrics.overview.cancel_rate }}%)</span></div>
+            <div class="kpi-footer">
+              <span>Taxa em relação ao total de pedidos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos Principais -->
+        <div class="metrics-grid-2">
+          <!-- Gráfico 1: Faturamento ao longo do tempo -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📈 Faturamento ao Longo do Tempo</h3>
+                <div class="dash-card-subtitle">Evolução da receita total e divisão Online vs PDV</div>
+              </div>
+            </div>
+            <div class="chart-container-wrap">
+              <canvas id="chartRevenueTimeline"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 2: Pedidos ao longo do tempo -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">🧾 Pedidos ao Longo do Tempo</h3>
+                <div class="dash-card-subtitle">Volume de pedidos diários por canal de atendimento</div>
+              </div>
+            </div>
+            <div class="chart-container-wrap">
+              <canvas id="chartOrdersTimeline"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics-grid-2">
+          <!-- Gráfico 3: Online x PDV -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">⚖️ Divisão: Online vs PDV</h3>
+                <div class="dash-card-subtitle">Comparativo de faturamento entre canais</div>
+              </div>
+            </div>
+            <div class="chart-container-wrap" style="max-height: 280px;">
+              <canvas id="chartOnlineVsPdv"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 4: Visitantes x Pedidos -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">👥 Visitantes vs Pedidos</h3>
+                <div class="dash-card-subtitle">Proporção diária entre acessos e compras concluídas</div>
+              </div>
+            </div>
+            <div class="chart-container-wrap">
+              <canvas id="chartVisitorsVsOrders"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 2: TRÁFEGO & FUNIL & LINKS RASTREÁVEIS -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'traffic' %}
+      <div class="tab-pane active" id="pane-traffic">
+        <div class="metrics-grid-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Visitas Totais</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">🌐</div>
+            </div>
+            <div class="kpi-value">{{ metrics.traffic.total_visits }}</div>
+            <div class="kpi-footer"><span>No período selecionado</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Links Rastreáveis Ativos</span>
+              <div class="kpi-icon-wrap kpi-icon-green">🔗</div>
+            </div>
+            <div class="kpi-value">{{ metrics.traffic.links|length }}</div>
+            <div class="kpi-footer"><span>Campanhas personalizadas</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Taxa de Conversão do Funil</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">🎯</div>
+            </div>
+            <div class="kpi-value">{{ metrics.overview.conversion_rate }}%</div>
+            <div class="kpi-footer"><span>Visita até Pedido Concluído</span></div>
+          </div>
+        </div>
+
+        <!-- Área de Links Rastreáveis -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div>
+              <h3 class="dash-card-title">🔗 Links Rastreáveis de Divulgação</h3>
+              <div class="dash-card-subtitle">Crie links para Instagram, WhatsApp, TikTok e acompanhe o retorno financeiro de cada canal</div>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="openCreateLinkModal()">
+              <span>+ Criar Link Rastreável</span>
+            </button>
+          </div>
+
+          {% if metrics.traffic.links %}
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Nome do Link</th>
+                    <th>Origem (UTM)</th>
+                    <th>Campanha</th>
+                    <th>Cliques / Visitas</th>
+                    <th>Pedidos</th>
+                    <th>Faturamento</th>
+                    <th>Conversão</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for l in metrics.traffic.links %}
+                    <tr>
+                      <td><strong>{{ l.name }}</strong></td>
+                      <td><span class="badge-status badge-status-blue">{{ l.utm_source }}</span></td>
+                      <td>{{ l.utm_campaign|default:"-" }}</td>
+                      <td><strong>{{ l.clicks }}</strong></td>
+                      <td>{{ l.orders }}</td>
+                      <td><strong>R$ {{ l.revenue|floatformat:2 }}</strong></td>
+                      <td><span class="badge-status badge-status-green">{{ l.conversion }}%</span></td>
+                      <td>
+                        <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.78rem;" onclick="copyToClipboard('{{ base_url }}{{ l.url }}')">
+                          <span>📋 Copiar Link</span>
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="insufficient-data-box">
+              <span class="insufficient-data-icon">🔗</span>
+              <p>Nenhum link rastreável criado ainda. Clique no botão acima para criar seu primeiro link para divulgação nas redes sociais!</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Visualização do Funil de Conversão e Origens de Tráfego -->
+        <div class="metrics-grid-2">
+          <!-- Funil de Conversão -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">🔻 Funil de Conversão</h3>
+                <div class="dash-card-subtitle">Comportamento do cliente da entrada à conclusão do pedido</div>
+              </div>
+            </div>
+            <div class="funnel-list">
+              {% for step in metrics.traffic.funnel_steps %}
+                <div class="funnel-step">
+                  <div class="funnel-step-bar" style="width: {{ step.pct_from_top }}%;"></div>
+                  <div class="funnel-step-content">
+                    <div class="funnel-step-num">{{ forloop.counter }}</div>
+                    <span class="funnel-step-name">{{ step.name }}</span>
+                  </div>
+                  <div class="funnel-step-metrics">
+                    <span class="funnel-count">{{ step.count }}</span>
+                    <span class="funnel-pct">{{ step.pct_from_prev }}%</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Origens de Tráfego -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">🌐 Origens de Tráfego</h3>
+                <div class="dash-card-subtitle">De onde vêm os visitantes da sua loja pública</div>
+              </div>
+            </div>
+            {% if metrics.traffic.top_sources %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Canal / Origem</th>
+                      <th>Visitas</th>
+                      <th>Participação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for src in metrics.traffic.top_sources %}
+                      <tr>
+                        <td><strong>{{ src.source|title }}</strong></td>
+                        <td>{{ src.visits }}</td>
+                        <td>
+                          <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                              <div style="width: {{ src.percent }}%; height: 100%; background: #4f46e5;"></div>
+                            </div>
+                            <span style="font-size: 0.78rem; font-weight: 700; color: #475569;">{{ src.percent }}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box">
+                <span class="insufficient-data-icon">🌐</span>
+                <p>Nenhuma visita registrada no período selecionado.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 3: VENDAS & FORMAS DE PAGAMENTO & HORÁRIOS -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'sales' %}
+      <div class="tab-pane active" id="pane-sales">
+        <!-- Cards de Composição Financeira -->
+        <div class="metrics-grid-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Faturamento Total</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">💰</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.sales.total_revenue|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Líquido final faturado</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Subtotal Produtos</span>
+              <div class="kpi-icon-wrap kpi-icon-green">🍕</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.sales.total_subtotal|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Valor bruto das mercadorias</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Taxas de Entrega</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">🛵</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.sales.total_delivery|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Recebimento de frete</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Descontos Concedidos</span>
+              <div class="kpi-icon-wrap kpi-icon-purple">🏷️</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.sales.total_discounts|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Cupons e promoções</span></div>
+          </div>
+        </div>
+
+        <div class="metrics-grid-2">
+          <!-- Formas de Pagamento -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">💳 Formas de Pagamento</h3>
+                <div class="dash-card-subtitle">Volume financeiro por modalidade de pagamento</div>
+              </div>
+            </div>
+            <div class="chart-container-wrap" style="max-height: 260px; margin-bottom: 16px;">
+              <canvas id="chartPaymentMethods"></canvas>
+            </div>
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Forma de Pagamento</th>
+                    <th>Pedidos</th>
+                    <th>Faturamento</th>
+                    <th>Participação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in metrics.sales.payment_stats %}
+                    <tr>
+                      <td><strong>{{ p.label }}</strong></td>
+                      <td>{{ p.count }}</td>
+                      <td><strong>R$ {{ p.total|floatformat:2 }}</strong></td>
+                      <td><span class="badge-status badge-status-blue">{{ p.percent }}%</span></td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhuma venda registrada no período.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Picos de Horário -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">⏰ Picos de Horário (00h às 23h)</h3>
+                <div class="dash-card-subtitle">
+                  {% if metrics.sales.peak_hours %}
+                    Horários de maior movimento: <strong>{{ metrics.sales.peak_hours|join:", " }}</strong>
+                  {% else %}
+                    Distribuição de vendas ao longo das horas do dia
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="chart-container-wrap">
+              <canvas id="chartHourlyDistribution"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Cancelamentos -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div>
+              <h3 class="dash-card-title">🚫 Análise de Cancelamentos</h3>
+              <div class="dash-card-subtitle">Detalhamento dos pedidos cancelados no período selecionado</div>
+            </div>
+          </div>
+          <div class="metrics-grid-3">
+            <div class="kpi-card" style="box-shadow: none; background: #fff1f2; border-color: #fecdd3;">
+              <span class="kpi-label" style="color: #9f1239;">Total Cancelados</span>
+              <div class="kpi-value" style="color: #9f1239;">{{ metrics.sales.cancelled_total }}</div>
+              <div class="kpi-footer" style="color: #be123c;"><span>Taxa global: {{ metrics.sales.cancel_rate }}%</span></div>
+            </div>
+            <div class="kpi-card" style="box-shadow: none; background: #f8fafc;">
+              <span class="kpi-label">Cancelados no Online</span>
+              <div class="kpi-value">{{ metrics.sales.cancelled_online }}</div>
+              <div class="kpi-footer"><span>Cardápio Digital</span></div>
+            </div>
+            <div class="kpi-card" style="box-shadow: none; background: #f8fafc;">
+              <span class="kpi-label">Cancelados no PDV</span>
+              <div class="kpi-value">{{ metrics.sales.cancelled_pdv }}</div>
+              <div class="kpi-footer"><span>Balcão / Caixa</span></div>
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
+            ℹ️ Motivo específico: O sistema atual registra o status cancelado e realiza estorno automático e seguro de estoque. Detalhamento por justificativa de texto livre não se aplica à versão atual.
+          </p>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 4: PRODUTOS -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'products' %}
+      <div class="tab-pane active" id="pane-products">
+        <div class="metrics-grid-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Total de Itens Vendidos</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">📦</div>
+            </div>
+            <div class="kpi-value">{{ metrics.products.total_items_sold }}</div>
+            <div class="kpi-footer"><span>Unidades comercializadas</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Produtos Vendidos Diferentes</span>
+              <div class="kpi-icon-wrap kpi-icon-green">🍕</div>
+            </div>
+            <div class="kpi-value">{{ metrics.products.top_selling|length }}</div>
+            <div class="kpi-footer"><span>Itens com ao menos 1 saída</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Produtos Sem Venda no Período</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">💤</div>
+            </div>
+            <div class="kpi-value">{{ metrics.products.unsold_count }}</div>
+            <div class="kpi-footer"><span>Ativos no cardápio sem saídas</span></div>
+          </div>
+        </div>
+
+        <!-- Ranking dos Mais Vendidos -->
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div>
+              <h3 class="dash-card-title">🏆 Produtos Mais Vendidos</h3>
+              <div class="dash-card-subtitle">Itens com maior volume e faturamento no período</div>
+            </div>
+          </div>
+          {% if metrics.products.top_selling %}
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nome do Produto</th>
+                    <th>Qtd Vendida</th>
+                    <th>Faturamento Total</th>
+                    <th>Ticket Médio</th>
+                    <th>Última Venda</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in metrics.products.top_selling %}
+                    <tr>
+                      <td><span class="badge-status badge-status-blue">#{{ forloop.counter }}</span></td>
+                      <td><strong>{{ p.product_name }}</strong></td>
+                      <td><strong>{{ p.qty }} un</strong></td>
+                      <td><strong>R$ {{ p.total_revenue|floatformat:2 }}</strong></td>
+                      <td>R$ {{ p.ticket_medio|floatformat:2 }}</td>
+                      <td>{{ p.last_sold_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="insufficient-data-box">
+              <span class="insufficient-data-icon">🍕</span>
+              <p>Nenhuma venda de produto registrada no período selecionado.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Menor Volume de Vendas e Sem Vendas -->
+        <div class="metrics-grid-2">
+          <!-- Menor Volume de Vendas -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📉 Menor Volume de Vendas</h3>
+                <div class="dash-card-subtitle">Produtos com menor saída (oportunidades de promoção)</div>
+              </div>
+            </div>
+            {% if metrics.products.low_volume %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Qtd Vendida</th>
+                      <th>Faturamento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in metrics.products.low_volume %}
+                      <tr>
+                        <td><strong>{{ p.product_name }}</strong></td>
+                        <td>{{ p.qty }} un</td>
+                        <td>R$ {{ p.total_revenue|floatformat:2 }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box"><p>Sem dados no período.</p></div>
+            {% endif %}
+          </div>
+
+          <!-- Produtos Sem Venda -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">💤 Produtos Sem Venda no Período</h3>
+                <div class="dash-card-subtitle">Itens ativos no cardápio sem nenhum pedido registrado</div>
+              </div>
+            </div>
+            {% if metrics.products.unsold_products %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th>Preço</th>
+                      <th>Última Venda</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for u in metrics.products.unsold_products %}
+                      <tr>
+                        <td><strong>{{ u.name }}</strong></td>
+                        <td>{{ u.category__name|default:"Sem categoria" }}</td>
+                        <td>R$ {{ u.price|floatformat:2 }}</td>
+                        <td>
+                          {% if u.last_sold %}
+                            {{ u.last_sold|date:"d/m/Y" }}
+                          {% else %}
+                            <span class="badge-status badge-status-gray">Nunca vendido</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box">
+                <p>Todos os produtos ativos registraram ao menos uma venda no período! Parabéns!</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 5: OPERAÇÃO & ATRASOS -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'operations' %}
+      <div class="tab-pane active" id="pane-operations">
+        {% if metrics.operations.has_operational_data %}
+          <!-- KPIs Operacionais -->
+          <div class="metrics-grid-4">
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Tempo Médio até Aceite</span>
+                <div class="kpi-icon-wrap kpi-icon-indigo">⏳</div>
+              </div>
+              <div class="kpi-value">
+                {% if metrics.operations.avg_accept_min != None %}
+                  {{ metrics.operations.avg_accept_min }} <span style="font-size: 0.9rem; font-weight: 600;">min</span>
+                {% else %}
+                  <span style="font-size: 1rem; color: #94a3b8;">N/A</span>
+                {% endif %}
+              </div>
+              <div class="kpi-footer"><span>Tempo para operador aceitar</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Tempo Médio de Preparo</span>
+                <div class="kpi-icon-wrap kpi-icon-amber">🍳</div>
+              </div>
+              <div class="kpi-value">
+                {% if metrics.operations.avg_prep_min != None %}
+                  {{ metrics.operations.avg_prep_min }} <span style="font-size: 0.9rem; font-weight: 600;">min</span>
+                {% else %}
+                  <span style="font-size: 1rem; color: #94a3b8;">N/A</span>
+                {% endif %}
+              </div>
+              <div class="kpi-footer"><span>Meta configurada: {{ metrics.operations.standard_prep_min }} min</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Tempo Total Produção</span>
+                <div class="kpi-icon-wrap kpi-icon-purple">⏱️</div>
+              </div>
+              <div class="kpi-value">
+                {% if metrics.operations.avg_total_min != None %}
+                  {{ metrics.operations.avg_total_min }} <span style="font-size: 0.9rem; font-weight: 600;">min</span>
+                {% else %}
+                  <span style="font-size: 1rem; color: #94a3b8;">N/A</span>
+                {% endif %}
+              </div>
+              <div class="kpi-footer"><span>Da entrada até pronto</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Pedidos com Atraso</span>
+                <div class="kpi-icon-wrap kpi-icon-rose">⚠️</div>
+              </div>
+              <div class="kpi-value">
+                {{ metrics.operations.delayed_count }}
+                <span style="font-size: 0.9rem; font-weight: 600; color: #ef4444;">({{ metrics.operations.delayed_pct }}%)</span>
+              </div>
+              <div class="kpi-footer">
+                <span>Atraso médio: {{ metrics.operations.avg_delay_min }} min</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metrics-grid-2">
+            <!-- Pedidos com Atraso -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div>
+                  <h3 class="dash-card-title">⚠️ Ocorrências de Atraso no Período</h3>
+                  <div class="dash-card-subtitle">Pedidos cujo tempo de preparo excedeu os {{ metrics.operations.standard_prep_min }} minutos padrão da loja</div>
+                </div>
+              </div>
+              {% if metrics.operations.delayed_orders %}
+                <div class="analytics-table-wrap">
+                  <table class="analytics-table">
+                    <thead>
+                      <tr>
+                        <th>Pedido</th>
+                        <th>Horário</th>
+                        <th>Tempo Total</th>
+                        <th>Excesso / Atraso</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for d in metrics.operations.delayed_orders %}
+                        <tr>
+                          <td><strong>#{{ d.order_number }}</strong></td>
+                          <td>{{ d.time|date:"d/m H:i" }}</td>
+                          <td>{{ d.prep_minutes }} min</td>
+                          <td><span class="badge-status badge-status-red">+{{ d.delay_minutes }} min</span></td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="insufficient-data-box" style="border-color: #86efac; background: #f0fdf4;">
+                  <span class="insufficient-data-icon">🎉</span>
+                  <p style="color: #166534; font-weight: 700;">Nenhum atraso registrado no período selecionado! Cozinha operando com máxima eficiência.</p>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Produtos com Maior Tempo de Preparo -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div>
+                  <h3 class="dash-card-title">🍳 Produtos Associados a Maior Tempo de Preparo</h3>
+                  <div class="dash-card-subtitle">Itens que mais demandam tempo de cozinha</div>
+                </div>
+              </div>
+              {% if metrics.operations.products_prep_ranking %}
+                <div class="analytics-table-wrap">
+                  <table class="analytics-table">
+                    <thead>
+                      <tr>
+                        <th>Produto</th>
+                        <th>Amostra de Pedidos</th>
+                        <th>Tempo Médio de Preparo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for pr in metrics.operations.products_prep_ranking %}
+                        <tr>
+                          <td><strong>{{ pr.product_name }}</strong></td>
+                          <td>{{ pr.orders_count }} pedidos</td>
+                          <td><span class="badge-status badge-status-amber">{{ pr.avg_prep_min }} min</span></td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="insufficient-data-box"><p>Sem dados de produtos no período.</p></div>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="dash-card">
+            <div class="insufficient-data-box">
+              <span class="insufficient-data-icon">⏱️</span>
+              <h3 style="font-weight: 800; color: #1e293b; margin: 0 0 8px 0;">Dados insuficientes no período selecionado</h3>
+              <p style="max-width: 600px; margin: 0 auto; line-height: 1.5;">
+                As métricas operacionais são calculadas com base nos timestamps reais gerados quando os pedidos são aceitos, colocados em preparo e marcados como prontos na cozinha. Nenhum timestamp foi simulado ou inventado.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 6: PDV (BALCÃO) -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'pos' %}
+      <div class="tab-pane active" id="pane-pos">
+        <div class="metrics-grid-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Faturamento PDV</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">🖥️</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.pos.total_revenue|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Vendas diretas no balcão</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Vendas Balcão</span>
+              <div class="kpi-icon-wrap kpi-icon-green">🧾</div>
+            </div>
+            <div class="kpi-value">{{ metrics.pos.total_orders }}</div>
+            <div class="kpi-footer"><span>Pedidos registrados pelo operador</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Ticket Médio PDV</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">🎯</div>
+            </div>
+            <div class="kpi-value">R$ {{ metrics.pos.ticket_medio|floatformat:2 }}</div>
+            <div class="kpi-footer"><span>Média por venda presencial</span></div>
+          </div>
+        </div>
+
+        <div class="metrics-grid-2">
+          <!-- Formas de Pagamento no PDV -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">💳 Pagamentos no PDV</h3>
+                <div class="dash-card-subtitle">Formas de pagamento mais utilizadas no balcão</div>
+              </div>
+            </div>
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Forma</th>
+                    <th>Vendas</th>
+                    <th>Total</th>
+                    <th>Participação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in metrics.pos.payment_stats %}
+                    <tr>
+                      <td><strong>{{ p.label }}</strong></td>
+                      <td>{{ p.count }}</td>
+                      <td><strong>R$ {{ p.total|floatformat:2 }}</strong></td>
+                      <td><span class="badge-status badge-status-blue">{{ p.percent }}%</span></td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhuma venda PDV no período.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Produtos Mais Vendidos no PDV -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">🏆 Top Produtos no Balcão</h3>
+                <div class="dash-card-subtitle">Itens com maior saída no PDV presencial</div>
+              </div>
+            </div>
+            {% if metrics.pos.top_pos_products %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Qtd Vendida</th>
+                      <th>Faturamento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for it in metrics.pos.top_pos_products %}
+                      <tr>
+                        <td><strong>{{ it.product_name }}</strong></td>
+                        <td>{{ it.qty }} un</td>
+                        <td><strong>R$ {{ it.total|floatformat:2 }}</strong></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box"><p>Sem produtos vendidos no PDV neste período.</p></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Horários de Movimento no PDV -->
+        {% if metrics.pos.peak_hours %}
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3 class="dash-card-title">⏰ Horários de Maior Movimento no PDV</h3>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              {% for pk in metrics.pos.peak_hours %}
+                <span class="badge-status badge-status-blue" style="padding: 8px 14px; font-size: 0.85rem;">
+                  🕒 {{ pk }}
+                </span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- =================================================================== -->
+    <!-- ABA 7: ESTOQUE -->
+    <!-- =================================================================== -->
+    {% if active_tab == 'stock' %}
+      <div class="tab-pane active" id="pane-stock">
+        <div class="metrics-grid-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Produtos Esgotados</span>
+              <div class="kpi-icon-wrap kpi-icon-rose">🚫</div>
+            </div>
+            <div class="kpi-value" style="color: #ef4444;">{{ metrics.stock.out_of_stock_count }}</div>
+            <div class="kpi-footer"><span>Estoque zerado</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Estoque Crítico (≤ 5)</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">⚠️</div>
+            </div>
+            <div class="kpi-value" style="color: #f59e0b;">{{ metrics.stock.critical_stock_count }}</div>
+            <div class="kpi-footer"><span>Próximos do esgotamento</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Saídas por Venda Online</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">📱</div>
+            </div>
+            <div class="kpi-value">{{ metrics.stock.sales_online_qty }}</div>
+            <div class="kpi-footer"><span>Unidades debitadas</span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Saídas por Venda PDV</span>
+              <div class="kpi-icon-wrap kpi-icon-purple">🖥️</div>
+            </div>
+            <div class="kpi-value">{{ metrics.stock.sales_pdv_qty }}</div>
+            <div class="kpi-footer"><span>Unidades debitadas balcão</span></div>
+          </div>
+        </div>
+
+        <div class="metrics-grid-2">
+          <!-- Produtos Esgotados -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">🚫 Produtos com Estoque Esgotado</h3>
+                <div class="dash-card-subtitle">Itens com controle de estoque ativo com saldo 0 ou negativo</div>
+              </div>
+            </div>
+            {% if metrics.stock.out_of_stock %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th>Saldo Atual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for it in metrics.stock.out_of_stock %}
+                      <tr>
+                        <td><strong>{{ it.name }}</strong></td>
+                        <td>{{ it.category__name|default:"-" }}</td>
+                        <td><span class="badge-status badge-status-red">{{ it.stock_quantity }} un</span></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box" style="border-color: #86efac; background: #f0fdf4;">
+                <span class="insufficient-data-icon">✅</span>
+                <p style="color: #166534; font-weight: 700;">Nenhum produto esgotado no momento!</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Estoque Crítico -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">⚠️ Produtos com Estoque Crítico</h3>
+                <div class="dash-card-subtitle">Itens com 5 ou menos unidades em estoque</div>
+              </div>
+            </div>
+            {% if metrics.stock.critical_stock %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th>Saldo Atual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for it in metrics.stock.critical_stock %}
+                      <tr>
+                        <td><strong>{{ it.name }}</strong></td>
+                        <td>{{ it.category__name|default:"-" }}</td>
+                        <td><span class="badge-status badge-status-amber">{{ it.stock_quantity }} un</span></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box">
+                <p>Nenhum produto em nível crítico de estoque.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="metrics-grid-2">
+          <!-- Produtos Mais Consumidos -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📉 Produtos Mais Consumidos</h3>
+                <div class="dash-card-subtitle">Maior saída física de estoque via vendas online e balcão</div>
+              </div>
+            </div>
+            {% if metrics.stock.most_consumed %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Saída de Estoque</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for it in metrics.stock.most_consumed %}
+                      <tr>
+                        <td><strong>{{ it.product__name }}</strong></td>
+                        <td><span class="badge-status badge-status-blue">-{{ it.consumed }} un</span></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box"><p>Sem saídas de estoque registradas no período.</p></div>
+            {% endif %}
+          </div>
+
+          <!-- Produtos com Estoque Parado -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📦 Produtos com Estoque Sem Movimentação</h3>
+                <div class="dash-card-subtitle">Itens controlados que não tiveram saídas no período</div>
+              </div>
+            </div>
+            {% if metrics.stock.idle_products %}
+              <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th>Estoque Atual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for it in metrics.stock.idle_products %}
+                      <tr>
+                        <td><strong>{{ it.name }}</strong></td>
+                        <td>{{ it.category__name|default:"-" }}</td>
+                        <td>{{ it.stock_quantity }} un</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="insufficient-data-box"><p>Todos os produtos com controle ativo registraram movimentação.</p></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </main>
+
+  <!-- Modal Criar Link Rastreável -->
+  <div class="modal-backdrop" id="modalCreateLink">
+    <div class="modal-box">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">🔗 Criar Link Rastreável</h3>
+        <button type="button" onclick="closeCreateLinkModal()" style="border: none; background: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <form method="POST" action="/painel/{{ store.slug }}/analytics/links/create/">
+        {% csrf_token %}
+        <input type="hidden" name="period" value="{{ period }}">
+
+        <div class="form-group">
+          <label class="form-label">Nome do Link (Identificação Interna)*</label>
+          <input type="text" name="name" id="linkName" class="form-control" placeholder="Ex: Bio do Instagram, Campanha Setembro" required oninput="updateLinkPreview()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Origem (utm_source)*</label>
+          <select name="utm_source" id="linkSource" class="form-control" required onchange="updateLinkPreview()">
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="tiktok">TikTok</option>
+            <option value="facebook">Facebook</option>
+            <option value="google">Google</option>
+            <option value="panfleto">Panfleto / QR Code</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Campanha (utm_campaign)</label>
+          <input type="text" name="utm_campaign" id="linkCampaign" class="form-control" placeholder="Ex: setembro, promocao-fim-de-semana, blackfriday" oninput="updateLinkPreview()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mídia (utm_medium)</label>
+          <input type="text" name="utm_medium" id="linkMedium" class="form-control" value="social" placeholder="Ex: bio, stories, grupo, qr" oninput="updateLinkPreview()">
+        </div>
+
+        <!-- Pré-visualização da URL gerada -->
+        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 14px; margin-bottom: 18px;">
+          <span style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase;">URL Gerada:</span>
+          <div id="linkPreviewText" style="font-size: 0.8rem; font-weight: 600; color: #4338ca; word-break: break-all; margin-top: 4px;">
+            {{ base_url }}/{{ store.slug }}/?utm_source=instagram&utm_medium=social
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeCreateLinkModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar e Gerar Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification para cópia de link -->
+  <div class="toast-copy" id="toastCopy">
+    <span>✅ Link copiado para a área de transferência!</span>
+  </div>
+
+  <!-- Scripts e Inicialização dos Gráficos Chart.js -->
+  <script>
+    const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+    const storeSlug = '{{ store.slug }}';
+    const baseUrl = '{{ base_url }}';
+
+    // Utilitário para formatar moeda em R$
+    const formatCurrency = (val) => {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    };
+
+    // Alternar período personalizado
+    function toggleCustomPeriod() {
+      const box = document.getElementById('customPeriodForm');
+      box.classList.toggle('active');
+    }
+
+    // Modal de Criar Link
+    function openCreateLinkModal() {
+      document.getElementById('modalCreateLink').classList.add('active');
+      updateLinkPreview();
+    }
+    function closeCreateLinkModal() {
+      document.getElementById('modalCreateLink').classList.remove('active');
+    }
+
+    // Pré-visualização da URL
+    function updateLinkPreview() {
+      const source = document.getElementById('linkSource').value.trim() || 'instagram';
+      const campaign = document.getElementById('linkCampaign').value.trim();
+      const medium = document.getElementById('linkMedium').value.trim() || 'social';
+
+      let url = `${baseUrl}/${storeSlug}/?utm_source=${encodeURIComponent(source)}&utm_medium=${encodeURIComponent(medium)}`;
+      if (campaign) {
+        url += `&utm_campaign=${encodeURIComponent(campaign)}`;
+      }
+      document.getElementById('linkPreviewText').innerText = url;
+    }
+
+    // Copiar link para o clipboard
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toastCopy');
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 2500);
+      }).catch(err => {
+        alert("Link: " + text);
+      });
+    }
+
+    // Inicialização de Gráficos quando a aba ativa contiver canvas
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Gráfico de Faturamento ao Longo do Tempo
+      const ctxRev = document.getElementById('chartRevenueTimeline');
+      if (ctxRev && chartData.timeline && chartData.timeline.length > 0) {
+        const labels = chartData.timeline.map(t => t.label || t.date);
+        const totals = chartData.timeline.map(t => t.total);
+        const onlineRev = chartData.timeline.map(t => t.online_rev);
+        const pdvRev = chartData.timeline.map(t => t.pdv_rev);
+
+        new Chart(ctxRev, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Faturamento Total (R$)',
+                data: totals,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0.3
+              },
+              {
+                label: 'Online (R$)',
+                data: onlineRev,
+                borderColor: '#3b82f6',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                tension: 0.3
+              },
+              {
+                label: 'PDV Balcão (R$)',
+                data: pdvRev,
+                borderColor: '#10b981',
+                borderWidth: 2,
+                borderDash: [2, 2],
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) => formatCurrency(value)
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Gráfico de Pedidos ao Longo do Tempo
+      const ctxOrders = document.getElementById('chartOrdersTimeline');
+      if (ctxOrders && chartData.timeline && chartData.timeline.length > 0) {
+        const labels = chartData.timeline.map(t => t.label || t.date);
+        const onlineOrders = chartData.timeline.map(t => t.online_orders);
+        const pdvOrders = chartData.timeline.map(t => t.pdv_orders);
+
+        new Chart(ctxOrders, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Online',
+                data: onlineOrders,
+                backgroundColor: '#3b82f6',
+                borderRadius: 6
+              },
+              {
+                label: 'PDV',
+                data: pdvOrders,
+                backgroundColor: '#10b981',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+            }
+          }
+        });
+      }
+
+      // 3. Gráfico Online vs PDV (Doughnut)
+      const ctxOnlineVsPdv = document.getElementById('chartOnlineVsPdv');
+      if (ctxOnlineVsPdv) {
+        const onlineTotal = chartData.online_revenue || 0;
+        const pdvTotal = chartData.pdv_revenue || 0;
+
+        new Chart(ctxOnlineVsPdv, {
+          type: 'doughnut',
+          data: {
+            labels: ['Online (Cardápio)', 'PDV (Balcão)'],
+            datasets: [{
+              data: [onlineTotal, pdvTotal],
+              backgroundColor: ['#4f46e5', '#10b981'],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.label}: ${formatCurrency(ctx.parsed)}`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 4. Gráfico Visitantes vs Pedidos
+      const ctxVisVsOrd = document.getElementById('chartVisitorsVsOrders');
+      if (ctxVisVsOrd && chartData.timeline && chartData.timeline.length > 0) {
+        const labels = chartData.timeline.map(t => t.label || t.date);
+        const visits = chartData.timeline.map(t => t.visits || 0);
+        const orders = chartData.timeline.map(t => t.orders || 0);
+
+        new Chart(ctxVisVsOrd, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Visitas',
+                data: visits,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderWidth: 2,
+                tension: 0.3
+              },
+              {
+                label: 'Pedidos',
+                data: orders,
+                borderColor: '#10b981',
+                borderWidth: 2.5,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+          }
+        });
+      }
+
+      // 5. Gráfico de Formas de Pagamento
+      const ctxPay = document.getElementById('chartPaymentMethods');
+      if (ctxPay && chartData.payment_stats && chartData.payment_stats.length > 0) {
+        const labels = chartData.payment_stats.map(p => p.label);
+        const totals = chartData.payment_stats.map(p => p.total);
+
+        new Chart(ctxPay, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: totals,
+              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.label}: ${formatCurrency(ctx.parsed)}`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 6. Gráfico de Horários (Vendas e Pedidos)
+      const ctxHours = document.getElementById('chartHourlyDistribution');
+      if (ctxHours && chartData.hourly_distribution && chartData.hourly_distribution.length > 0) {
+        const labels = chartData.hourly_distribution.map(h => h.hour);
+        const revenues = chartData.hourly_distribution.map(h => h.revenue);
+
+        new Chart(ctxHours, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Faturamento (R$)',
+              data: revenues,
+              backgroundColor: '#4f46e5',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `Faturamento: ${formatCurrency(ctx.parsed.y)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (val) => formatCurrency(val)
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

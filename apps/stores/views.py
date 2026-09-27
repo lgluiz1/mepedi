@@ -39,6 +39,7 @@ class StorePublicDetailView(generics.RetrieveAPIView):
     Endpoint público do cardápio digital: recupera dados da loja pelo slug.
     Ex: /api/v1/stores/public/{slug}/
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     serializer_class = StorePublicSerializer
     lookup_field = 'slug'
@@ -194,9 +195,17 @@ def public_store_menu_view(request, store_slug):
         for prod in cat.products.all():
             products_catalog[prod.id] = {
                 'id': prod.id,
+                'code': prod.code or '',
                 'name': prod.name,
                 'description': prod.description,
                 'price': float(prod.price),
+                'current_price': float(prod.current_price),
+                'is_promotional': prod.is_promotional,
+                'promotional_price': float(prod.promotional_price) if prod.promotional_price else None,
+                'discount_percent': prod.discount_percent,
+                'track_stock': prod.track_stock,
+                'stock_quantity': prod.stock_quantity,
+                'is_in_stock': prod.is_in_stock,
                 'image_url': prod.image.url if prod.image else None,
                 'category_id': cat.id,
                 'category_name': cat.name,
@@ -222,8 +231,25 @@ def public_store_menu_view(request, store_slug):
                 ]
             }
 
+    # Cupons públicos ativos para anúncio no topo do cardápio
+    from orders.models import Coupon
+    from django.db.models import Q
+    from django.utils import timezone
+    now = timezone.now()
+    public_coupons = Coupon.objects.filter(
+        store=store,
+        is_active=True,
+        is_public=True
+    ).filter(
+        Q(valid_from__isnull=True) | Q(valid_from__lte=now)
+    ).filter(
+        Q(valid_until__isnull=True) | Q(valid_until__gte=now)
+    ).order_by('-discount_value')
+
     weekdays_schedule = store.business_hours.all().order_by('weekday')
     today_hours = store.get_today_hours_display()
+
+    next_opening_text = store.get_next_opening_text()
 
     context = {
         'store': store,
@@ -232,7 +258,17 @@ def public_store_menu_view(request, store_slug):
         'is_open': is_open,
         'status_label': status_label,
         'today_hours': today_hours,
+        'next_opening_text': next_opening_text,
         'weekdays_schedule': weekdays_schedule,
+        'public_coupons': public_coupons,
         'products_catalog_json': json.dumps(products_catalog),
+        'current_year': timezone.localtime().year,
     }
+    # Registro silencioso e não-intrusivo de visita para Analytics
+    try:
+        from analytics.services import AnalyticsService
+        AnalyticsService.record_visit(request, store)
+    except Exception:
+        pass
+
     return render(request, 'stores/public_menu.html', context)

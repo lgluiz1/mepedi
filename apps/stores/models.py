@@ -231,6 +231,67 @@ class Store(TimeStampedModel):
             return "Aberto"
         return "Fechado"
 
+    @property
+    def whatsapp_link(self) -> str:
+        """Gera link direto wa.me para o cliente entrar em contato com a loja."""
+        import urllib.parse
+        from whatsapp.services import clean_phone_number
+        clean = clean_phone_number(self.whatsapp or '')
+        if clean:
+            msg = f"Olá, estava navegando no cardápio da {self.name} e gostaria de tirar uma dúvida!"
+            return f"https://wa.me/{clean}?text={urllib.parse.quote(msg)}"
+        return "#"
+
+    def get_next_opening_text(self) -> str:
+        """
+        Retorna texto humanizado sobre a próxima reabertura ou previsão.
+        Ex: 'Abre hoje às 18:00 (em cerca de 2 horas)', 'Abre amanhã às 18:00', etc.
+        """
+        from django.utils import timezone
+        import datetime
+
+        if self.is_paused:
+            return "Pedidos pausados temporariamente pela cozinha. Voltaremos em instantes!"
+
+        now = timezone.localtime()
+        weekday = now.weekday()
+        current_time = now.time()
+
+        # 1. Verifica se abre mais tarde no próprio dia
+        today_schedule = self.business_hours.filter(weekday=weekday, is_closed=False).first()
+        if today_schedule and today_schedule.opening_time:
+            if current_time < today_schedule.opening_time:
+                open_dt = now.replace(
+                    hour=today_schedule.opening_time.hour,
+                    minute=today_schedule.opening_time.minute,
+                    second=0,
+                    microsecond=0
+                )
+                diff_sec = (open_dt - now).total_seconds()
+                diff_min = int(diff_sec // 60)
+                diff_hours = int(diff_min // 60)
+                rem_min = diff_min % 60
+
+                time_str = today_schedule.opening_time.strftime('%H:%M')
+                if diff_hours > 0 and rem_min > 0:
+                    time_hint = f"em cerca de {diff_hours}h {rem_min}min"
+                elif diff_hours > 0:
+                    time_hint = f"em cerca de {diff_hours}h"
+                else:
+                    time_hint = f"em cerca de {diff_min} minutos"
+                return f"Abre hoje às {time_str} ({time_hint})"
+
+        # 2. Verifica os próximos dias da semana
+        for i in range(1, 8):
+            next_day = (weekday + i) % 7
+            next_schedule = self.business_hours.filter(weekday=next_day, is_closed=False).first()
+            if next_schedule and next_schedule.opening_time:
+                time_str = next_schedule.opening_time.strftime('%H:%M')
+                day_name = "amanhã" if i == 1 else next_schedule.get_weekday_display().lower()
+                return f"Abre {day_name} às {time_str}"
+
+        return "Confira nossa grade de horários de funcionamento"
+
 
 class BusinessHour(StoreBoundedModel):
     """

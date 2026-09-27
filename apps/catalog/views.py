@@ -218,6 +218,7 @@ class PublicStoreMenuView(APIView):
     Retorna o cardápio público completo de uma loja a partir do seu slug.
     Otimizado para o consumo mobile-first com apenas 1 requisição.
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):

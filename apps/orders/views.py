@@ -1,12 +1,15 @@
+from decimal import Decimal
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from django.shortcuts import get_object_or_404, render
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 
 from stores.models import Store
-from .models import Order
+from catalog.services import StockService
+from .models import Order, Coupon
 from .services import OrderService
 from .serializers import (
     OrderDetailSerializer,
@@ -51,6 +54,7 @@ class PublicCreateOrderView(APIView):
     Finalização e criação de novo pedido pelo cliente no cardápio.
     POST /api/v1/orders/public/{store_slug}/
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, store_slug):
@@ -68,11 +72,28 @@ class PublicCreateOrderView(APIView):
                 payment_method=data.get('payment_method', 'PIX'),
                 change_for=data.get('change_for'),
                 items_payload=data['items'],
-                order_notes=data.get('notes', '')
+                order_notes=data.get('notes', ''),
+                coupon_code=data.get('coupon_code')
             )
-        except DjangoValidationError as e:
+        except (DjangoValidationError, ValidationError) as e:
             msg = e.messages if hasattr(e, 'messages') else [str(e)]
             return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Registra evento de Analytics de forma segura e não-bloqueante
+        try:
+            from analytics.services import AnalyticsService
+            from analytics.models import AnalyticsEvent
+            session_id = AnalyticsService.get_session_id(request)
+            attribution = request.session.get('analytics_attribution') or {}
+            AnalyticsService.record_event(
+                store=store,
+                session_id=session_id,
+                event_type=AnalyticsEvent.EVENT_ORDER_CREATED,
+                order=order,
+                metadata=attribution
+            )
+        except Exception:
+            pass
 
         return Response(
             OrderDetailSerializer(order).data,
@@ -85,10 +106,56 @@ class PublicOrderDetailView(generics.RetrieveAPIView):
     Consulta pública do status do pedido pelo UUID público.
     GET /api/v1/orders/public/{public_id}/
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     serializer_class = OrderDetailSerializer
     lookup_field = 'public_id'
     queryset = Order.objects.all().prefetch_related('items__selected_options', 'customer')
+
+
+class ValidateCouponView(APIView):
+    """
+    Validação em tempo real de cupom promocional para Checkout Online e PDV.
+    POST /api/v1/orders/coupon/validate/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        store_slug = request.data.get('store_slug')
+        store_id = request.data.get('store_id')
+        code = request.data.get('code', '').strip().upper()
+        subtotal = Decimal(str(request.data.get('subtotal', '0.00') or '0.00'))
+        delivery_fee = Decimal(str(request.data.get('delivery_fee', '0.00') or '0.00'))
+
+        if store_slug:
+            store = get_object_or_404(Store, slug=store_slug, is_active=True)
+        elif store_id:
+            store = get_object_or_404(Store, id=store_id, is_active=True)
+        else:
+            return Response({"valid": False, "error": "Identificador do estabelecimento não informado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not code:
+            return Response({"valid": False, "error": "Informe o código do cupom."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            coupon = Coupon.objects.get(store=store, code=code, is_active=True)
+        except Coupon.DoesNotExist:
+            return Response({"valid": False, "error": f"Cupom '{code}' inválido ou inexistente nesta loja."}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_valid, message = coupon.validate_for_order(subtotal, delivery_fee)
+        if not is_valid:
+            return Response({"valid": False, "error": message}, status=status.HTTP_400_BAD_REQUEST)
+
+        discount = coupon.calculate_discount(subtotal, delivery_fee)
+        return Response({
+            "valid": True,
+            "code": coupon.code,
+            "discount_type": coupon.discount_type,
+            "discount_value": str(coupon.discount_value),
+            "discount_amount": str(discount),
+            "message": f"Cupom '{coupon.code}' aplicado com sucesso! Desconto de R$ {discount:.2f}"
+        })
 
 
 # =====================================================================
@@ -108,11 +175,13 @@ class MerchantOrderListView(generics.ListAPIView):
         store_id = self.kwargs.get('store_id')
         get_user_store(self.request.user, store_id)
 
-        # Auto-cancela pedidos pendentes que não foram aceitos em até 10 minutos
+        # Auto-cancela pedidos pendentes que não foram aceitos em até 10 minutos e estorna estoque
         cutoff_10m = timezone.now() - datetime.timedelta(minutes=10)
-        Order.objects.filter(store_id=store_id, status=Order.STATUS_NEW, created_at__lt=cutoff_10m).update(
-            status=Order.STATUS_CANCELLED
-        )
+        expired_orders = Order.objects.filter(store_id=store_id, status=Order.STATUS_NEW, created_at__lt=cutoff_10m)
+        for exp_order in expired_orders:
+            exp_order.status = Order.STATUS_CANCELLED
+            exp_order.save(update_fields=['status'])
+            StockService.restore_stock(exp_order)
 
         qs = Order.objects.filter(store_id=store_id).prefetch_related('items__selected_options', 'customer')
         
@@ -136,6 +205,7 @@ class MerchantOrderDetailView(generics.RetrieveAPIView):
 class MerchantOrderUpdateStatusView(APIView):
     """
     Atualiza o status de um pedido da loja e registra os marcos temporais.
+    Caso o pedido seja cancelado, devolve o estoque centralizado com proteção de idempotência.
     PATCH /api/v1/orders/merchant/{store_id}/{id}/status/
     Body: {"status": "ACEITO"}
     """
@@ -168,11 +238,60 @@ class MerchantOrderUpdateStatusView(APIView):
             if not order.ready_at:
                 order.ready_at = now
                 update_fields.append('ready_at')
+        elif new_status == Order.STATUS_CANCELLED:
+            # Estorno atômico e idempotente de estoque centralizado
+            StockService.restore_stock(order, user=request.user)
 
         order.status = new_status
         order.save(update_fields=update_fields)
 
-        return Response(OrderDetailSerializer(order, context={'request': request}).data)
+        order_data = OrderDetailSerializer(order, context={'request': request}).data
+
+        # Broadcast WebSocket para atualizar card e métricas no Painel em tempo real
+        try:
+            from .consumers import broadcast_order_event
+            broadcast_order_event(store.id, 'ORDER_UPDATED', order_data)
+        except Exception as ws_err:
+            import logging
+            logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket ORDER_UPDATED: {ws_err}")
+
+        return Response(order_data)
+
+
+class POSCreateOrderView(APIView):
+    """
+    Criação de venda presencial no PDV Balcão pelo operador autenticado da loja.
+    POST /api/v1/orders/merchant/{store_id}/pos/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def post(self, request, store_id):
+        store = get_user_store(request.user, store_id)
+        data = request.data
+
+        items = data.get('items', [])
+        if not items:
+            return Response({"error": "Nenhum item adicionado ao carrinho do PDV."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = OrderService.create_pos_order(
+                store=store,
+                operator=request.user,
+                items_payload=items,
+                payment_method=data.get('payment_method', Order.PAY_MONEY),
+                change_for=Decimal(str(data['change_for']).replace(',', '.')) if data.get('change_for') else None,
+                customer_name=data.get('customer_name'),
+                customer_phone=data.get('customer_phone'),
+                coupon_code=data.get('coupon_code'),
+                order_notes=data.get('notes', '')
+            )
+        except (DjangoValidationError, ValidationError) as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(OrderDetailSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
 # =====================================================================
@@ -203,13 +322,35 @@ def public_checkout_page(request, store_slug):
         if customer:
             saved_addresses = list(customer.addresses.all())
 
+    is_open = store.is_currently_open()
+    today_hours = store.get_today_hours_display()
+    next_opening_text = store.get_next_opening_text()
+
     context = {
         'store': store,
         'delivery_zones': delivery_zones,
-        'is_open': store.is_currently_open(),
+        'is_open': is_open,
+        'status_label': store.status_label,
+        'today_hours': today_hours,
+        'next_opening_text': next_opening_text,
         'customer': customer,
         'saved_addresses': saved_addresses,
+        'current_year': timezone.localtime().year,
     }
+    # Registra evento de início de checkout
+    try:
+        from analytics.services import AnalyticsService
+        from analytics.models import AnalyticsEvent
+        session_id = AnalyticsService.get_session_id(request)
+        AnalyticsService.record_event(
+            store=store,
+            session_id=session_id,
+            event_type=AnalyticsEvent.EVENT_CHECKOUT_STARTED,
+            metadata={'path': request.path}
+        )
+    except Exception:
+        pass
+
     return render(request, 'stores/checkout.html', context)
 
 

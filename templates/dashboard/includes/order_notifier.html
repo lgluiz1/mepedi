@@ -1,0 +1,695 @@
+{% load static %}
+<!-- ========================================================================= -->
+<!-- MÓDULO GLOBAL DE NOTIFICAÇÃO SONORA E VISUAL DE NOVOS PEDIDOS ONLINE     -->
+<!-- Toca 'pedido_novo_toque.mp3' em loop contínuo, sem sobreposição de áudio  -->
+<!-- Exibe banner flutuante em todas as telas (PDV, Pedidos, Produtos, Config)  -->
+<!-- ========================================================================= -->
+
+<!-- Elemento de Áudio Único Global com loop ativado -->
+<audio id="globalOrderNotificationAudio" preload="auto" loop>
+  <source src="{% static 'sound/pedido_novo_toque.mp3' %}" type="audio/mpeg">
+</audio>
+
+<!-- Banner Flutuante de Novo Pedido Online -->
+<div id="globalOrderNotifierBanner" class="order-notifier-banner" style="display: none;">
+  <div class="order-notifier-inner">
+    
+    <!-- Ícone Animado de Sino -->
+    <div class="order-notifier-icon-box">
+      <span class="order-notifier-bell">🔔</span>
+      <span class="order-notifier-pulse"></span>
+    </div>
+
+    <!-- Conteúdo do Alerta -->
+    <div class="order-notifier-info">
+      <div class="order-notifier-header-line">
+        <span class="order-notifier-badge-origin">ONLINE</span>
+        <strong id="notifierOrderTitle" class="order-notifier-title">NOVO PEDIDO RECEBIDO!</strong>
+        <span id="notifierCountBadge" class="order-notifier-count" style="display:none;">1</span>
+      </div>
+      <div id="notifierOrderDetails" class="order-notifier-details">
+        Aguardando confirmação do lojista...
+      </div>
+      <!-- Aviso de Autoplay Bloqueado pelo Navegador (se aplicável) -->
+      <button type="button" id="notifierAutoplayBtn" class="order-notifier-btn-unmute-prompt" style="display:none;" onclick="orderNotifierEngine.unlockAndPlay()">
+        🔊 Toque aqui para ativar o alarme sonoro
+      </button>
+    </div>
+
+    <!-- Botões de Ação do Lojista -->
+    <div class="order-notifier-actions">
+      <!-- Botão Aceitar Rápido (Exibido para 1 pedido pendente) -->
+      <button type="button" id="notifierBtnAccept" class="order-notifier-btn-accept" onclick="orderNotifierEngine.acceptLatestOrder()">
+        <span>✓ Aceitar Pedido</span>
+      </button>
+
+      <!-- Botão Ver Pedidos (Leva ao Kanban/Dashboard de Pedidos) -->
+      <a href="/painel/{{ store.slug }}/" id="notifierBtnView" class="order-notifier-btn-view">
+        <span>👁️ Ver Pedidos</span>
+      </a>
+
+      <!-- Botão Travar / Silenciar Som (Mantém a notificação na tela) -->
+      <button type="button" id="notifierBtnMute" class="order-notifier-btn-mute" onclick="orderNotifierEngine.toggleMute()">
+        <span id="notifierMuteIcon">🔕</span>
+        <span id="notifierMuteText">Silenciar Som</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  /* Container Flutuante Superior */
+  .order-notifier-banner {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 28px));
+    z-index: 999999;
+    background: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
+    border: 2px solid #6366f1;
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(99, 102, 241, 0.4);
+    color: #ffffff;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-sizing: border-box;
+    animation: notifierSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1), notifierGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes notifierSlideDown {
+    0% {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-35px) scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+  }
+
+  @keyframes notifierGlow {
+    0% {
+      border-color: #6366f1;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 16px rgba(99, 102, 241, 0.3);
+    }
+    100% {
+      border-color: #f59e0b;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 28px rgba(245, 158, 11, 0.45);
+    }
+  }
+
+  .order-notifier-inner {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  /* Sino com Animação de Balanço Contínuo */
+  .order-notifier-icon-box {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1.5px solid rgba(99, 102, 241, 0.4);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .order-notifier-bell {
+    font-size: 1.55rem;
+    display: inline-block;
+    animation: bellRinging 0.75s ease-in-out infinite;
+    transform-origin: 50% 10%;
+  }
+
+  @keyframes bellRinging {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(14deg); }
+    30% { transform: rotate(-14deg); }
+    45% { transform: rotate(10deg); }
+    60% { transform: rotate(-10deg); }
+    75% { transform: rotate(5deg); }
+    90% { transform: rotate(-5deg); }
+  }
+
+  .order-notifier-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 14px;
+    border: 2px solid #f59e0b;
+    opacity: 0;
+    animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulseRing {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { opacity: 0.4; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  /* Informações */
+  .order-notifier-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .order-notifier-header-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+  }
+
+  .order-notifier-badge-origin {
+    background: #10b981;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  .order-notifier-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: -0.01em;
+  }
+
+  .order-notifier-count {
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 0.72rem;
+    font-weight: 900;
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+
+  .order-notifier-details {
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Aviso caso o navegador trave o autoplay inicial */
+  .order-notifier-btn-unmute-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 4px;
+    animation: flashAlert 1s infinite alternate;
+  }
+
+  @keyframes flashAlert {
+    from { opacity: 0.8; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1.02); }
+  }
+
+  /* Botões de Ação */
+  .order-notifier-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .order-notifier-btn-accept {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .order-notifier-btn-accept:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  .order-notifier-btn-accept:active {
+    transform: scale(0.98);
+  }
+
+  .order-notifier-btn-view {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .order-notifier-btn-view:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+  }
+
+  /* Botão Travar / Silenciar Som */
+  .order-notifier-btn-mute {
+    background: rgba(51, 65, 85, 0.7);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .order-notifier-btn-mute:hover {
+    background: rgba(71, 85, 105, 0.9);
+    color: #ffffff;
+    border-color: rgba(148, 163, 184, 0.5);
+  }
+
+  .order-notifier-btn-mute.is-muted {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #60a5fa;
+  }
+
+  /* Responsividade para Celulares */
+  @media (max-width: 768px) {
+    .order-notifier-banner {
+      top: 8px;
+      width: calc(100vw - 16px);
+      border-radius: 14px;
+    }
+    .order-notifier-inner {
+      padding: 10px 12px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .order-notifier-icon-box {
+      width: 36px;
+      height: 36px;
+      position: absolute;
+      top: 10px;
+      left: 12px;
+    }
+    .order-notifier-bell {
+      font-size: 1.25rem;
+    }
+    .order-notifier-info {
+      padding-left: 46px;
+    }
+    .order-notifier-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .order-notifier-btn-accept {
+      grid-column: 1 / -1;
+      justify-content: center;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+    .order-notifier-btn-view,
+    .order-notifier-btn-mute {
+      justify-content: center;
+      padding: 8px;
+      font-size: 0.78rem;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    // Helper de CSRF Token independente
+    function getNotifierCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    class OrderNotifierEngine {
+      constructor() {
+        this.storeId = "{{ store.id }}";
+        this.storeSlug = "{{ store.slug }}";
+        this.audioEl = document.getElementById('globalOrderNotificationAudio');
+        this.bannerEl = document.getElementById('globalOrderNotifierBanner');
+        this.titleEl = document.getElementById('notifierOrderTitle');
+        this.detailsEl = document.getElementById('notifierOrderDetails');
+        this.countBadgeEl = document.getElementById('notifierCountBadge');
+        this.autoplayBtnEl = document.getElementById('notifierAutoplayBtn');
+        this.btnAcceptEl = document.getElementById('notifierBtnAccept');
+        this.btnMuteEl = document.getElementById('notifierBtnMute');
+        this.muteTextEl = document.getElementById('notifierMuteText');
+        this.muteIconEl = document.getElementById('notifierMuteIcon');
+
+        // Estado do Áudio e Pedidos
+        this.isPlaying = false;
+        this.isMuted = sessionStorage.getItem('mepedi_sound_muted_' + this.storeId) === 'true';
+        this.pendingOrders = [];
+        this.pollInterval = null;
+
+        this.init();
+      }
+
+      init() {
+        if (!this.storeId || this.storeId === 'None') return;
+
+        // Configura Áudio com volume máximo e loop
+        if (this.audioEl) {
+          this.audioEl.volume = 1.0;
+          this.audioEl.loop = true;
+          // Fallback de reinício caso algum navegador interrompa o loop
+          this.audioEl.addEventListener('ended', () => {
+            if (this.isPlaying && !this.isMuted) {
+              this.audioEl.play().catch(() => {});
+            }
+          });
+        }
+
+        // Listener global de primeiro toque para desbloquear permissão de áudio no navegador
+        const unlockAudioContext = () => {
+          if (this.audioEl) {
+            this.audioEl.load();
+          }
+          document.removeEventListener('click', unlockAudioContext);
+          document.removeEventListener('touchstart', unlockAudioContext);
+          document.removeEventListener('keydown', unlockAudioContext);
+        };
+        document.addEventListener('click', unlockAudioContext, { once: true });
+        document.addEventListener('touchstart', unlockAudioContext, { once: true });
+        document.addEventListener('keydown', unlockAudioContext, { once: true });
+
+        this.updateMuteUI();
+
+        // Conexão WebSocket em Tempo Real (0ms de latência)
+        this.initWebSocket();
+
+        // Primeira checagem imediata e polling periódico de resguardo a cada 5 segundos
+        this.checkOrders();
+        this.pollInterval = setInterval(() => this.checkOrders(), 5000);
+      }
+
+      initWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/orders/${this.storeId}/`;
+        let ws = null;
+        let retryTimeout = null;
+
+        const connect = () => {
+          try {
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+              try {
+                const payload = JSON.parse(event.data);
+                if (payload.type === 'ORDER_CREATED') {
+                  const order = payload.data;
+                  if (order && order.origin === 'ONLINE' && order.status === 'NOVO') {
+                    if (!this.pendingOrders.some(o => o.id === order.id)) {
+                      this.pendingOrders.unshift(order);
+                      this.handleStateUpdate();
+                    }
+                  }
+                } else if (payload.type === 'ORDER_UPDATED') {
+                  const order = payload.data;
+                  if (order && order.status !== 'NOVO') {
+                    this.pendingOrders = this.pendingOrders.filter(o => o.id !== order.id);
+                    this.handleStateUpdate();
+                  }
+                }
+              } catch(e) {
+                console.debug('Notifier WS error:', e);
+              }
+            };
+
+            ws.onclose = () => {
+              retryTimeout = setTimeout(connect, 4000);
+            };
+
+            ws.onerror = () => {
+              try { ws.close(); } catch(e) {}
+            };
+          } catch(e) {
+            retryTimeout = setTimeout(connect, 4000);
+          }
+        };
+
+        connect();
+      }
+
+      async checkOrders() {
+        try {
+          const res = await fetch(`/api/v1/orders/merchant/${this.storeId}/?status=NOVO`);
+          if (!res.ok) return;
+
+          const data = await res.json();
+          const allOrders = Array.isArray(data) ? data : (data.results || []);
+
+          // FILTRO PRINCIPAL: Notificar apenas pedidos novos do Catálogo Web (ONLINE)
+          const onlineNewOrders = allOrders.filter(o => o.origin === 'ONLINE' && o.status === 'NOVO');
+          this.pendingOrders = onlineNewOrders;
+
+          this.handleStateUpdate();
+        } catch (err) {
+          console.debug('OrderNotifier check error:', err);
+        }
+      }
+
+      handleStateUpdate() {
+        const count = this.pendingOrders.length;
+
+        // Se NÃO há pedidos online pendentes: para o som e oculta a barra
+        if (count === 0) {
+          this.stopSound();
+          if (this.bannerEl) this.bannerEl.style.display = 'none';
+          // Reseta o estado de mudo para que a PRÓXIMA leva de pedidos volte a tocar
+          this.isMuted = false;
+          sessionStorage.removeItem('mepedi_sound_muted_' + this.storeId);
+          this.updateMuteUI();
+          return;
+        }
+
+        // Se HÁ pedidos online novos pendentes:
+        const latest = this.pendingOrders[0];
+        const rawNum = latest.display_number || latest.order_number || '';
+        const orderNumFormatted = String(rawNum).startsWith('#') ? String(rawNum) : `#${rawNum}`;
+        const custName = latest.customer ? (latest.customer.name || 'Cliente Online') : (latest.customer_name || 'Cliente Online');
+        const formattedTotal = 'R$ ' + (parseFloat(latest.total) || 0).toFixed(2).replace('.', ',');
+        const delType = latest.delivery_type_display || (latest.delivery_type === 'PICKUP' ? 'Retirada' : 'Entrega');
+
+        if (this.bannerEl) this.bannerEl.style.display = 'block';
+
+        if (count === 1) {
+          this.titleEl.textContent = `NOVO PEDIDO ${orderNumFormatted}`;
+          this.detailsEl.textContent = `Cliente: ${custName} • ${formattedTotal} • ${delType}`;
+          this.countBadgeEl.style.display = 'none';
+          if (this.btnAcceptEl) {
+            this.btnAcceptEl.style.display = 'inline-flex';
+            this.btnAcceptEl.disabled = false;
+            this.btnAcceptEl.innerHTML = `<span>✓ Aceitar ${orderNumFormatted}</span>`;
+          }
+        } else {
+          this.titleEl.textContent = `${count} NOVOS PEDIDOS ONLINE PENDENTES!`;
+          this.detailsEl.textContent = `Último: ${orderNumFormatted} (${custName} - ${formattedTotal}) • Total de ${count} aguardando`;
+          this.countBadgeEl.textContent = `${count} pedidos`;
+          this.countBadgeEl.style.display = 'inline-block';
+          if (this.btnAcceptEl) {
+            this.btnAcceptEl.style.display = 'inline-flex';
+            this.btnAcceptEl.disabled = false;
+            this.btnAcceptEl.innerHTML = `<span>✓ Aceitar Último (${orderNumFormatted})</span>`;
+          }
+        }
+
+        // GESTÃO DO SOM: Garantia de Áudio Único em Loop
+        // Se o usuário silenciou/travou o som, não toca, mas o banner fica visível!
+        if (this.isMuted) {
+          this.stopSound();
+        } else {
+          // Toca som se ainda não estiver tocando
+          this.playSound();
+        }
+      }
+
+      playSound() {
+        if (!this.audioEl) return;
+        if (this.isPlaying) return; // REGRA: Apenas 1 som soando, nunca sobrepõe áudios!
+
+        this.audioEl.volume = 1.0; // Maior volume possível
+        const playPromise = this.audioEl.play();
+
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              this.isPlaying = true;
+              if (this.autoplayBtnEl) this.autoplayBtnEl.style.display = 'none';
+            })
+            .catch(err => {
+              console.warn('Autoplay travado pelo navegador:', err);
+              this.isPlaying = false;
+              // Mostra botão chamativo para o lojista clicar e desbloquear o som
+              if (this.autoplayBtnEl) this.autoplayBtnEl.style.display = 'inline-flex';
+            });
+        }
+      }
+
+      stopSound() {
+        if (!this.audioEl) return;
+        this.audioEl.pause();
+        this.audioEl.currentTime = 0;
+        this.isPlaying = false;
+        if (this.autoplayBtnEl) this.autoplayBtnEl.style.display = 'none';
+      }
+
+      unlockAndPlay() {
+        if (this.audioEl) {
+          this.isMuted = false;
+          sessionStorage.removeItem('mepedi_sound_muted_' + this.storeId);
+          this.updateMuteUI();
+          this.audioEl.play()
+            .then(() => {
+              this.isPlaying = true;
+              if (this.autoplayBtnEl) this.autoplayBtnEl.style.display = 'none';
+            })
+            .catch(() => {});
+        }
+      }
+
+      // Função para o lojista "Trancar Som" / "Silenciar"
+      toggleMute() {
+        if (this.isMuted) {
+          // Reativar som
+          this.isMuted = false;
+          sessionStorage.removeItem('mepedi_sound_muted_' + this.storeId);
+          this.updateMuteUI();
+          if (this.pendingOrders.length > 0) {
+            this.playSound();
+          }
+        } else {
+          // Silenciar som (o banner continua na tela!)
+          this.isMuted = true;
+          sessionStorage.setItem('mepedi_sound_muted_' + this.storeId, 'true');
+          this.stopSound();
+          this.updateMuteUI();
+        }
+      }
+
+      updateMuteUI() {
+        if (!this.btnMuteEl) return;
+        if (this.isMuted) {
+          this.btnMuteEl.classList.add('is-muted');
+          this.muteIconEl.textContent = '🔔';
+          this.muteTextEl.textContent = 'Ativar Som';
+          if (this.detailsEl && this.pendingOrders.length > 0) {
+            this.detailsEl.innerHTML += ' <span style="color:#f59e0b; font-weight:700;">(Som silenciado)</span>';
+          }
+        } else {
+          this.btnMuteEl.classList.remove('is-muted');
+          this.muteIconEl.textContent = '🔕';
+          this.muteTextEl.textContent = 'Silenciar Som';
+        }
+      }
+
+      // Aceitar Pedido Diretamente do Banner
+      async acceptLatestOrder() {
+        if (!this.pendingOrders || this.pendingOrders.length === 0) return;
+        const targetOrder = this.pendingOrders[0];
+
+        if (this.btnAcceptEl) {
+          this.btnAcceptEl.disabled = true;
+          this.btnAcceptEl.innerHTML = `<span>⏳ Aceitando...</span>`;
+        }
+
+        try {
+          const csrf = getNotifierCookie('csrftoken');
+          const resp = await fetch(`/api/v1/orders/merchant/${this.storeId}/${targetOrder.id}/status/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({ status: 'ACEITO' })
+          });
+
+          if (resp.ok) {
+            // Se estiver na tela principal de pedidos (/painel/<slug>/), recarrega para atualizar colunas
+            if (window.location.pathname.endsWith('/painel/' + this.storeSlug + '/') || window.location.pathname === '/painel/' + this.storeSlug) {
+              window.location.reload();
+              return;
+            }
+
+            // Remove o pedido aceito localmente
+            this.pendingOrders = this.pendingOrders.filter(o => o.id !== targetOrder.id);
+            this.handleStateUpdate();
+
+            // Alerta visual de confirmação
+            const acceptedNum = String(targetOrder.display_number || targetOrder.order_number).startsWith('#') ? (targetOrder.display_number || targetOrder.order_number) : `#${targetOrder.display_number || targetOrder.order_number}`;
+            if (typeof showPosToast === 'function') {
+              showPosToast(`Pedido ${acceptedNum} aceito com sucesso!`, '✓');
+            } else if (typeof showToast === 'function') {
+              showToast('Pedido Aceito!', `Pedido ${acceptedNum} movido para preparação.`);
+            }
+          } else {
+            const errData = await resp.json().catch(() => ({}));
+            alert(`Erro ao aceitar pedido: ${errData.detail || 'Tente novamente.'}`);
+            if (this.btnAcceptEl) this.btnAcceptEl.disabled = false;
+          }
+        } catch (e) {
+          console.error('Erro ao aceitar pedido via banner:', e);
+          alert('Falha na conexão ao aceitar pedido.');
+          if (this.btnAcceptEl) this.btnAcceptEl.disabled = false;
+        }
+      }
+    }
+
+    // Instanciação Global
+    window.orderNotifierEngine = new OrderNotifierEngine();
+  })();
+</script>

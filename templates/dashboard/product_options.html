@@ -573,6 +573,10 @@
             <span class="tab-icon">🧾</span>
             <span>Meus Pedidos</span>
           </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill active">
             <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
@@ -580,6 +584,14 @@
           <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
             <span class="tab-icon">⚙️</span>
             <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
           </a>
         </nav>
       </div>
@@ -634,9 +646,19 @@
           <span style="font-size:1.1rem; font-weight:800; color:#0f172a;">Preço Base: R$ {{ product.price|floatformat:2 }}</span>
         </div>
       </div>
-      <div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        {% if template_groups %}
+          <button type="button" class="btn btn-outline" style="border-color:#6366f1; color:#4f46e5;" onclick="openModal('modalCloneGroup')">
+            📋 Copiar Grupo de Outro Produto
+          </button>
+        {% endif %}
+        {% if other_products_with_groups %}
+          <button type="button" class="btn btn-outline" style="border-color:#6366f1; color:#4f46e5;" onclick="openModal('modalCloneAllGroups')">
+            ⚡ Clonar Tudo de Outro Produto
+          </button>
+        {% endif %}
         <button type="button" class="btn btn-primary" onclick="openModal('modalCreateGroup')">
-          + Criar Grupo de Opções
+          + Criar Grupo do Zero
         </button>
       </div>
     </div>
@@ -665,7 +687,13 @@
             </div>
           </div>
 
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline" style="padding:8px 12px; font-size:0.85rem;" onclick="openEditGroupModal('{{ group.id }}', '{{ group.name|escapejs }}', '{{ group.description|escapejs }}', {{ group.min_options }}, {{ group.max_options }}, {% if group.is_required %}true{% else %}false{% endif %})" title="Editar nome, limites e regras deste grupo">
+              ✏️ Editar Regras
+            </button>
+            <button type="button" class="btn btn-outline" style="padding:8px 12px; font-size:0.85rem;" onclick="openBulkAddModal('{{ group.id }}', '{{ group.name|escapejs }}')" title="Colar vários sabores ou complementos de uma vez">
+              ⚡ Adicionar Vários
+            </button>
             <button type="button" class="btn btn-primary" style="padding:8px 14px; font-size:0.85rem;" onclick="openAddItemModal('{{ group.id }}', '{{ group.name|escapejs }}')">
               + Adicionar Sabor/Item
             </button>
@@ -746,16 +774,39 @@
         {% endif %}
       </div>
     {% empty %}
-      <div style="text-align:center; padding:60px 20px; background:#ffffff; border-radius:16px; border:1px solid #e2e8f0;">
-        <div style="font-size:3rem; margin-bottom:12px;">🍕</div>
-        <h2 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-bottom:8px;">Nenhum grupo de opções criado</h2>
-        <p style="color:#64748b; max-width:500px; margin:0 auto 20px; font-size:0.92rem; line-height:1.5;">
-          Permita que seu cliente personalize este produto! Crie grupos como <strong>"Escolha até 4 Sabores"</strong> para pizzas, <strong>"Caldas e Frutas"</strong> para açaí, ou <strong>"Recheios e Massas"</strong> para bolos.
-        </p>
-        <button type="button" class="btn btn-primary" onclick="openModal('modalCreateGroup')">
-          + Criar Primeiro Grupo de Opções
-        </button>
-      </div>
+      {% if template_groups %}
+        <div style="background:#eef2ff; border:1.5px dashed #818cf8; border-radius:16px; padding:32px 24px; text-align:center; margin-bottom:24px;">
+          <div style="font-size:2.5rem; margin-bottom:8px;">💡</div>
+          <h2 style="font-size:1.35rem; font-weight:800; color:#1e1b4b; margin:0 0 8px 0;">Economize tempo: Copie os complementos prontos!</h2>
+          <p style="color:#4338ca; font-size:0.92rem; max-width:620px; margin:0 auto 20px; line-height:1.5;">
+            Você já possui grupos de complementos e sabores cadastrados em outros produtos da sua loja. Você pode importar com 1 clique e apenas ajustar o número de escolhas (min/max) ou desmarcar os sabores que não desejar neste tamanho!
+          </p>
+          <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" onclick="openModal('modalCloneGroup')">
+              📋 Copiar Grupo Específico
+            </button>
+            {% if other_products_with_groups %}
+              <button type="button" class="btn btn-outline" style="background:#fff; border-color:#6366f1; color:#4f46e5;" onclick="openModal('modalCloneAllGroups')">
+                ⚡ Clonar Todos os Grupos de Outro Produto
+              </button>
+            {% endif %}
+            <button type="button" class="btn btn-outline" style="background:#fff;" onclick="openModal('modalCreateGroup')">
+              + Criar do Zero
+            </button>
+          </div>
+        </div>
+      {% else %}
+        <div style="text-align:center; padding:60px 20px; background:#ffffff; border-radius:16px; border:1px solid #e2e8f0;">
+          <div style="font-size:3rem; margin-bottom:12px;">🍕</div>
+          <h2 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-bottom:8px;">Nenhum grupo de opções criado</h2>
+          <p style="color:#64748b; max-width:500px; margin:0 auto 20px; font-size:0.92rem; line-height:1.5;">
+            Permita que seu cliente personalize este produto! Crie grupos como <strong>"Escolha até 4 Sabores"</strong> para pizzas, <strong>"Caldas e Frutas"</strong> para açaí, ou <strong>"Recheios e Massas"</strong> para bolos.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="openModal('modalCreateGroup')">
+            + Criar Primeiro Grupo de Opções
+          </button>
+        </div>
+      {% endif %}
     {% endfor %}
   </main>
 
@@ -852,7 +903,213 @@
     </div>
   </div>
 
+  <!-- Modal: Copiar Grupo de Outro Produto -->
+  <div id="modalCloneGroup" class="modal-backdrop">
+    <div class="modal-box" style="max-width:540px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">📋 Copiar Grupo de Outro Produto</h2>
+          <p style="font-size:0.82rem; color:#64748b; margin:3px 0 0 0;">Importe sabores e complementos prontos e customize os limites</p>
+        </div>
+        <button type="button" onclick="closeModal('modalCloneGroup')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="" id="cloneGroupForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="clone_group">
+
+        <div class="form-group">
+          <label class="form-label" for="cloneSourceSelect">Selecione o Grupo para Copiar *</label>
+          <select id="cloneSourceSelect" name="source_group_id" class="form-control" required onchange="onCloneSourceChange(this.value)">
+            <option value="">-- Escolha um grupo existente --</option>
+            {% for g in template_groups %}
+              <option value="{{ g.id }}">
+                {% if g.is_same_category %}⭐ {% endif %}{{ g.product_name }} ➔ {{ g.name }} ({{ g.items_count }} itens)
+              </option>
+            {% endfor %}
+          </select>
+          <small style="color:#64748b; font-size:0.75rem;">⭐ = Produtos da mesma categoria deste produto</small>
+        </div>
+
+        <div id="cloneGroupFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="cloneName">Nome do Grupo neste Produto *</label>
+            <input type="text" id="cloneName" name="name" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cloneDesc">Instrução para o Cliente (Opcional)</label>
+            <input type="text" id="cloneDesc" name="description" class="form-control">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="form-group">
+              <label class="form-label" for="cloneMin">Mínimo Obrigatório</label>
+              <input type="number" id="cloneMin" name="min_options" class="form-control" min="0" max="50" required>
+              <small style="color:#64748b; font-size:0.75rem;">Ex: para pizza menor, diminua para 1 ou 2</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cloneMax">Máximo Permitido</label>
+              <input type="number" id="cloneMax" name="max_options" class="form-control" min="1" max="50" required>
+              <small style="color:#64748b; font-size:0.75rem;">Ex: limite de sabores que o cliente pode marcar</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+              <input type="checkbox" id="cloneIsRequired" name="is_required" checked>
+              <span>Seleção obrigatória para adicionar à sacola</span>
+            </label>
+          </div>
+
+          <!-- Lista de Sabores para Selecionar/Remover -->
+          <div class="form-group" style="margin-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <label class="form-label" style="margin:0;">Sabores / Itens a Importar (<span id="cloneItemsCount">0</span>):</label>
+              <div style="display:flex; gap:8px;">
+                <button type="button" style="background:none; border:none; color:#4f46e5; font-size:0.75rem; font-weight:700; cursor:pointer;" onclick="toggleAllCloneItems(true)">Marcar Todos</button>
+                <span style="color:#cbd5e1;">|</span>
+                <button type="button" style="background:none; border:none; color:#64748b; font-size:0.75rem; font-weight:700; cursor:pointer;" onclick="toggleAllCloneItems(false)">Desmarcar Todos</button>
+              </div>
+            </div>
+
+            <div id="cloneItemsContainer" style="max-height:180px; overflow-y:auto; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <!-- Populado dinamicamente via JS -->
+            </div>
+            <small style="color:#64748b; font-size:0.75rem;">Desmarque qualquer sabor que você não queira oferecer neste produto.</small>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modalCloneGroup')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">🚀 Copiar Grupo e Sabores</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Clonar TODOS os Grupos de Outro Produto -->
+  <div id="modalCloneAllGroups" class="modal-backdrop">
+    <div class="modal-box" style="max-width:480px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">⚡ Clonar Tudo de Outro Produto</h2>
+        <button type="button" onclick="closeModal('modalCloneAllGroups')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="clone_all_groups">
+
+        <div class="form-group">
+          <label class="form-label" for="sourceProductSelect">Selecione o Produto Modelo *</label>
+          <select id="sourceProductSelect" name="source_product_id" class="form-control" required>
+            <option value="">-- Escolha o produto modelo --</option>
+            {% for p in other_products_with_groups %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.option_groups.count }} grupo{{ p.option_groups.count|pluralize:"s" }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:10px; padding:12px; font-size:0.85rem; color:#92400e; line-height:1.4;">
+          <strong>Aviso:</strong> Todos os grupos e sabores do produto selecionado serão copiados para este produto. Depois de copiar, você poderá ajustar nomes, limites (min/max) ou excluir sabores individualmente a qualquer momento.
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCloneAllGroups')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">⚡ Clonar Todos os Grupos</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Regras do Grupo -->
+  <div id="modalEditGroup" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">Editar Regras do Grupo</h2>
+        <button type="button" onclick="closeModal('modalEditGroup')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit_group">
+        <input type="hidden" id="editGroupId" name="group_id" value="">
+
+        <div class="form-group">
+          <label class="form-label" for="editGrpName">Nome do Grupo *</label>
+          <input type="text" id="editGrpName" name="name" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="editGrpDesc">Instrução para o Cliente (Opcional)</label>
+          <input type="text" id="editGrpDesc" name="description" class="form-control">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="editGrpMin">Mínimo Obrigatório</label>
+            <input type="number" id="editGrpMin" name="min_options" class="form-control" min="0" max="50" required>
+            <small style="color:#64748b; font-size:0.75rem;">0 = Opcional / 1+ = Obrigatório</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editGrpMax">Máximo Permitido</label>
+            <input type="number" id="editGrpMax" name="max_options" class="form-control" min="1" max="50" required>
+            <small style="color:#64748b; font-size:0.75rem;">Limite de opções selecionáveis</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" id="editGrpIsRequired" name="is_required">
+            <span>Seleção obrigatória para adicionar à sacola</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEditGroup')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Adicionar Sabores / Itens em Massa -->
+  <div id="modalBulkAddItems" class="modal-backdrop">
+    <div class="modal-box" style="max-width:520px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">⚡ Adicionar Sabores / Itens em Massa</h2>
+          <p id="bulkAddSubTitle" style="font-size:0.82rem; color:#64748b; margin:3px 0 0 0;"></p>
+        </div>
+        <button type="button" onclick="closeModal('modalBulkAddItems')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_create_items">
+        <input type="hidden" id="bulkAddGroupId" name="group_id" value="">
+
+        <div class="form-group">
+          <label class="form-label" for="bulkItemsText">Cole aqui a lista de sabores ou adicionais:</label>
+          <textarea id="bulkItemsText" name="items_text" class="form-control" rows="8" placeholder="Calabresa Especial&#10;Quatro Queijos&#10;Frango com Catupiry&#10;Portuguesa&#10;Camarão Especial (+ R$ 10,00)&#10;Lombo Canadense&#10;Nutella (+ R$ 8,00)" required autofocus style="font-family:inherit; font-size:0.9rem; line-height:1.5;"></textarea>
+          <small style="color:#64748b; font-size:0.76rem; display:block; margin-top:6px;">
+            💡 Dica: Digite ou cole 1 sabor por linha (ou separados por vírgula). Se houver valor adicional, pode colocar no final como <code>(+ R$ 5,00)</code> ou <code>(+5,00)</code>. Itens sem valor serão cadastrados como inclusos (R$ 0,00).
+          </small>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalBulkAddItems')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">+ Adicionar Todos</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
+    const TEMPLATE_GROUPS = {{ template_groups_json|safe }};
+
     function openModal(id) {
       document.getElementById(id).classList.add('active');
     }
@@ -866,7 +1123,77 @@
       document.getElementById('itemPrice').value = '0,00';
       openModal('modalAddItem');
     }
+
+    function onCloneSourceChange(groupId) {
+      const fields = document.getElementById('cloneGroupFields');
+      if (!groupId) {
+        fields.style.display = 'none';
+        return;
+      }
+      const group = TEMPLATE_GROUPS.find(g => String(g.id) === String(groupId));
+      if (!group) return;
+
+      document.getElementById('cloneName').value = group.name;
+      document.getElementById('cloneDesc').value = group.description || '';
+      document.getElementById('cloneMin').value = group.min_options;
+      document.getElementById('cloneMax').value = group.max_options;
+      document.getElementById('cloneIsRequired').checked = group.is_required;
+
+      const container = document.getElementById('cloneItemsContainer');
+      container.innerHTML = '';
+      document.getElementById('cloneItemsCount').textContent = group.items.length;
+
+      group.items.forEach(it => {
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+        label.style.fontSize = '0.88rem';
+        label.style.cursor = 'pointer';
+        label.style.padding = '5px 8px';
+        label.style.borderRadius = '6px';
+        label.style.background = '#ffffff';
+        label.style.border = '1px solid #e2e8f0';
+
+        const priceBadge = it.price > 0 
+          ? `<span style="color:#4f46e5; font-weight:700; margin-left:auto; font-size:0.82rem;">+ R$ ${it.price.toFixed(2).replace('.', ',')}</span>` 
+          : `<span style="color:#94a3b8; font-size:0.78rem; margin-left:auto;">Incluso</span>`;
+
+        label.innerHTML = `
+          <input type="checkbox" name="selected_items" value="${it.id}" checked class="clone-item-chk" style="width:16px; height:16px; cursor:pointer;">
+          <span style="font-weight:600; color:#0f172a;">${it.name}</span>
+          ${priceBadge}
+        `;
+        container.appendChild(label);
+      });
+
+      fields.style.display = 'block';
+    }
+
+    function toggleAllCloneItems(status) {
+      document.querySelectorAll('.clone-item-chk').forEach(c => c.checked = status);
+    }
+
+    function openEditGroupModal(id, name, desc, minOpt, maxOpt, isReq) {
+      document.getElementById('editGroupId').value = id;
+      document.getElementById('editGrpName').value = name;
+      document.getElementById('editGrpDesc').value = desc || '';
+      document.getElementById('editGrpMin').value = minOpt;
+      document.getElementById('editGrpMax').value = maxOpt;
+      document.getElementById('editGrpIsRequired').checked = isReq;
+      openModal('modalEditGroup');
+    }
+
+    function openBulkAddModal(groupId, groupName) {
+      document.getElementById('bulkAddGroupId').value = groupId;
+      document.getElementById('bulkAddSubTitle').textContent = `Grupo: ${groupName}`;
+      document.getElementById('bulkItemsText').value = '';
+      openModal('modalBulkAddItems');
+    }
   </script>
+
+  <!-- Inclusão do Notificador Global de Pedidos Online -->
+  {% include 'dashboard/includes/order_notifier.html' %}
 
 </body>
 </html>

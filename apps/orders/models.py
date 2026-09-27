@@ -1,7 +1,136 @@
 from decimal import Decimal
 from django.db import models
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from core.models import StoreBoundedModel, UUIDModel, TimeStampedModel
+
+
+class Coupon(StoreBoundedModel):
+    """
+    Cupom de desconto promocional criado pelo lojista.
+    """
+    DISCOUNT_PERCENTAGE = 'PERCENTAGE'
+    DISCOUNT_FIXED = 'FIXED'
+
+    DISCOUNT_CHOICES = [
+        (DISCOUNT_PERCENTAGE, _('Porcentagem (%)')),
+        (DISCOUNT_FIXED, _('Valor Fixo (R$)')),
+    ]
+
+    code = models.CharField(
+        _('Código do Cupom'),
+        max_length=30,
+        help_text=_('Código digitado pelo cliente ou operador (ex: BEMVINDO10).')
+    )
+    discount_type = models.CharField(
+        _('Tipo de Desconto'),
+        max_length=15,
+        choices=DISCOUNT_CHOICES,
+        default=DISCOUNT_PERCENTAGE
+    )
+    discount_value = models.DecimalField(
+        _('Valor do Desconto'),
+        max_digits=10,
+        decimal_places=2,
+        help_text=_('Percentual (ex: 10 para 10%) ou valor fixo em R$ (ex: 15.00).')
+    )
+    min_order_value = models.DecimalField(
+        _('Valor Mínimo do Pedido (R$)'),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=_('Subtotal mínimo de mercadorias para liberar o cupom.')
+    )
+    apply_to_delivery = models.BooleanField(
+        _('Desconto no Total Geral (inclui frete)'),
+        default=False,
+        help_text=_('Se marcado, o desconto pode incidir sobre o total com frete. Se desmarcado, incide apenas nas mercadorias.')
+    )
+    max_uses = models.PositiveIntegerField(
+        _('Limite Máximo de Usos'),
+        null=True,
+        blank=True,
+        help_text=_('Deixe em branco para usos ilimitados.')
+    )
+    times_used = models.PositiveIntegerField(
+        _('Quantidade de Usos'),
+        default=0
+    )
+    valid_from = models.DateTimeField(
+        _('Válido a partir de'),
+        null=True,
+        blank=True
+    )
+    valid_until = models.DateTimeField(
+        _('Válido até'),
+        null=True,
+        blank=True
+    )
+    is_public = models.BooleanField(
+        _('Destacar no Cardápio / Checkout'),
+        default=False,
+        help_text=_('Se ativo, exibe o cupom publicamente incentivando o cliente a atingir o valor mínimo.')
+    )
+    is_active = models.BooleanField(
+        _('Ativo'),
+        default=True
+    )
+
+    class Meta:
+        verbose_name = _('Cupom de Desconto')
+        verbose_name_plural = _('Cupons de Desconto')
+        unique_together = ('store', 'code')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        type_str = f"{self.discount_value}%" if self.discount_type == self.DISCOUNT_PERCENTAGE else f"R$ {self.discount_value:.2f}"
+        return f"{self.code} ({type_str}) - {self.store.name}"
+
+    def clean(self):
+        super().clean()
+        if self.code:
+            self.code = self.code.strip().upper()
+        if self.discount_value is not None:
+            if self.discount_value <= Decimal('0.00'):
+                raise ValidationError({'discount_value': _('O valor do desconto deve ser maior que zero.')})
+            if self.discount_type == self.DISCOUNT_PERCENTAGE and self.discount_value > Decimal('100.00'):
+                raise ValidationError({'discount_value': _('Desconto em porcentagem não pode ser maior que 100%.')})
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.code.strip().upper()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def calculate_discount(self, subtotal: Decimal, delivery_fee: Decimal = Decimal('0.00')) -> Decimal:
+        """Calcula o valor nominal do desconto em R$ para a cesta."""
+        base_amount = (subtotal + delivery_fee) if self.apply_to_delivery else subtotal
+        if self.discount_type == self.DISCOUNT_PERCENTAGE:
+            discount = (base_amount * self.discount_value) / Decimal('100.00')
+        else:
+            discount = min(self.discount_value, base_amount)
+        return min(discount, base_amount).quantize(Decimal('0.01'))
+
+    def validate_for_order(self, subtotal: Decimal, delivery_fee: Decimal = Decimal('0.00')) -> tuple[bool, str]:
+        """
+        Valida se o cupom pode ser aplicado neste pedido.
+        Retorna (is_valid, error_message).
+        """
+        from django.utils import timezone
+        now = timezone.now()
+        if not self.is_active:
+            return False, "Este cupom está desativado."
+        if self.valid_from and now < self.valid_from:
+            return False, "Este cupom ainda não é válido."
+        if self.valid_until and now > self.valid_until:
+            return False, "Este cupom expirou."
+        if self.max_uses is not None and self.times_used >= self.max_uses:
+            return False, "Este cupom atingiu o limite máximo de utilizações."
+        if subtotal < self.min_order_value:
+            needed = self.min_order_value - subtotal
+            return False, f"Valor mínimo não atingido. Adicione mais R$ {needed:.2f} em produtos para liberar este cupom."
+        return True, ""
 
 
 class Order(StoreBoundedModel, UUIDModel):
@@ -9,6 +138,14 @@ class Order(StoreBoundedModel, UUIDModel):
     Entidade central de Pedido na plataforma IA-Pedidos.
     Armazena o cabeçalho, status, valores recalculados e dados cadastrais/endereço congelados.
     """
+    # Origem do Pedido
+    ORIGIN_ONLINE = 'ONLINE'
+    ORIGIN_PDV = 'PDV'
+    ORIGIN_CHOICES = [
+        (ORIGIN_ONLINE, _('Online (Cardápio)')),
+        (ORIGIN_PDV, _('PDV (Balcão)')),
+    ]
+
     # Status do Pedido
     STATUS_NEW = 'NOVO'
     STATUS_ACCEPTED = 'ACEITO'
@@ -54,6 +191,23 @@ class Order(StoreBoundedModel, UUIDModel):
         (PAY_OTHER, _('Outros')),
     ]
 
+    origin = models.CharField(
+        _('Origem do Pedido'),
+        max_length=10,
+        choices=ORIGIN_CHOICES,
+        default=ORIGIN_ONLINE,
+        db_index=True,
+        help_text=_('Identifica se a venda foi originada pelo Cardápio Online ou pelo PDV.')
+    )
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pos_orders',
+        verbose_name=_('Operador do PDV'),
+        help_text=_('Usuário lojista responsável por registrar a venda no PDV.')
+    )
     customer = models.ForeignKey(
         'customers.Customer',
         on_delete=models.PROTECT,
@@ -92,11 +246,36 @@ class Order(StoreBoundedModel, UUIDModel):
         decimal_places=2,
         default=Decimal('0.00')
     )
+    discount = models.DecimalField(
+        _('Desconto (R$)'),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=_('Valor de desconto concedido por cupom ou promoção.')
+    )
     total = models.DecimalField(
         _('Total do Pedido (R$)'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00')
+    )
+    coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+        verbose_name=_('Cupom Aplicado')
+    )
+    coupon_code = models.CharField(
+        _('Código do Cupom'),
+        max_length=30,
+        blank=True
+    )
+    stock_returned = models.BooleanField(
+        _('Estoque Estornado'),
+        default=False,
+        help_text=_('Indica se o estoque já foi devolvido após cancelamento do pedido.')
     )
 
     # Pagamento

@@ -841,6 +841,31 @@
       font-weight: 600;
     }
 
+    @keyframes highlightEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(-24px) scale(0.96);
+        box-shadow: 0 0 0 4px #10b981;
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.45);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+
+    @keyframes updatePulse {
+      0% {
+        box-shadow: 0 0 0 4px #3b82f6;
+      }
+      100% {
+        box-shadow: var(--shadow-sm);
+      }
+    }
+
     @media print {
       body * {
         visibility: hidden !important;
@@ -866,6 +891,7 @@
   </style>
 </head>
 <body>
+  {% include 'dashboard/includes/saas_banner.html' %}
 
   <!-- Header Superior MePedi -->
   <header class="dash-header">
@@ -907,6 +933,10 @@
             <span class="tab-icon">🧾</span>
             <span>Meus Pedidos</span>
           </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
             <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
@@ -914,6 +944,14 @@
           <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
             <span class="tab-icon">⚙️</span>
             <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
           </a>
         </nav>
       </div>
@@ -1024,6 +1062,9 @@
           <div class="order-card-header">
             <div>
               <span class="order-card-num">{{ order.display_number }}</span>
+              <span class="order-origin-pill origin-{{ order.origin }}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; {% if order.origin == 'PDV' %}background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;{% else %}background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;{% endif %}">
+                {% if order.origin == 'PDV' %}🖥️ PDV{% else %}🌐 Online{% endif %}
+              </span>
               <span class="order-card-time">• {{ order.created_at|date:"H:i" }}</span>
             </div>
             <div>
@@ -1112,6 +1153,11 @@
                 <div style="color:#2563eb; font-size:0.8rem; font-weight:600;">Frete: R$ {{ order.delivery_fee|floatformat:2 }}</div>
               {% elif order.delivery_type == 'DELIVERY' %}
                 <div style="color:#16a34a; font-size:0.8rem; font-weight:600;">Frete: Grátis</div>
+              {% endif %}
+              {% if order.discount > 0 %}
+                <div style="color:#059669; font-size:0.8rem; font-weight:700;">
+                  Desconto {% if order.coupon_code %}({{ order.coupon_code }}){% endif %}: -R$ {{ order.discount|floatformat:2 }}
+                </div>
               {% endif %}
               {% if order.change_for %}
                 <div style="color:#d97706;">Troco para: R$ {{ order.change_for|floatformat:2 }}</div>
@@ -1347,40 +1393,11 @@
     ]);
     let activeFilter = 'ALL';
 
-    // Gerador de Som Sintetizado via Web Audio API (zero dependências externas!)
+    // Notificador Global de Som com pedido_novo_toque.mp3
     function playNotificationSound() {
       if (!isSoundEnabled) return;
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const now = ctx.currentTime;
-
-        // Ding (D5)
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, now);
-        gain1.gain.setValueAtTime(0.3, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.6);
-
-        // Dong (A5)
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(880, now + 0.15);
-        gain2.gain.setValueAtTime(0.35, now + 0.15);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start(now + 0.15);
-        osc2.stop(now + 0.9);
-      } catch (err) {
-        console.debug('Audio error:', err);
+      if (window.orderNotifierEngine) {
+        window.orderNotifierEngine.playSound();
       }
     }
 
@@ -1476,7 +1493,445 @@
       }
     }
 
-    // Atualização de Status de Pedido via AJAX
+    // Construção Dinâmica de HTML para Cards em Tempo Real
+    function getTimerHtml(order) {
+      if (order.status === 'NOVO') {
+        const sec = order.seconds_remaining_to_accept || 600;
+        return `
+          <div style="margin-top:6px;">
+            <span class="pill-rule required" style="font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; background:#fee2e2; color:#b91c1c; padding:3px 9px; border-radius:999px;">
+              <span>⏰ Aceitar em:</span>
+              <strong class="order-accept-timer" data-order-id="${order.id}" data-remaining="${sec}">${formatTime(sec)}</strong>
+            </span>
+          </div>
+        `;
+      } else if (order.status === 'ACEITO' || order.status === 'EM_PREPARACAO') {
+        const sec = order.preparation_seconds_remaining || 0;
+        const isDelayed = order.is_preparation_delayed;
+        return `
+          <div style="margin-top:6px;">
+            <span class="pill-rule ${isDelayed ? 'required' : 'highlight'}" style="font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px;">
+              <span>🍳 Tempo de Preparo:</span>
+              <strong class="order-prep-timer" data-order-id="${order.id}" data-prep-remaining="${sec}">${sec <= 0 ? '⚠️ Esgotado!' : `${formatTime(sec)} restantes`}</strong>
+            </span>
+          </div>
+          <div class="prep-alert-banner" id="prep-alert-${order.id}" style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:8px 10px; border-radius:8px; font-size:0.8rem; font-weight:700; margin-top:8px; display:${isDelayed ? 'flex' : 'none'}; align-items:center; gap:6px;">
+            <span>⚠️</span>
+            <span>Tempo de preparo esgotado! Deseja marcar como "Pronto" ou cancelar o pedido?</span>
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    function getCardActionsHtml(order) {
+      const id = order.id;
+      if (order.status === 'NOVO') {
+        return `
+          <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus(${id}, 'ACEITO')">
+            ✓ Aceitar Pedido
+          </button>
+          <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus(${id}, 'CANCELADO')">
+            ✕ Recusar
+          </button>
+        `;
+      } else if (order.status === 'ACEITO') {
+        return `
+          <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#f59e0b; color:#d97706;" onclick="updateOrderStatus(${id}, 'EM_PREPARACAO')">
+            🍳 Iniciar Preparo
+          </button>
+          <button class="btn-dash btn-dash-outline" onclick="openReceiptModal(${id})" title="Imprimir Cupom Térmico">
+            🖨️ Cupom
+          </button>
+          <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus(${id}, 'CANCELADO')">
+            ✕ Cancelar
+          </button>
+        `;
+      } else if (order.status === 'EM_PREPARACAO') {
+        return `
+          <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus(${id}, 'PRONTO')">
+            ✅ Marcar Pronto
+          </button>
+          <button class="btn-dash btn-dash-outline" onclick="openReceiptModal(${id})" title="Imprimir Cupom Térmico">
+            🖨️ Cupom
+          </button>
+          <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus(${id}, 'CANCELADO')">
+            ✕ Cancelar
+          </button>
+        `;
+      } else if (order.status === 'PRONTO') {
+        const nextBtn = order.delivery_type === 'DELIVERY'
+          ? `<button class="btn-dash btn-dash-outline" style="border-color:#3b82f6; color:#2563eb;" onclick="updateOrderStatus(${id}, 'SAIU_PARA_ENTREGA')">🛵 Despachar</button>`
+          : `<button class="btn-dash btn-dash-success" onclick="updateOrderStatus(${id}, 'CONCLUIDO')">🎉 Entregue</button>`;
+        return `
+          <button class="btn-dash btn-dash-outline" style="flex:1; border-color:#4f46e5; color:#4f46e5; font-weight:700; background:#eef2ff;" onclick="openReceiptModal(${id})">
+            🖨️ Imprimir Cupom
+          </button>
+          ${nextBtn}
+          <button class="btn-dash btn-dash-danger" onclick="updateOrderStatus(${id}, 'CANCELADO')">
+            ✕
+          </button>
+        `;
+      } else if (order.status === 'SAIU_PARA_ENTREGA') {
+        return `
+          <button class="btn-dash btn-dash-success" style="flex:1;" onclick="updateOrderStatus(${id}, 'CONCLUIDO')">
+            🎉 Concluir Pedido
+          </button>
+          <button class="btn-dash btn-dash-outline" onclick="openReceiptModal(${id})">
+            🖨️ Cupom
+          </button>
+        `;
+      } else {
+        return `
+          <button class="btn-dash btn-dash-outline" style="width:100%; justify-content:center;" onclick="openReceiptModal(${id})">
+            🖨️ Imprimir Cupom
+          </button>
+        `;
+      }
+    }
+
+    function getThermalReceiptHtml(order) {
+      const itemsReceipt = (order.items || []).map(item => {
+        const opts = (item.selected_options || []).map(o => {
+          const p = parseFloat(o.price) || 0;
+          return `<div class="receipt-opt">${p > 0 ? `+ ${o.name} (+R$ ${p.toFixed(2).replace('.', ',')})` : `- ${o.name} (Incluso)`}</div>`;
+        }).join('');
+        const notes = item.notes ? `<div class="receipt-opt italic">Obs: "${item.notes}"</div>` : '';
+        const itTotal = parseFloat(item.total) || 0;
+        return `
+          <div class="receipt-row bold" style="margin-top:4px;">
+            <span>${item.quantity}x ${item.product_name}</span>
+            <span>R$ ${itTotal.toFixed(2).replace('.', ',')}</span>
+          </div>
+          ${opts}
+          ${notes}
+        `;
+      }).join('');
+
+      const d = new Date(order.created_at || Date.now());
+      const dateFormatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+      return `
+        <div class="thermal-receipt">
+          <div class="receipt-header">
+            <div class="receipt-store-title">{{ store.name|escapejs }}</div>
+            <div>WhatsApp: {{ store.whatsapp|escapejs }}</div>
+            <div class="receipt-divider">================================</div>
+            <div class="receipt-row bold">
+              <span>PEDIDO: ${order.display_number}</span>
+              <span>${dateFormatted}</span>
+            </div>
+            <div class="receipt-row bold">
+              <span>MODALIDADE:</span>
+              <span>${(order.delivery_type_display || order.delivery_type || '').toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="receipt-divider">--------------------------------</div>
+          <div class="receipt-section">
+            <div class="receipt-row bold"><span>DADOS DO CLIENTE:</span></div>
+            <div>Nome: ${order.customer ? order.customer.name : 'Cliente Balcão'}</div>
+            <div>Telefone: ${order.customer ? order.customer.phone : '-'}</div>
+            <div>${order.delivery_type === 'DELIVERY' ? `Endereço: ${order.formatted_delivery_address || '-'}` : 'Retirada no Balcão da Loja'}</div>
+            ${order.reference ? `<div>Ponto de Ref: ${order.reference}</div>` : ''}
+          </div>
+          <div class="receipt-divider">--------------------------------</div>
+          <div class="receipt-section">
+            <div class="receipt-row bold"><span>ITENS DO PEDIDO:</span></div>
+            ${itemsReceipt}
+          </div>
+          ${order.notes ? `
+            <div class="receipt-divider">--------------------------------</div>
+            <div class="receipt-section">
+              <div class="receipt-row bold"><span>OBSERVAÇÕES:</span></div>
+              <div>"${order.notes}"</div>
+            </div>
+          ` : ''}
+          <div class="receipt-divider">--------------------------------</div>
+          <div class="receipt-totals">
+            <div class="receipt-row">
+              <span>Subtotal:</span>
+              <span>R$ ${(parseFloat(order.subtotal) || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+            ${parseFloat(order.delivery_fee) > 0 ? `
+              <div class="receipt-row">
+                <span>Taxa de Entrega:</span>
+                <span>R$ ${(parseFloat(order.delivery_fee) || 0).toFixed(2).replace('.', ',')}</span>
+              </div>
+            ` : ''}
+            ${parseFloat(order.discount) > 0 ? `
+              <div class="receipt-row bold" style="color:#059669;">
+                <span>Desconto ${order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
+                <span>- R$ ${(parseFloat(order.discount) || 0).toFixed(2).replace('.', ',')}</span>
+              </div>
+            ` : ''}
+            <div class="receipt-divider">--------------------------------</div>
+            <div class="receipt-row receipt-total-row">
+              <span>TOTAL:</span>
+              <span>R$ ${(parseFloat(order.total) || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
+          <div class="receipt-divider">================================</div>
+          <div class="receipt-footer">
+            <div>Forma de Pagamento: <strong>${order.payment_method_display || order.payment_method}</strong></div>
+            ${order.change_for ? `<div>Troco para: R$ ${(parseFloat(order.change_for) || 0).toFixed(2).replace('.', ',')}</div>` : ''}
+            <div style="margin-top:6px; font-weight:700;">Agradecemos a sua preferência!</div>
+            <div style="font-size:8pt; margin-top:2px; color:#666;">Sistema MePedi • mepedi.com.br</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildCardInnerHtml(order) {
+      const d = new Date(order.created_at || Date.now());
+      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const totalFormatted = (parseFloat(order.total) || 0).toFixed(2).replace('.', ',');
+      const feeVal = parseFloat(order.delivery_fee) || 0;
+      const discVal = parseFloat(order.discount) || 0;
+      const changeVal = parseFloat(order.change_for) || 0;
+
+      const itemsHtml = (order.items || []).map(item => {
+        const optsHtml = (item.selected_options || []).map(opt => {
+          const p = parseFloat(opt.price) || 0;
+          return `<span class="option-tag ${p > 0 ? 'add' : 'sub'}">${p > 0 ? `+ ${opt.name} (+R$ ${p.toFixed(2).replace('.', ',')})` : `- ${opt.name} (Incluso)`}</span>`;
+        }).join('');
+        const notesHtml = item.notes ? `<div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "${item.notes}"</div>` : '';
+        const itemTotal = parseFloat(item.total) || 0;
+        return `
+          <div class="order-item-row">
+            <div>
+              <strong>${item.quantity}x ${item.product_name}</strong>
+              ${optsHtml}
+              ${notesHtml}
+            </div>
+            <span style="font-weight:700;">R$ ${itemTotal.toFixed(2).replace('.', ',')}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div>
+          <!-- Header do Card com Número, Horário e Status -->
+          <div class="order-card-header">
+            <div>
+              <span class="order-card-num">${order.display_number}</span>
+              <span class="order-origin-pill origin-${order.origin}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; ${order.origin === 'PDV' ? 'background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;' : 'background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;'}">
+                ${order.origin === 'PDV' ? '🖥️ PDV' : '🌐 Online'}
+              </span>
+              <span class="order-card-time">• ${timeStr}</span>
+            </div>
+            <div>
+              <span class="status-pill-big ${order.status}" style="margin:0; font-size:0.75rem; padding:4px 10px;">
+                ${order.status_display || order.status}
+              </span>
+            </div>
+          </div>
+
+          <!-- Temporizador Inteligente -->
+          ${getTimerHtml(order)}
+
+          <!-- Dados do Cliente e Modalidade -->
+          <div class="customer-info-box" style="margin-top:12px;">
+            <div class="customer-name">
+              <span>👤 ${order.customer ? order.customer.name : 'Cliente Balcão'}</span>
+              ${order.customer_whatsapp_link ? `
+                <a href="${order.customer_whatsapp_link}" target="_blank" rel="noopener" class="btn-wa-chat" title="Abrir conversa no WhatsApp">
+                  💬 WhatsApp
+                </a>
+              ` : ''}
+            </div>
+            <div style="font-size:0.82rem; color:var(--dash-muted); margin-top:4px;">
+              ${order.delivery_type === 'DELIVERY' ? `
+                🛵 <strong>Entrega:</strong> ${order.formatted_delivery_address || 'Endereço não informado'}
+                ${order.reference ? `<div style="color:#64748b; font-size:0.78rem;">📌 Ref: ${order.reference}</div>` : ''}
+              ` : `
+                🛍️ <strong>Retirada no Balcão</strong>
+              `}
+            </div>
+          </div>
+
+          <!-- Itens do Pedido -->
+          <div class="order-items-box">
+            ${itemsHtml}
+          </div>
+
+          <!-- Observação Geral -->
+          ${order.notes ? `
+            <div style="font-size:0.8rem; background:#fffbeb; border-left:3px solid #f59e0b; color:#92400e; padding:6px 10px; border-radius:4px; margin-bottom:12px;">
+              <strong>Obs Geral:</strong> ${order.notes}
+            </div>
+          ` : ''}
+        </div>
+
+        <div>
+          <!-- Totais e Pagamento -->
+          <div class="order-totals-box">
+            <div style="font-size:0.85rem; color:var(--dash-muted);">
+              <div>Pagamento: <strong>${order.payment_method_display || order.payment_method}</strong></div>
+              ${feeVal > 0 ? `
+                <div style="color:#2563eb; font-size:0.8rem; font-weight:600;">Frete: R$ ${feeVal.toFixed(2).replace('.', ',')}</div>
+              ` : (order.delivery_type === 'DELIVERY' ? `
+                <div style="color:#16a34a; font-size:0.8rem; font-weight:600;">Frete: Grátis</div>
+              ` : '')}
+              ${discVal > 0 ? `
+                <div style="color:#059669; font-size:0.8rem; font-weight:700;">
+                  Desconto ${order.coupon_code ? `(${order.coupon_code})` : ''}: -R$ ${discVal.toFixed(2).replace('.', ',')}
+                </div>
+              ` : ''}
+              ${changeVal > 0 ? `
+                <div style="color:#d97706;">Troco para: R$ ${changeVal.toFixed(2).replace('.', ',')}</div>
+              ` : ''}
+            </div>
+            <div class="order-total-price">
+              R$ ${totalFormatted}
+            </div>
+          </div>
+
+          <!-- Ações de Status e Impressão Térmica -->
+          <div class="order-card-actions">
+            ${getCardActionsHtml(order)}
+          </div>
+        </div>
+
+        <!-- Template do Cupom Térmico deste Pedido -->
+        <div id="receipt-data-${order.id}" style="display:none;">
+          ${getThermalReceiptHtml(order)}
+        </div>
+      `;
+    }
+
+    function updateAllDashboardCounters() {
+      const allCards = document.querySelectorAll('.order-card');
+      let counts = {
+        ALL: allCards.length,
+        NOVO: 0,
+        ACEITO: 0,
+        EM_PREPARACAO: 0,
+        PRONTO: 0,
+        SAIU_PARA_ENTREGA: 0,
+        CONCLUIDO: 0,
+        CANCELADO: 0
+      };
+      let todayOrders = 0;
+      let todayRevenue = 0;
+
+      allCards.forEach(c => {
+        const st = c.getAttribute('data-status');
+        if (counts[st] !== undefined) counts[st]++;
+        todayOrders++;
+        const priceEl = c.querySelector('.order-total-price');
+        if (priceEl) {
+          const num = parseFloat(priceEl.textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+          if (st !== 'CANCELADO') {
+            todayRevenue += num;
+          }
+        }
+      });
+
+      const elAll = document.getElementById('tabCountALL');
+      if (elAll) elAll.textContent = counts.ALL;
+      const elNovo = document.getElementById('tabCountNOVO');
+      if (elNovo) {
+        elNovo.textContent = counts.NOVO;
+        if (counts.NOVO > 0) elNovo.classList.add('badge-pulse');
+        else elNovo.classList.remove('badge-pulse');
+      }
+      const elAceito = document.getElementById('tabCountACEITO');
+      if (elAceito) elAceito.textContent = counts.ACEITO;
+      const elPrep = document.getElementById('tabCountEM_PREPARACAO');
+      if (elPrep) elPrep.textContent = counts.EM_PREPARACAO;
+      const elPronto = document.getElementById('tabCountPRONTO');
+      if (elPronto) elPronto.textContent = counts.PRONTO;
+      const elSaiu = document.getElementById('tabCountSAIU_PARA_ENTREGA');
+      if (elSaiu) elSaiu.textContent = counts.SAIU_PARA_ENTREGA;
+      const elConc = document.getElementById('tabCountCONCLUIDO');
+      if (elConc) elConc.textContent = counts.CONCLUIDO;
+      const elCanc = document.getElementById('tabCountCANCELADO');
+      if (elCanc) elCanc.textContent = counts.CANCELADO;
+
+      const metricNew = document.getElementById('metricNewOrders');
+      if (metricNew) metricNew.textContent = counts.NOVO;
+
+      const metricActive = document.getElementById('metricActiveOrders');
+      if (metricActive) metricActive.textContent = counts.ACEITO + counts.EM_PREPARACAO + counts.PRONTO + counts.SAIU_PARA_ENTREGA;
+
+      const elTodayCount = document.getElementById('todayOrdersCount');
+      if (elTodayCount) elTodayCount.textContent = todayOrders;
+
+      const elTodayRev = document.getElementById('todayRevenue');
+      if (elTodayRev) elTodayRev.textContent = `R$ ${todayRevenue.toFixed(2).replace('.', ',')}`;
+
+      const emptyMsg = document.getElementById('emptyOrdersMessage');
+      if (emptyMsg) {
+        emptyMsg.style.display = counts.ALL === 0 ? 'block' : 'none';
+      }
+    }
+
+    function handleLiveOrderCreated(order) {
+      if (!order || !order.id) return;
+      if (knownOrderIds.has(order.id)) return;
+      knownOrderIds.add(order.id);
+
+      playNotificationSound();
+      showToast('🔔 Novo Pedido Recebido!', `${order.display_number} de ${order.customer ? order.customer.name : 'Cliente'}`);
+
+      const grid = document.getElementById('ordersGrid');
+      if (!grid) return;
+
+      const card = document.createElement('div');
+      card.className = `order-card status-${order.status} ${order.is_preparation_delayed ? 'order-delayed' : ''}`;
+      card.id = `order-card-${order.id}`;
+      card.setAttribute('data-status', order.status);
+      card.style.animation = 'highlightEntrance 1.2s ease-out';
+      if (order.is_preparation_delayed) {
+        card.style.border = '2px solid #ef4444';
+      }
+      card.innerHTML = buildCardInnerHtml(order);
+
+      // Visibilidade conforme a aba de filtro ativa
+      if (activeFilter !== 'ALL' && activeFilter !== order.status) {
+        card.style.display = 'none';
+      } else {
+        card.style.display = 'flex';
+      }
+
+      grid.prepend(card);
+      updateAllDashboardCounters();
+    }
+
+    function handleLiveOrderUpdated(order) {
+      if (!order || !order.id) return;
+      const card = document.getElementById(`order-card-${order.id}`);
+      if (!card) {
+        handleLiveOrderCreated(order);
+        return;
+      }
+
+      card.className = `order-card status-${order.status} ${order.is_preparation_delayed ? 'order-delayed' : ''}`;
+      card.setAttribute('data-status', order.status);
+      if (order.is_preparation_delayed) {
+        card.style.border = '2px solid #ef4444';
+      } else {
+        card.style.border = '';
+      }
+      card.innerHTML = buildCardInnerHtml(order);
+
+      card.style.animation = 'none';
+      card.offsetHeight; // trigger reflow
+      card.style.animation = 'updatePulse 0.8s ease-out';
+
+      if (activeFilter !== 'ALL' && activeFilter !== order.status) {
+        card.style.display = 'none';
+      } else {
+        card.style.display = 'flex';
+      }
+
+      updateAllDashboardCounters();
+    }
+
+    window.dashboardHandleNewOrder = handleLiveOrderCreated;
+    window.dashboardHandleUpdatedOrder = handleLiveOrderUpdated;
+
+    // Atualização de Status de Pedido via AJAX em Tempo Real (Sem F5)
     function updateOrderStatus(orderId, newStatus) {
       fetch(`/api/v1/orders/merchant/${storeId}/${orderId}/status/`, {
         method: 'PATCH',
@@ -1491,7 +1946,8 @@
         return res.json();
       })
       .then(updatedOrder => {
-        window.location.reload();
+        handleLiveOrderUpdated(updatedOrder);
+        showToast('Status Atualizado!', `Pedido ${updatedOrder.display_number} alterado para ${updatedOrder.status_display}`);
       })
       .catch(err => {
         alert('Não foi possível atualizar o pedido: ' + err.message);
@@ -1545,7 +2001,6 @@
         if (sec <= 0) {
           el.textContent = '00:00 (Expirando...)';
           const orderId = el.getAttribute('data-order-id');
-          // Dispara cancelamento automático
           updateOrderStatus(orderId, 'CANCELADO');
         } else {
           el.textContent = formatTime(sec);
@@ -1581,39 +2036,84 @@
     setInterval(tickTimers, 1000);
     tickTimers();
 
-    // Polling em background a cada 8 segundos
+    // WebSocket em Tempo Real (0ms de latência)
+    function initOrdersWebSocket() {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/orders/${storeId}/`;
+      let ws = null;
+      let reconnectTimer = null;
+
+      function connect() {
+        try {
+          ws = new WebSocket(wsUrl);
+
+          ws.onopen = function() {
+            console.log('✅ [WebSocket] Conectado ao canal de pedidos da loja #' + storeId);
+            if (reconnectTimer) {
+              clearTimeout(reconnectTimer);
+              reconnectTimer = null;
+            }
+          };
+
+          ws.onmessage = function(event) {
+            try {
+              const payload = JSON.parse(event.data);
+              if (payload.type === 'ORDER_CREATED') {
+                handleLiveOrderCreated(payload.data);
+              } else if (payload.type === 'ORDER_UPDATED') {
+                handleLiveOrderUpdated(payload.data);
+              }
+            } catch(e) {
+              console.error('Erro ao ler mensagem WebSocket:', e);
+            }
+          };
+
+          ws.onclose = function() {
+            console.log('⚠️ [WebSocket] Desconectado. Reconectando em 3s...');
+            reconnectTimer = setTimeout(connect, 3000);
+          };
+
+          ws.onerror = function(err) {
+            console.debug('[WebSocket] Erro:', err);
+            try { ws.close(); } catch(e) {}
+          };
+        } catch(err) {
+          console.debug('[WebSocket] Falha ao conectar:', err);
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      }
+
+      connect();
+    }
+
+    initOrdersWebSocket();
+
+    // Polling de Resguardo em background a cada 6 segundos (Garante sincronia caso o WS caia)
     function pollOrders() {
       fetch(`/api/v1/orders/merchant/${storeId}/`)
         .then(res => {
           if (res.status === 401 || res.status === 403) return null;
           return res.json();
         })
-        .then(orders => {
-          if (!orders || !Array.isArray(orders)) return;
+        .then(data => {
+          if (!data) return;
+          const orderList = Array.isArray(data) ? data : (data.results || []);
 
-          let hasNew = false;
-          let newestOrderNumber = '';
-          let newestCustomer = '';
-
-          orders.forEach(o => {
+          orderList.forEach(o => {
             if (!knownOrderIds.has(o.id)) {
-              hasNew = true;
-              newestOrderNumber = o.display_number;
-              newestCustomer = o.customer ? o.customer.name : '';
-              knownOrderIds.add(o.id);
+              handleLiveOrderCreated(o);
+            } else {
+              const card = document.getElementById(`order-card-${o.id}`);
+              if (card && card.getAttribute('data-status') !== o.status) {
+                handleLiveOrderUpdated(o);
+              }
             }
           });
-
-          if (hasNew) {
-            playNotificationSound();
-            showToast('🔔 Novo Pedido Recebido!', `${newestOrderNumber} de ${newestCustomer}`);
-            setTimeout(() => window.location.reload(), 1500);
-          }
         })
         .catch(err => console.debug('Polling error:', err));
     }
 
-    setInterval(pollOrders, 8000);
+    setInterval(pollOrders, 6000);
 
     function getCookie(name) {
       let cookieValue = null;
@@ -1630,6 +2130,9 @@
       return cookieValue;
     }
   </script>
+
+  <!-- Inclusão do Notificador Global de Pedidos Online -->
+  {% include 'dashboard/includes/order_notifier.html' %}
 
 </body>
 </html>

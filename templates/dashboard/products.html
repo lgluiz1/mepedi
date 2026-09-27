@@ -745,9 +745,33 @@
         padding: 7px 6px;
       }
     }
+
+    .btn-emoji-pick {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .btn-emoji-pick:hover {
+      background: #eef2ff;
+      border-color: #6366f1;
+      transform: scale(1.12);
+    }
+    .btn-emoji-pick:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 <body>
+  {% include 'dashboard/includes/saas_banner.html' %}
 
   <!-- Header Superior MePedi -->
   <header class="dash-header">
@@ -789,6 +813,10 @@
             <span class="tab-icon">🧾</span>
             <span>Meus Pedidos</span>
           </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
           <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill active">
             <span class="tab-icon">🍕</span>
             <span>Produtos &amp; Fotos</span>
@@ -796,6 +824,14 @@
           <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
             <span class="tab-icon">⚙️</span>
             <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
           </a>
         </nav>
       </div>
@@ -851,10 +887,11 @@
       <table class="dash-table">
         <thead>
           <tr>
-            <th style="width:70px;">Foto</th>
-            <th>Produto</th>
+            <th style="width:65px;">Foto</th>
+            <th>Produto &amp; Código</th>
             <th>Categoria</th>
-            <th>Preço</th>
+            <th>Preço &amp; Promoção</th>
+            <th>Estoque Centralizado</th>
             <th>Status</th>
             <th style="text-align:right;">Ações</th>
           </tr>
@@ -870,16 +907,48 @@
                 {% endif %}
               </td>
               <td>
-                <strong style="color:#0f172a; font-size:1rem;">{{ product.name }}</strong>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <strong style="color:#0f172a; font-size:1rem;">{{ product.name }}</strong>
+                  {% if product.code %}
+                    <span style="background:#1e293b; color:#fff; font-family:'JetBrains Mono',monospace; font-size:0.72rem; font-weight:700; padding:1px 6px; border-radius:4px;" title="Código PDV">{{ product.code }}</span>
+                  {% endif %}
+                </div>
                 {% if product.description %}
-                  <p style="color:#64748b; font-size:0.82rem; margin:3px 0 0 0; max-width:380px;">{{ product.description }}</p>
+                  <p style="color:#64748b; font-size:0.82rem; margin:3px 0 0 0; max-width:360px;">{{ product.description }}</p>
                 {% endif %}
               </td>
               <td>
                 <span class="badge-cat">{{ product.category.name }}</span>
               </td>
               <td>
-                <strong style="color:#4f46e5; font-size:1.05rem;">R$ {{ product.price|floatformat:2 }}</strong>
+                {% if product.is_promotional and product.promotional_price %}
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:0.8rem; text-decoration:line-through; color:#94a3b8;">R$ {{ product.price|floatformat:2 }}</span>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                      <strong style="color:#dc2626; font-size:1.05rem;">R$ {{ product.promotional_price|floatformat:2 }}</strong>
+                      <span style="background:#fee2e2; color:#dc2626; font-size:0.7rem; font-weight:800; padding:1px 5px; border-radius:4px;">{{ product.discount_percent }}% OFF</span>
+                    </div>
+                  </div>
+                {% else %}
+                  <strong style="color:#4f46e5; font-size:1.05rem;">R$ {{ product.price|floatformat:2 }}</strong>
+                {% endif %}
+              </td>
+              <td>
+                {% if not product.track_stock %}
+                  <span style="color:#64748b; font-size:0.85rem; font-weight:600;">∞ Ilimitado</span>
+                {% elif product.stock_quantity <= 0 %}
+                  <span style="background:#fee2e2; color:#991b1b; font-weight:800; font-size:0.82rem; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                    ⚠️ Esgotado (0)
+                  </span>
+                {% elif product.stock_quantity <= 3 %}
+                  <span style="background:#fef3c7; color:#92400e; font-weight:800; font-size:0.82rem; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                    ⚡ Restam {{ product.stock_quantity }}
+                  </span>
+                {% else %}
+                  <span style="background:#ecfdf5; color:#065f46; font-weight:800; font-size:0.82rem; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                    📦 {{ product.stock_quantity }} un
+                  </span>
+                {% endif %}
               </td>
               <td>
                 <form method="post" action="" style="display:inline;">
@@ -896,11 +965,11 @@
                 </form>
               </td>
               <td style="text-align:right;">
-                <div style="display:inline-flex; gap:8px;">
+                <div style="display:inline-flex; gap:6px;">
                   <a href="/painel/{{ store.slug }}/produtos/{{ product.id }}/opcoes/" class="btn-dash btn-dash-outline" style="border-color:#6366f1; color:#4f46e5; text-decoration:none;" title="Configurar Sabores, Caldas, Recheios e Adicionais">
                     ⚙️ Sabores / Opções ({{ product.option_groups.count }})
                   </a>
-                  <button type="button" class="btn-dash btn-dash-outline" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
+                  <button type="button" class="btn-dash btn-dash-outline" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.code|default:''|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', {% if product.is_promotional %}true{% else %}false{% endif %}, '{{ product.promotional_price|default:'' }}', {% if product.track_stock %}true{% else %}false{% endif %}, '{{ product.stock_quantity }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
                     ✏️ Editar
                   </button>
                   <form method="post" action="" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto &quot;{{ product.name|escapejs }}&quot;?');">
@@ -916,7 +985,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="text-align:center; padding:50px 20px; color:#64748b;">
+              <td colspan="7" style="text-align:center; padding:50px 20px; color:#64748b;">
                 <div style="font-size:3rem; margin-bottom:10px;">🍽️</div>
                 <h3 style="color:#0f172a; font-size:1.2rem; margin-bottom:6px;">Nenhum produto cadastrado</h3>
                 <p style="font-size:0.9rem; margin-bottom:16px;">Adicione produtos com fotos e preços para montar o seu cardápio digital.</p>
@@ -945,6 +1014,9 @@
             <div class="pm-details">
               <div class="pm-title-row">
                 <strong class="pm-title">{{ product.name }}</strong>
+                {% if product.code %}
+                  <span style="background:#1e293b; color:#fff; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; padding:1px 5px; border-radius:4px;">{{ product.code }}</span>
+                {% endif %}
                 <form method="post" action="" style="display:inline; margin-left:auto; flex-shrink:0;">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="toggle">
@@ -958,9 +1030,22 @@
                   </button>
                 </form>
               </div>
-              <div class="pm-sub-row">
+              <div class="pm-sub-row" style="flex-wrap:wrap; gap:6px;">
                 <span class="badge-cat">{{ product.category.name }}</span>
-                <span class="pm-price">R$ {{ product.price|floatformat:2 }}</span>
+                {% if product.is_promotional and product.promotional_price %}
+                  <span class="pm-price" style="color:#dc2626;">R$ {{ product.promotional_price|floatformat:2 }}</span>
+                  <span style="background:#fee2e2; color:#dc2626; font-size:0.7rem; font-weight:800; padding:1px 4px; border-radius:4px;">{{ product.discount_percent }}% OFF</span>
+                {% else %}
+                  <span class="pm-price">R$ {{ product.price|floatformat:2 }}</span>
+                {% endif %}
+
+                {% if product.track_stock %}
+                  {% if product.stock_quantity <= 0 %}
+                    <span style="background:#fee2e2; color:#991b1b; font-size:0.72rem; font-weight:800; padding:1px 5px; border-radius:4px;">⚠️ Esgotado</span>
+                  {% else %}
+                    <span style="background:#ecfdf5; color:#065f46; font-size:0.72rem; font-weight:800; padding:1px 5px; border-radius:4px;">📦 Estoque: {{ product.stock_quantity }}</span>
+                  {% endif %}
+                {% endif %}
               </div>
             </div>
           </div>
@@ -973,7 +1058,7 @@
             <a href="/painel/{{ store.slug }}/produtos/{{ product.id }}/opcoes/" class="btn-dash btn-dash-outline pm-action-btn pm-btn-options" title="Configurar Sabores, Caldas, Recheios e Adicionais">
               ⚙️ Opções ({{ product.option_groups.count }})
             </a>
-            <button type="button" class="btn-dash btn-dash-outline pm-action-btn pm-btn-edit" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
+            <button type="button" class="btn-dash btn-dash-outline pm-action-btn pm-btn-edit" onclick="openEditModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.code|default:''|escapejs }}', '{{ product.category.id }}', '{{ product.price }}', {% if product.is_promotional %}true{% else %}false{% endif %}, '{{ product.promotional_price|default:'' }}', {% if product.track_stock %}true{% else %}false{% endif %}, '{{ product.stock_quantity }}', '{{ product.description|escapejs }}', {% if product.is_active %}true{% else %}false{% endif %}, '{% if product.image %}{{ product.image.url }}{% endif %}')">
               ✏️ Editar
             </button>
             <form method="post" action="" style="display:inline; margin:0;" onsubmit="return confirm('Tem certeza que deseja excluir o produto &quot;{{ product.name|escapejs }}&quot;?');">
@@ -1001,8 +1086,8 @@
 
   <!-- Modal: Cadastrar Novo Produto -->
   <div id="modalCreateProduct" class="modal-backdrop">
-    <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div class="modal-box" style="max-width:540px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
         <h2 style="font-size:1.3rem; font-weight:800; margin:0; color:#0f172a;">Novo Produto</h2>
         <button type="button" onclick="closeModal('modalCreateProduct')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
       </div>
@@ -1026,9 +1111,15 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="createName">Nome do Produto *</label>
-          <input type="text" id="createName" name="name" class="form-control" placeholder="Ex: Pizza Calabresa Especial" required>
+        <div class="modal-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="createName">Nome do Produto *</label>
+            <input type="text" id="createName" name="name" class="form-control" placeholder="Ex: Fatia de Bolo de Chocolate" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="createCode">Código PDV (Balcão)</label>
+            <input type="text" id="createCode" name="code" class="form-control" placeholder="Ex: FAT001, BOLO01" style="text-transform:uppercase;">
+          </div>
         </div>
 
         <div class="modal-grid-2">
@@ -1045,23 +1136,71 @@
 
           <div class="form-group">
             <label class="form-label" for="createPrice">Preço Base (R$) *</label>
-            <input type="text" id="createPrice" name="price" class="form-control" placeholder="48,00" required>
+            <input type="text" id="createPrice" name="price" class="form-control" placeholder="48,00" required oninput="calcCreatePromoOff()">
+          </div>
+        </div>
+
+        <!-- Seção: Copiar Sabores/Complementos de outro produto existente (Opcional) -->
+        {% if products_with_options %}
+          <div class="form-group" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:12px; margin-bottom:14px;">
+            <label class="form-label" for="createCopyOptions" style="color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <span>📋 Copiar Sabores / Complementos de: (Opcional)</span>
+            </label>
+            <select id="createCopyOptions" name="copy_options_from" class="form-control" style="font-size:0.88rem;">
+              <option value="">Não copiar (criar produto sem complementos)</option>
+              {% for p in products_with_options %}
+                <option value="{{ p.id }}">{{ p.name }} ({{ p.option_groups.count }} grupo{{ p.option_groups.count|pluralize:"s" }})</option>
+              {% endfor %}
+            </select>
+            <small style="color:#64748b; font-size:0.75rem;">O novo produto já nascerá com todos os sabores ou adicionais deste produto copiado!</small>
+          </div>
+        {% endif %}
+
+        <!-- Seção: Preço Promocional (% OFF) -->
+        <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px; margin-bottom:14px;">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:0.88rem; cursor:pointer; color:#9a3412;">
+            <input type="checkbox" id="createIsPromo" name="is_promotional" onchange="togglePromoField('create')">
+            <span>🔥 Ativar Preço Promocional (% OFF)</span>
+          </label>
+          <div id="createPromoBox" style="display:none; margin-top:10px;" class="modal-grid-2">
+            <div>
+              <label class="form-label" style="color:#9a3412;">Valor na Promoção (R$)</label>
+              <input type="text" id="createPromoPrice" name="promotional_price" class="form-control" placeholder="30,00" oninput="calcCreatePromoOff()">
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+              <span id="createPromoBadge" style="background:#dc2626; color:#fff; font-weight:800; font-size:0.85rem; padding:8px 12px; border-radius:8px; display:none;">
+                0% OFF
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção: Estoque Centralizado (PDV & Online) -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-bottom:14px;">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:0.88rem; cursor:pointer; color:#166534;">
+            <input type="checkbox" id="createTrackStock" name="track_stock" onchange="toggleStockField('create')">
+            <span>📦 Controlar Estoque deste Produto (PDV &amp; Online)</span>
+          </label>
+          <div id="createStockBox" style="display:none; margin-top:10px;">
+            <label class="form-label" style="color:#166534;">Quantidade Inicial em Estoque</label>
+            <input type="number" id="createStockQty" name="stock_quantity" class="form-control" placeholder="Ex: 20" min="0" value="0">
+            <small style="color:#64748b; font-size:0.75rem;">O cardápio online e o PDV consumirão este mesmo estoque unificado.</small>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="createDesc">Descrição / Ingredientes</label>
-          <textarea id="createDesc" name="description" class="form-control" rows="3" placeholder="Molho de tomate artesanal, calabresa fatiada, cebola roxa e azeitonas..."></textarea>
+          <textarea id="createDesc" name="description" class="form-control" rows="2" placeholder="Ingredientes, recheio e detalhes..."></textarea>
         </div>
 
         <div class="form-group">
           <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
             <input type="checkbox" name="is_active" checked>
-            <span>Disponível para venda no cardápio</span>
+            <span>Disponível para venda</span>
           </label>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateProduct')">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Produto</button>
         </div>
@@ -1071,8 +1210,8 @@
 
   <!-- Modal: Editar Produto -->
   <div id="modalEditProduct" class="modal-backdrop">
-    <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div class="modal-box" style="max-width:540px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
         <h2 style="font-size:1.3rem; font-weight:800; margin:0; color:#0f172a;">Editar Produto</h2>
         <button type="button" onclick="closeModal('modalEditProduct')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
       </div>
@@ -1099,9 +1238,15 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="editName">Nome do Produto *</label>
-          <input type="text" id="editName" name="name" class="form-control" required>
+        <div class="modal-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="editName">Nome do Produto *</label>
+            <input type="text" id="editName" name="name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editCode">Código PDV (Balcão)</label>
+            <input type="text" id="editCode" name="code" class="form-control" placeholder="Ex: FAT001" style="text-transform:uppercase;">
+          </div>
         </div>
 
         <div class="modal-grid-2">
@@ -1116,23 +1261,55 @@
 
           <div class="form-group">
             <label class="form-label" for="editPrice">Preço Base (R$) *</label>
-            <input type="text" id="editPrice" name="price" class="form-control" required>
+            <input type="text" id="editPrice" name="price" class="form-control" required oninput="calcEditPromoOff()">
+          </div>
+        </div>
+
+        <!-- Seção: Preço Promocional (% OFF) -->
+        <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px; margin-bottom:14px;">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:0.88rem; cursor:pointer; color:#9a3412;">
+            <input type="checkbox" id="editIsPromo" name="is_promotional" onchange="togglePromoField('edit')">
+            <span>🔥 Ativar Preço Promocional (% OFF)</span>
+          </label>
+          <div id="editPromoBox" style="display:none; margin-top:10px;" class="modal-grid-2">
+            <div>
+              <label class="form-label" style="color:#9a3412;">Valor na Promoção (R$)</label>
+              <input type="text" id="editPromoPrice" name="promotional_price" class="form-control" placeholder="30,00" oninput="calcEditPromoOff()">
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+              <span id="editPromoBadge" style="background:#dc2626; color:#fff; font-weight:800; font-size:0.85rem; padding:8px 12px; border-radius:8px; display:none;">
+                0% OFF
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção: Estoque Centralizado (PDV & Online) -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-bottom:14px;">
+          <label style="display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:0.88rem; cursor:pointer; color:#166534;">
+            <input type="checkbox" id="editTrackStock" name="track_stock" onchange="toggleStockField('edit')">
+            <span>📦 Controlar Estoque deste Produto (PDV &amp; Online)</span>
+          </label>
+          <div id="editStockBox" style="display:none; margin-top:10px;">
+            <label class="form-label" style="color:#166534;">Quantidade Atual em Estoque</label>
+            <input type="number" id="editStockQty" name="stock_quantity" class="form-control" placeholder="Ex: 20" min="0">
+            <small style="color:#64748b; font-size:0.75rem;">Quando zerar, o produto ficará como "Esgotado" online e no PDV.</small>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="editDesc">Descrição / Ingredientes</label>
-          <textarea id="editDesc" name="description" class="form-control" rows="3"></textarea>
+          <textarea id="editDesc" name="description" class="form-control" rows="2"></textarea>
         </div>
 
         <div class="form-group">
           <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:0.9rem; cursor:pointer;">
             <input type="checkbox" id="editIsActive" name="is_active">
-            <span>Disponível para venda no cardápio</span>
+            <span>Disponível para venda</span>
           </label>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modalEditProduct')">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         </div>
@@ -1142,19 +1319,79 @@
 
   <!-- Modal: Criar Nova Categoria -->
   <div id="modalCreateCategory" class="modal-backdrop">
-    <div class="modal-box" style="max-width:420px;">
+    <div class="modal-box" style="max-width:480px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h2 style="font-size:1.2rem; font-weight:800; margin:0; color:#0f172a;">Nova Categoria</h2>
+        <h2 style="font-size:1.25rem; font-weight:800; margin:0; color:#0f172a;">Nova Categoria</h2>
         <button type="button" onclick="closeModal('modalCreateCategory')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
       </div>
 
       <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="action" value="create_category">
+
+        <div class="form-group">
+          <label class="form-label">Escolher Ícone / Emoji (Opcional):</label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; max-height:115px; overflow-y:auto;">
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍕')" title="Pizza">🍕</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍔')" title="Hambúrguer">🍔</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍟')" title="Batata / Porção">🍟</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🌭')" title="Hot Dog">🌭</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🥪')" title="Lanche / Sanduíche">🥪</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🥟')" title="Pastel / Salgado">🥟</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍣')" title="Sushi / Japonês">🍣</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🎂')" title="Bolo / Confeitaria">🎂</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍰')" title="Sobremesa / Torta">🍰</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍧')" title="Açaí">🍧</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍨')" title="Sorvete">🍨</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍫')" title="Chocolate">🍫</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🥤')" title="Refrigerante / Suco">🥤</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍺')" title="Cerveja / Chope">🍺</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍷')" title="Vinho">🍷</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('☕')" title="Café">☕</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🥗')" title="Salada / Fit">🥗</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍱')" title="Marmita / PF">🍱</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🥩')" title="Carnes / Churrasco">🥩</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🍗')" title="Frango / Coxinha">🍗</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🔥')" title="Combos / Ofertas">🔥</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('⭐')" title="Destaques">⭐</button>
+            <button type="button" class="btn-emoji-pick" onclick="pickCategoryEmoji('🏷️')" title="Promoções">🏷️</button>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="categoryName">Nome da Categoria *</label>
-          <input type="text" id="categoryName" name="category_name" class="form-control" placeholder="Ex: Pizzas Doces, Porções, Bebidas" required autofocus>
+          <input type="text" id="categoryName" name="category_name" list="suggestedCategoriesList" class="form-control" placeholder="Ex: Bolos, Bebidas, Lanches, Sobremesas..." required autofocus autocomplete="off">
+          <datalist id="suggestedCategoriesList">
+            <option value="🍕 Pizzas Tradicionais">
+            <option value="⭐ Pizzas Especiais">
+            <option value="👑 Pizzas Premium & Gourmet">
+            <option value="🍫 Pizzas Doces">
+            <option value="🥟 Calzones & Fogazas">
+            <option value="🍔 Hambúrgueres Artesanais">
+            <option value="🥓 Smash Burgers">
+            <option value="🌭 Hot Dogs & Cachorro-Quente">
+            <option value="🥪 Lanches & Sanduíches">
+            <option value="🍟 Batatas Fritas & Porções">
+            <option value="🍗 Frangos & Coxinhas">
+            <option value="🥟 Salgados & Pastéis">
+            <option value="🍱 Marmitas & Prato Feito (PF)">
+            <option value="🥩 Carnes & Grelhados">
+            <option value="🍣 Sushis & Sashimis">
+            <option value="🎂 Bolos & Confeitaria">
+            <option value="🍰 Sobremesas & Tortas">
+            <option value="🍧 Açaí no Copo & Tigelas">
+            <option value="🍨 Sorvetes & Picolés">
+            <option value="🥤 Refrigerantes & Sucos">
+            <option value="🍺 Cervejas & Chopes">
+            <option value="☕ Cafés & Chás">
+            <option value="🔥 Combos & Promoções">
+          </datalist>
         </div>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 12px; margin-bottom:16px; font-size:0.83rem; color:#166534; line-height:1.4;">
+          <strong>💡 Ícone Automático Inteligente:</strong> Se você apenas digitar o nome da categoria sem emoji (ex: <em>"Bolos"</em>, <em>"Bebidas"</em>, <em>"Pastéis"</em>, <em>"Sucos"</em>), o sistema identificará o tema e incluirá o emoji correspondente automaticamente!
+        </div>
+
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modalCreateCategory')">Cancelar</button>
           <button type="submit" class="btn btn-primary">Criar Categoria</button>
@@ -1172,8 +1409,43 @@
       document.getElementById(id).classList.remove('active');
     }
 
+    function toggleStockField(prefix) {
+      const isChecked = document.getElementById(prefix + 'TrackStock').checked;
+      document.getElementById(prefix + 'StockBox').style.display = isChecked ? 'block' : 'none';
+    }
+
+    function togglePromoField(prefix) {
+      const isChecked = document.getElementById(prefix + 'IsPromo').checked;
+      document.getElementById(prefix + 'PromoBox').style.display = isChecked ? 'grid' : 'none';
+      if (prefix === 'create') calcCreatePromoOff();
+      else calcEditPromoOff();
+    }
+
+    function calcCreatePromoOff() {
+      calcPromoOff('createPrice', 'createPromoPrice', 'createPromoBadge');
+    }
+
+    function calcEditPromoOff() {
+      calcPromoOff('editPrice', 'editPromoPrice', 'editPromoBadge');
+    }
+
+    function calcPromoOff(basePriceId, promoPriceId, badgeId) {
+      const baseRaw = document.getElementById(basePriceId).value.replace(',', '.');
+      const promoRaw = document.getElementById(promoPriceId).value.replace(',', '.');
+      const base = parseFloat(baseRaw) || 0;
+      const promo = parseFloat(promoRaw) || 0;
+      const badge = document.getElementById(badgeId);
+
+      if (base > 0 && promo > 0 && promo < base) {
+        const off = Math.round(((base - promo) / base) * 100);
+        badge.textContent = `${off}% OFF`;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
     function openCreateProductModal() {
-      // Se não há categorias, convida a criar categoria primeiro
       const catSelect = document.getElementById('createCategory');
       if (!catSelect || catSelect.options.length === 0 || !catSelect.value) {
         alert("Cadastre pelo menos uma categoria antes de adicionar produtos.");
@@ -1183,13 +1455,24 @@
       openModal('modalCreateProduct');
     }
 
-    function openEditModal(id, name, catId, price, desc, isActive, imageUrl) {
+    function openEditModal(id, name, code, catId, price, isPromo, promoPrice, trackStock, stockQty, desc, isActive, imageUrl) {
       document.getElementById('editProductId').value = id;
       document.getElementById('editName').value = name;
+      document.getElementById('editCode').value = code || '';
       document.getElementById('editCategory').value = catId;
       document.getElementById('editPrice').value = parseFloat(price).toFixed(2).replace('.', ',');
       document.getElementById('editDesc').value = desc;
       document.getElementById('editIsActive').checked = isActive;
+
+      // Promo
+      document.getElementById('editIsPromo').checked = isPromo;
+      document.getElementById('editPromoPrice').value = promoPrice ? parseFloat(promoPrice).toFixed(2).replace('.', ',') : '';
+      togglePromoField('edit');
+
+      // Stock
+      document.getElementById('editTrackStock').checked = trackStock;
+      document.getElementById('editStockQty').value = stockQty || '0';
+      toggleStockField('edit');
 
       const imgEl = document.getElementById('editImgPreview');
       const placeholderEl = document.getElementById('editImgPlaceholder');
@@ -1218,7 +1501,25 @@
         reader.readAsDataURL(input.files[0]);
       }
     }
+
+    function pickCategoryEmoji(emoji) {
+      const input = document.getElementById('categoryName');
+      if (!input) return;
+      const current = input.value.trim();
+      // Se já começa com algum caractere especial/emoji, substitui o primeiro símbolo
+      if (/^[\p{Emoji}\u200d\uFE0F]+/u.test(current)) {
+        input.value = current.replace(/^[\p{Emoji}\u200d\uFE0F\s]+/u, emoji + ' ');
+      } else if (current.length > 0) {
+        input.value = emoji + ' ' + current;
+      } else {
+        input.value = emoji + ' ';
+      }
+      input.focus();
+    }
   </script>
+
+  <!-- Inclusão do Notificador Global de Pedidos Online -->
+  {% include 'dashboard/includes/order_notifier.html' %}
 
 </body>
 </html>

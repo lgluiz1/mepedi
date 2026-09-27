@@ -27,6 +27,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_type_display = serializers.CharField(source='get_delivery_type_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    origin_display = serializers.CharField(source='get_origin_display', read_only=True)
     formatted_delivery_address = serializers.ReadOnlyField()
     display_number = serializers.ReadOnlyField()
     customer_whatsapp_link = serializers.SerializerMethodField()
@@ -36,9 +37,9 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'public_id', 'store', 'order_number', 'display_number',
-            'customer', 'status', 'status_display', 'delivery_type',
+            'origin', 'origin_display', 'customer', 'status', 'status_display', 'delivery_type',
             'delivery_type_display', 'payment_method', 'payment_method_display',
-            'change_for', 'delivery_fee', 'subtotal', 'total',
+            'change_for', 'delivery_fee', 'subtotal', 'discount', 'coupon_code', 'total',
             'formatted_delivery_address', 'street', 'number', 'complement',
             'neighborhood', 'city', 'state', 'postal_code', 'reference',
             'notes', 'items', 'customer_whatsapp_link', 'store_whatsapp_link',
@@ -48,7 +49,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'public_id', 'order_number', 'display_number',
-            'subtotal', 'delivery_fee', 'total', 'created_at', 'updated_at',
+            'subtotal', 'delivery_fee', 'discount', 'total', 'created_at', 'updated_at',
             'accepted_at', 'preparing_at', 'ready_at',
             'seconds_remaining_to_accept', 'preparation_seconds_remaining', 'is_preparation_delayed',
         ]
@@ -96,7 +97,9 @@ class CreateOrderRequestSerializer(serializers.Serializer):
     change_for = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     items = serializers.ListField(child=OrderItemInputSerializer(), min_length=1)
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    coupon_code = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True)
 
 
 class UpdateOrderStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.STATUS_CHOICES)
+

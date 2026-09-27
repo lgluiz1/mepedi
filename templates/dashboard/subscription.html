@@ -1,0 +1,1137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MePedi - Minha Assinatura &amp; Planos | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+
+  <style>
+    :root {
+      --dash-bg: #f8fafc;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
+      --brand-primary: #4f46e5;
+      --brand-primary-hover: #4338ca;
+      --brand-success: #10b981;
+      --brand-warning: #f59e0b;
+      --brand-danger: #ef4444;
+      --brand-purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header & Nav MePedi Style */
+    .dash-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 10px 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    .header-content {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dash-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+    .header-left-cluster {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+    }
+    .header-brand {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .mepedi-logo-img {
+      height: 34px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+    .h-divider {
+      width: 1.5px;
+      height: 22px;
+      background: #e2e8f0;
+      flex-shrink: 0;
+    }
+    .panel-title-text {
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .store-badge-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .store-circle-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .store-avatar-fallback {
+      font-size: 1.05rem;
+      background: #eff6ff;
+    }
+    .store-header-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      white-space: nowrap;
+    }
+    .store-quick-switch {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-family: inherit;
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .store-quick-switch:focus {
+      border-color: #4f46e5;
+    }
+
+    /* Linha 1 Direita: Abas / Tabs */
+    .dash-nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .dash-tab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #475569;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .dash-tab-pill:hover {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+    .dash-tab-pill.active {
+      background: #eef2ff;
+      color: #4338ca;
+      border-color: #c7d2fe;
+    }
+    .dash-tab-pill .tab-icon {
+      font-size: 0.95rem;
+      display: inline-block;
+    }
+
+    /* Linha 2: Status da Loja e Ações */
+    .dash-row-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 4px;
+      border-top: 1px dashed #f1f5f9;
+    }
+    .status-live-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .status-indicator-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-indicator-dot.open { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
+    .status-indicator-dot.closed { background: #94a3b8; }
+    .status-indicator-dot.paused { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+
+    .header-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .pill-btn-menu {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .pill-btn-menu:hover { background: #dbeafe; }
+    .pill-btn-logout {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .pill-btn-logout:hover { background: #fee2e2; }
+
+    /* Layout da Página de Assinatura */
+    .sub-container {
+      max-width: 1320px;
+      margin: 28px auto 60px auto;
+      padding: 0 20px;
+      width: 100%;
+    }
+
+    /* Feedback Banners */
+    .feedback-alert {
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 600;
+      animation: fadeIn 0.3s ease;
+    }
+    .feedback-alert.success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+    .feedback-alert.pending {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+    .feedback-alert.failure {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .feedback-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Page Header */
+    .page-title-block {
+      margin-bottom: 28px;
+    }
+    .page-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-subtitle {
+      font-size: 0.98rem;
+      color: #64748b;
+      margin: 0;
+    }
+
+    /* Card Hero: Status Atual */
+    .status-hero-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 36px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
+    .status-hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #4f46e5, #8b5cf6, #ec4899);
+    }
+    .status-hero-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .status-hero-left h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-badge.trial {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+    .status-badge.active {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .status-badge.expired {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .status-badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    /* Grid de Métricas do Trial */
+    .trial-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .metric-progress-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .metric-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .metric-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+    }
+    .metric-numbers {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    .metric-numbers strong {
+      color: #4f46e5;
+    }
+    .progress-bar-bg {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #4f46e5, #6366f1);
+      transition: width 0.4s ease;
+    }
+    .progress-bar-fill.warning {
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+    .progress-bar-fill.danger {
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    /* Notice Box */
+    .unlimited-rule-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #166534;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .unlimited-rule-box strong {
+      color: #14532d;
+    }
+
+    /* Vitrine de Planos */
+    .plans-section-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 40px 0 8px 0;
+      text-align: center;
+    }
+    .plans-section-desc {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.95rem;
+      margin: 0 0 32px 0;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 48px;
+    }
+    .plan-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .plan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+    .plan-card.featured {
+      border: 2px solid #6366f1;
+      background: #faf5ff;
+    }
+    .plan-card.current {
+      border: 2px solid #10b981;
+      background: #f0fdf4;
+    }
+    .plan-badge-top {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+    }
+    .plan-badge-top.current {
+      background: #10b981;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    }
+    .plan-name {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 8px 0;
+    }
+    .plan-price-box {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .plan-price-currency {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .plan-price-amount {
+      font-size: 2.25rem;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .plan-price-period {
+      font-size: 0.9rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .unlimited-badge-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+    .plan-description {
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.45;
+      margin: 0 0 24px 0;
+      min-height: 48px;
+    }
+    .plan-features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 28px 0;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .plan-features-list li {
+      font-size: 0.88rem;
+      color: #334155;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .plan-features-list li .feat-check {
+      color: #10b981;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .btn-checkout-plan {
+      width: 100%;
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }
+    .btn-checkout-plan:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3);
+    }
+    .btn-checkout-plan.current-btn {
+      background: #e2e8f0;
+      color: #64748b;
+      cursor: default;
+      box-shadow: none;
+    }
+    .btn-checkout-plan.current-btn:hover {
+      transform: none;
+      background: #e2e8f0;
+    }
+    .mp-security-note {
+      text-align: center;
+      font-size: 0.74rem;
+      color: #94a3b8;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    /* Tabela de Histórico Financeiro */
+    .payments-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+    .payments-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .payments-header h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+    .payments-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    .payments-table th {
+      background: #f8fafc;
+      padding: 10px 14px;
+      color: #475569;
+      font-weight: 700;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .payments-table td {
+      padding: 12px 14px;
+      color: #1e293b;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .pay-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .pay-status-badge.APPROVED { background: #d1fae5; color: #065f46; }
+    .pay-status-badge.PENDING { background: #fef3c7; color: #92400e; }
+    .pay-status-badge.REJECTED { background: #fee2e2; color: #991b1b; }
+    .pay-status-badge.REFUNDED { background: #e0e7ff; color: #3730a3; }
+    .empty-payments-state {
+      padding: 32px 16px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.92rem;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-bottom: 40px;
+    }
+    .faq-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .faq-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .faq-q {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+    }
+    .faq-a {
+      font-size: 0.85rem;
+      color: #475569;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    /* Responsividade */
+    @media (max-width: 1024px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+      .trial-metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .faq-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 768px) {
+      .dash-row-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .dash-nav-tabs {
+        width: 100%;
+      }
+      .dash-row-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  {% include 'dashboard/includes/saas_banner.html' %}
+
+  <!-- Header Superior MePedi -->
+  <header class="dash-header">
+    <div class="header-content">
+      <!-- Linha 1: Identidade, Loja e Navegação Principal -->
+      <div class="dash-row-top">
+        <div class="header-left-cluster">
+          <a href="/painel/{{ store.slug }}/" class="header-brand" title="MePedi">
+            <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
+          </a>
+          <div class="h-divider"></div>
+          <span class="panel-title-text">Painel de Pedidos</span>
+          <div class="h-divider"></div>
+          <div class="store-badge-header">
+            {% if store.logo %}
+              <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="store-circle-avatar">
+            {% else %}
+              <div class="store-circle-avatar store-avatar-fallback">🍕</div>
+            {% endif %}
+            <div class="store-name-select-box">
+              {% if user_stores|length > 1 %}
+                <select class="store-quick-switch" onchange="window.location.href='/painel/' + this.value + '/assinatura/'">
+                  {% for s in user_stores %}
+                    <option value="{{ s.slug }}" {% if s.slug == store.slug %}selected{% endif %}>
+                      {{ s.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <span class="store-header-name">{{ store.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Links de Navegação da Direita -->
+        <nav class="dash-nav-tabs">
+          <a href="/painel/{{ store.slug }}/" class="dash-tab-pill">
+            <span class="tab-icon">🧾</span>
+            <span>Meus Pedidos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/pdv/" class="dash-tab-pill">
+            <span class="tab-icon">🖥️</span>
+            <span>PDV Balcão</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/produtos/" class="dash-tab-pill">
+            <span class="tab-icon">🍕</span>
+            <span>Produtos &amp; Fotos</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/configuracoes/" class="dash-tab-pill">
+            <span class="tab-icon">⚙️</span>
+            <span>Configurações</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/analytics/" class="dash-tab-pill">
+            <span class="tab-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+          <a href="/painel/{{ store.slug }}/assinatura/" class="dash-tab-pill active">
+            <span class="tab-icon">💎</span>
+            <span>Minha Assinatura</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Linha 2: Status da Loja e Ações Rápidas -->
+      <div class="dash-row-bottom">
+        <div class="status-live-container">
+          <span class="status-indicator-dot {% if store.is_paused %}paused{% elif store.is_currently_open %}open{% else %}closed{% endif %}"></span>
+          <span class="status-indicator-label">
+            {% if store.is_paused %}Loja Pausada{% elif store.is_currently_open %}Loja Aberta{% else %}Loja Fechada{% endif %}
+          </span>
+        </div>
+
+        <div class="header-actions-right">
+          <a href="/{{ store.slug }}/" target="_blank" class="pill-action-btn pill-btn-menu" title="Abrir Cardápio Público">
+            <span>🔗 Cardápio Online</span>
+          </a>
+          <a href="/painel/logout/" class="pill-action-btn pill-btn-logout">
+            <span>🚪 Sair</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="sub-container">
+
+    <!-- Feedback Alerts pós-checkout -->
+    {% if feedback_status == 'success' %}
+      <div class="feedback-alert success">
+        <span class="feedback-icon">🎉</span>
+        <div>
+          <strong>Pagamento Confirmado com Sucesso!</strong>
+          <div>Sua assinatura foi ativada. Sua loja agora conta com todos os recursos e zero limite de vendas!</div>
+        </div>
+      </div>
+    {% elif feedback_status == 'pending' %}
+      <div class="feedback-alert pending">
+        <span class="feedback-icon">⏳</span>
+        <div>
+          <strong>Pagamento em Processamento / Aguardando Compensação</strong>
+          <div>Assim que o Mercado Pago confirmar o pagamento (Pix ou Cartão), seu plano será ativado automaticamente.</div>
+        </div>
+      </div>
+    {% elif feedback_status == 'failure' %}
+      <div class="feedback-alert failure">
+        <span class="feedback-icon">❌</span>
+        <div>
+          <strong>Transação Não Concluída</strong>
+          <div>Houve um problema durante o pagamento no Mercado Pago. Por favor, tente novamente ou escolha outra forma de pagamento.</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Cabeçalho da Página -->
+    <div class="page-title-block">
+      <h1 class="page-title">
+        <span>💎</span> Minha Assinatura &amp; Planos
+      </h1>
+      <p class="page-subtitle">
+        Acompanhe o consumo da sua loja, histórico de faturas e escolha o plano perfeito para seu estabelecimento crescer sem limites.
+      </p>
+    </div>
+
+    <!-- Status Atual Hero Card -->
+    <section class="status-hero-card">
+      <div class="status-hero-header">
+        <div class="status-hero-left">
+          <h3>
+            Situação da Loja:
+            {% if current_subscription.status == 'TRIAL' %}
+              {% if trial_info.is_active %}
+                <span class="status-badge trial">⚡ Teste Gratuito (Trial)</span>
+              {% else %}
+                <span class="status-badge expired">⚠️ Trial Encerrado</span>
+              {% endif %}
+            {% elif current_subscription.status == 'ACTIVE' %}
+              <span class="status-badge active">✅ Assinatura Ativa (Plano {{ current_subscription.plan.name }})</span>
+            {% elif current_subscription.status == 'PAST_DUE' %}
+              <span class="status-badge warning">⚠️ Mensalidade Pendente</span>
+            {% else %}
+              <span class="status-badge expired">{{ current_subscription.get_status_display }}</span>
+            {% endif %}
+          </h3>
+          <p style="color: #64748b; margin: 0; font-size: 0.9rem;">
+            {% if current_subscription.status == 'TRIAL' %}
+              {% if trial_info.is_active %}
+                Você está no período de avaliação gratuito de 30 dias com todas as ferramentas liberadas.
+              {% else %}
+                O período de avaliação foi encerrado por atingir o limite. Seus produtos, clientes e histórico continuam 100% seguros!
+              {% endif %}
+            {% elif current_subscription.status == 'ACTIVE' %}
+              Ciclo vigente: {{ current_subscription.current_period_start|date:"d/m/Y" }} até {{ current_subscription.current_period_end|date:"d/m/Y" }} &bull; R$ {{ current_subscription.plan.price }}/mês
+            {% endif %}
+          </p>
+        </div>
+
+        {% if current_subscription.status == 'ACTIVE' %}
+          <div>
+            <a href="#tabelaPlanos" class="pill-action-btn pill-btn-menu" style="padding: 8px 16px; font-size: 0.88rem;">
+              <span>Mudar de Plano</span>
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Métricas (Durante Trial) -->
+      {% if current_subscription.status == 'TRIAL' %}
+        <div class="trial-metrics-grid">
+          <!-- Métrica 1: Dias -->
+          <div class="metric-progress-card">
+            <div class="metric-label-row">
+              <span class="metric-label">📅 Tempo de Teste</span>
+              <span class="metric-numbers"><strong>{{ trial_info.days_remaining }}</strong> dias restantes</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill {% if days_pct >= 90 %}danger{% elif days_pct >= 75 %}warning{% endif %}" style="width: {{ days_pct }}%;"></div>
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px;">{{ trial_info.days_used }} de 30 dias utilizados</div>
+          </div>
+
+          <!-- Métrica 2: Pedidos -->
+          <div class="metric-progress-card">
+            <div class="metric-label-row">
+              <span class="metric-label">🧾 Pedidos Válidos</span>
+              <span class="metric-numbers"><strong>{{ trial_info.orders_count }}</strong> / 300</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill {% if orders_pct >= 90 %}danger{% elif orders_pct >= 75 %}warning{% endif %}" style="width: {{ orders_pct }}%;"></div>
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px;">Pedidos cancelados não entram na contagem</div>
+          </div>
+
+          <!-- Métrica 3: Faturamento -->
+          <div class="metric-progress-card">
+            <div class="metric-label-row">
+              <span class="metric-label">💰 Faturamento Válido</span>
+              <span class="metric-numbers"><strong>R$ {{ trial_info.revenue_total }}</strong> / R$ 2.000</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill {% if revenue_pct >= 90 %}danger{% elif revenue_pct >= 75 %}warning{% endif %}" style="width: {{ revenue_pct }}%;"></div>
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px;">Vendas brutas em pedidos válidos</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Box de Garantia Ilimitada -->
+      <div class="unlimited-rule-box">
+        <span style="font-size: 1.4rem;">🚀</span>
+        <div>
+          <strong>Transparência Total MePedi:</strong>
+          Limites de pedidos e faturamento existem <em>apenas</em> no período de teste (Trial).
+          Ao contratar qualquer plano comercial, <strong>sua loja passa a ter pedidos e faturamento 100% ILIMITADOS</strong>, sem travas ou cobrança por vendas!
+        </div>
+      </div>
+    </section>
+
+    <!-- Vitrine de Planos Comerciais -->
+    <div id="tabelaPlanos">
+      <h2 class="plans-section-title">Escolha o Plano Ideal para seu Estabelecimento</h2>
+      <p class="plans-section-desc">Todos os planos comerciais contam com pedidos ilimitados e faturamento sem cobrança de taxas sobre vendas.</p>
+
+      <div class="pricing-grid">
+        {% for plan in plans %}
+          <div class="plan-card {% if plan.slug == 'pro' %}featured{% endif %} {% if current_subscription.status == 'ACTIVE' and current_subscription.plan.id == plan.id %}current{% endif %}">
+            
+            {% if current_subscription.status == 'ACTIVE' and current_subscription.plan.id == plan.id %}
+              <div class="plan-badge-top current">Seu Plano Atual</div>
+            {% elif plan.slug == 'pro' %}
+              <div class="plan-badge-top">Mais Escolhido</div>
+            {% endif %}
+
+            <h3 class="plan-name">{{ plan.name }}</h3>
+
+            <div class="plan-price-box">
+              <span class="plan-price-currency">R$</span>
+              <span class="plan-price-amount">{{ plan.price }}</span>
+              <span class="plan-price-period">/mês</span>
+            </div>
+
+            <div class="unlimited-badge-card">
+              <span>🚀 Pedidos &amp; Vendas ILIMITADOS</span>
+            </div>
+
+            <p class="plan-description">{{ plan.description }}</p>
+
+            <ul class="plan-features-list">
+              {% for feat in plan.features.all %}
+                <li>
+                  <span class="feat-check">✓</span>
+                  <span>{{ feat.name }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+
+            {% if current_subscription.status == 'ACTIVE' and current_subscription.plan.id == plan.id %}
+              <button type="button" class="btn-checkout-plan current-btn" disabled>
+                <span>Plano Atual Ativo</span>
+              </button>
+            {% else %}
+              <form method="POST" action="/painel/{{ store.slug }}/assinatura/checkout/{{ plan.slug }}/">
+                {% csrf_token %}
+                <button type="submit" class="btn-checkout-plan">
+                  <span>
+                    {% if current_subscription.status == 'ACTIVE' %}
+                      Migrar para {{ plan.name }}
+                    {% else %}
+                      Contratar {{ plan.name }}
+                    {% endif %}
+                  </span>
+                  <span>→</span>
+                </button>
+              </form>
+            {% endif %}
+
+            <div class="mp-security-note">
+              <span>🔒 Checkout Seguro Mercado Pago</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Tabela de Histórico Financeiro -->
+    <section class="payments-section">
+      <div class="payments-header">
+        <h3>
+          <span>🧾</span> Histórico de Faturas &amp; Pagamentos
+        </h3>
+        <span style="font-size: 0.8rem; color: #94a3b8;">Últimos registros</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Transação / Ref</th>
+              <th>Plano</th>
+              <th>Valor</th>
+              <th>Gateway</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pay in payments %}
+              <tr>
+                <td>{{ pay.created_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  <code style="font-size: 0.8rem; color: #64748b;">
+                    {{ pay.external_id|default:pay.id|truncatechars:20 }}
+                  </code>
+                </td>
+                <td>
+                  <strong>{{ pay.subscription.plan.name|default:"Assinatura MePedi" }}</strong>
+                </td>
+                <td><strong>R$ {{ pay.amount }}</strong></td>
+                <td>{{ pay.get_gateway_display|default:pay.gateway }}</td>
+                <td>
+                  <span class="pay-status-badge {{ pay.status }}">
+                    {% if pay.status == 'APPROVED' %}✓ Aprovado
+                    {% elif pay.status == 'PENDING' %}⏳ Pendente
+                    {% elif pay.status == 'REJECTED' %}✕ Rejeitado
+                    {% elif pay.status == 'REFUNDED' %}↩ Reembolsado
+                    {% else %}{{ pay.get_status_display }}
+                    {% endif %}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="empty-payments-state">
+                  Nenhuma fatura registrada ainda. Suas cobranças e comprovantes aparecerão aqui.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FAQ / Dúvidas Frequentes -->
+    <section class="faq-section">
+      <h3 class="faq-title">
+        <span>❓</span> Perguntas Frequentes sobre os Planos MePedi
+      </h3>
+
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-q">Existe limite de pedidos nos planos comerciais?</div>
+          <p class="faq-a">
+            Não! No MePedi, todos os planos pagos possuem pedidos e faturamento 100% ilimitados. Você pode receber 1.000 ou 15.000 pedidos por mês sem cobrança extra ou bloqueio.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">O que acontece se meu período de testes acabar?</div>
+          <p class="faq-a">
+            Absolutamente nenhum dado é excluído. Seus produtos, fotos, histórico de clientes e configurações continuam salvos. Basta escolher um dos planos comerciais para reativar seu cardápio instantaneamente.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Quais as formas de pagamento disponíveis?</div>
+          <p class="faq-a">
+            Através da integração oficial com o Mercado Pago, você pode assinar via Pix instantâneo, Cartão de Crédito ou Boleto bancário com total segurança.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Posso mudar de plano quando desejar?</div>
+          <p class="faq-a">
+            Sim! Você pode fazer upgrade a qualquer momento diretamente por esta tela. Os novos recursos contratados ficam disponíveis imediatamente.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

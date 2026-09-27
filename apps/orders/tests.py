@@ -5,12 +5,16 @@ from django.core.exceptions import ValidationError
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from datetime import timedelta
+from django.utils import timezone
+
 from stores.models import Store
 from accounts.models import StoreMembership
-from catalog.models import Category, Product, OptionGroup, OptionItem
+from catalog.models import Category, Product, OptionGroup, OptionItem, StockMovement
+from catalog.services import StockService
 from customers.models import Customer
 from delivery.models import DeliveryZone
-from orders.models import Order, OrderItem, OrderItemOption
+from orders.models import Order, OrderItem, OrderItemOption, Coupon
 from orders.services import OrderService
 
 User = get_user_model()
@@ -592,6 +596,484 @@ class PublicCustomerOrdersViewTest(TestCase):
         resp = self.client.get(f'/{self.store.slug}/meus-pedidos/?action=logout')
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Login (somente na primeira vez)')
+
+
+class UnifiedPOSStockAndCouponAuditTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='audit_owner@mepedi.com',
+            password='SafePassword123!',
+            full_name='Audit Owner'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name='Bolo & Cia Central',
+            whatsapp='11999991234',
+            is_active=True,
+            is_open=True,
+            minimum_order_value=Decimal('0.00'),
+            fixed_delivery_fee=Decimal('5.00')
+        )
+        StoreMembership.objects.create(
+            user=self.owner,
+            store=self.store,
+            role=StoreMembership.ROLE_OWNER,
+            is_active=True
+        )
+        self.category = Category.objects.create(store=self.store, name='Bolos Artesanais')
+        
+        # Produto com estoque controlado e preço promocional
+        self.product = Product.objects.create(
+            store=self.store,
+            category=self.category,
+            name='Fatia Bolo de Chocolate',
+            code='BOLO-01',
+            price=Decimal('50.00'),
+            is_promotional=True,
+            promotional_price=Decimal('35.00'),
+            track_stock=True,
+            stock_quantity=20
+        )
+        self.customer = Customer.objects.create(
+            store=self.store,
+            name='Maria Cliente',
+            phone='11988887777'
+        )
+        self.client = APIClient()
+
+    def test_promotional_pricing_properties_and_calculations(self):
+        """Valida propriedades de preço promocional e percentual de desconto no produto."""
+        self.assertEqual(self.product.current_price, Decimal('35.00'))
+        # Desconto: (50 - 35) / 50 = 30%
+        self.assertEqual(self.product.discount_percent, 30)
+
+        # Se não promocional, volta para preço cheio
+        self.product.is_promotional = False
+        self.product.save()
+        self.assertEqual(self.product.current_price, Decimal('50.00'))
+        self.assertEqual(self.product.discount_percent, 0)
+
+    def test_unified_central_stock_between_online_and_pos(self):
+        """
+        Regra Principal: O cardápio online e o PDV DEVEM utilizar o MESMO estoque centralizado.
+        Exemplo:
+        Estoque inicial: 20
+        Venda online (3 un): 20 -> 17
+        Venda PDV (5 un): 17 -> 12
+        """
+        # 1. Venda Online de 3 unidades
+        online_order = OrderService.create_order(
+            store=self.store,
+            customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+            delivery_type=Order.TYPE_DELIVERY,
+            address_payload={'street': 'Rua A', 'number': '10', 'neighborhood': 'Centro'},
+            payment_method=Order.PAY_PIX,
+            items_payload=[{'product_id': self.product.id, 'quantity': 3}]
+        )
+        self.assertEqual(online_order.origin, Order.ORIGIN_ONLINE)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 17)
+
+        # Verifica rastreabilidade no StockMovement
+        mov_online = StockMovement.objects.filter(product=self.product, movement_type=StockMovement.TYPE_SALE_ONLINE).first()
+        self.assertIsNotNone(mov_online)
+        self.assertEqual(mov_online.quantity, -3)
+        self.assertEqual(mov_online.current_stock, 17)
+
+        # 2. Venda Presencial no Balcão (PDV) de 5 unidades
+        pos_order = OrderService.create_pos_order(
+            store=self.store,
+            items_payload=[{'product_id': self.product.id, 'quantity': 5}],
+            payment_method=Order.PAY_MONEY,
+            change_for=Decimal('200.00'),
+            operator=self.owner
+        )
+        self.assertEqual(pos_order.origin, Order.ORIGIN_PDV)
+        self.assertEqual(pos_order.operator, self.owner)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 12)
+
+        # Verifica rastreabilidade no StockMovement para PDV
+        mov_pos = StockMovement.objects.filter(product=self.product, movement_type=StockMovement.TYPE_SALE_PDV).first()
+        self.assertIsNotNone(mov_pos)
+        self.assertEqual(mov_pos.quantity, -5)
+        self.assertEqual(mov_pos.current_stock, 12)
+
+    def test_out_of_stock_prevents_overselling_both_online_and_pos(self):
+        """Garante que tanto o pedido online quanto o PDV bloqueiam venda além do estoque disponível."""
+        # Reduz estoque para 2
+        self.product.stock_quantity = 2
+        self.product.save()
+
+        # Tentativa de compra online de 3 unidades deve falhar
+        with self.assertRaises(ValidationError) as ctx_online:
+            OrderService.create_order(
+                store=self.store,
+                customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+                delivery_type=Order.TYPE_PICKUP,
+                payment_method=Order.PAY_PIX,
+                items_payload=[{'product_id': self.product.id, 'quantity': 3}]
+            )
+        self.assertIn("Estoque insuficiente", str(ctx_online.exception))
+
+        # Estoque permaneceu 2
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 2)
+
+        # Tentativa de venda balcão PDV de 3 unidades também deve falhar
+        with self.assertRaises(ValidationError) as ctx_pos:
+            OrderService.create_pos_order(
+                store=self.store,
+                items_payload=[{'product_id': self.product.id, 'quantity': 3}],
+                payment_method=Order.PAY_MONEY,
+                operator=self.owner
+            )
+        self.assertIn("Estoque insuficiente", str(ctx_pos.exception))
+
+        # Estoque permaneceu 2
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 2)
+
+    def test_order_cancellation_restores_stock_idempotently(self):
+        """Cancelamento de pedido devolve o estoque com segurança e idempotência estrita."""
+        # Realiza venda online de 4 unidades: 20 -> 16
+        order = OrderService.create_order(
+            store=self.store,
+            customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+            delivery_type=Order.TYPE_PICKUP,
+            payment_method=Order.PAY_PIX,
+            items_payload=[{'product_id': self.product.id, 'quantity': 4}]
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 16)
+        self.assertFalse(order.stock_returned)
+
+        # 1º Cancelamento: restaura 4 unidades -> volta para 20
+        StockService.restore_stock(order)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 20)
+        order.refresh_from_db()
+        self.assertTrue(order.stock_returned)
+
+        # Verifica registro de retorno de estoque
+        mov_cancel = StockMovement.objects.filter(product=self.product, movement_type=StockMovement.TYPE_CANCEL_RETURN).first()
+        self.assertIsNotNone(mov_cancel)
+        self.assertEqual(mov_cancel.quantity, 4)
+        self.assertEqual(mov_cancel.current_stock, 20)
+
+        # 2º Cancelamento acidental ou repetido: NÃO deve duplicar devolução
+        StockService.restore_stock(order)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 20)
+
+    def test_global_consecutive_order_numbering_online_and_pos(self):
+        """Sequência global de pedidos (#100X) é rigorosamente contínua entre Online e PDV."""
+        # Pedido 1: Online
+        order1 = OrderService.create_order(
+            store=self.store,
+            customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+            delivery_type=Order.TYPE_PICKUP,
+            payment_method=Order.PAY_PIX,
+            items_payload=[{'product_id': self.product.id, 'quantity': 1}]
+        )
+        # Pedido 2: PDV Balcão
+        order2 = OrderService.create_pos_order(
+            store=self.store,
+            items_payload=[{'product_id': self.product.id, 'quantity': 1}],
+            payment_method=Order.PAY_DEBIT,
+            operator=self.owner
+        )
+        # Pedido 3: Online
+        order3 = OrderService.create_order(
+            store=self.store,
+            customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+            delivery_type=Order.TYPE_PICKUP,
+            payment_method=Order.PAY_PIX,
+            items_payload=[{'product_id': self.product.id, 'quantity': 1}]
+        )
+        # Pedido 4: PDV Balcão
+        order4 = OrderService.create_pos_order(
+            store=self.store,
+            items_payload=[{'product_id': self.product.id, 'quantity': 1}],
+            payment_method=Order.PAY_CREDIT,
+            operator=self.owner
+        )
+
+        self.assertEqual(order1.origin, Order.ORIGIN_ONLINE)
+        self.assertEqual(order2.origin, Order.ORIGIN_PDV)
+        self.assertEqual(order3.origin, Order.ORIGIN_ONLINE)
+        self.assertEqual(order4.origin, Order.ORIGIN_PDV)
+
+        self.assertEqual(order2.order_number, order1.order_number + 1)
+        self.assertEqual(order3.order_number, order2.order_number + 1)
+        self.assertEqual(order4.order_number, order3.order_number + 1)
+
+    def test_coupon_rules_percentage_fixed_min_order_and_usage_limit(self):
+        """Testa regras de negócio completas de cupons de desconto."""
+        # 1. Cupom percentual de 20% com valor mínimo de R$ 50,00
+        coupon_pct = Coupon.objects.create(
+            store=self.store,
+            code='PROMO20',
+            discount_type=Coupon.DISCOUNT_PERCENTAGE,
+            discount_value=Decimal('20.00'),
+            min_order_value=Decimal('50.00'),
+            max_uses=2,
+            is_active=True
+        )
+
+        # Subtotal abaixo do mínimo (R$ 35,00 < R$ 50,00) deve falhar
+        is_valid, msg = coupon_pct.validate_for_order(subtotal=Decimal('35.00'))
+        self.assertFalse(is_valid)
+        self.assertIn("mínimo", msg)
+
+        # Subtotal atendido (R$ 70,00 >= R$ 50,00)
+        is_valid, msg = coupon_pct.validate_for_order(subtotal=Decimal('70.00'))
+        self.assertTrue(is_valid)
+        disc_val = coupon_pct.calculate_discount(subtotal=Decimal('70.00'))
+        # 20% de 70 = R$ 14,00
+        self.assertEqual(disc_val, Decimal('14.00'))
+
+        # Aplica o cupom criando pedido (2 fatias de R$ 35 = R$ 70 subtotal)
+        order = OrderService.create_order(
+            store=self.store,
+            customer_payload={'name': 'Maria Cliente', 'phone': '11988887777'},
+            delivery_type=Order.TYPE_PICKUP,
+            payment_method=Order.PAY_PIX,
+            items_payload=[{'product_id': self.product.id, 'quantity': 2}],
+            coupon_code='PROMO20'
+        )
+        self.assertEqual(order.subtotal, Decimal('70.00'))
+        self.assertEqual(order.discount, Decimal('14.00'))
+        self.assertEqual(order.total, Decimal('56.00'))
+        self.assertEqual(order.coupon_code, 'PROMO20')
+
+        coupon_pct.refresh_from_db()
+        self.assertEqual(coupon_pct.times_used, 1)
+
+        # 2. Testa esgotamento de usos
+        coupon_pct.times_used = 2
+        coupon_pct.save()
+        is_valid, msg = coupon_pct.validate_for_order(subtotal=Decimal('100.00'))
+        self.assertFalse(is_valid)
+        self.assertIn("atingiu o limite", msg)
+
+        # 3. Cupom com valor fixo R$ 10,00
+        coupon_fix = Coupon.objects.create(
+            store=self.store,
+            code='FIXO10',
+            discount_type=Coupon.DISCOUNT_FIXED,
+            discount_value=Decimal('10.00'),
+            min_order_value=Decimal('30.00'),
+            is_active=True
+        )
+        disc_fix = coupon_fix.calculate_discount(subtotal=Decimal('35.00'))
+        self.assertEqual(disc_fix, Decimal('10.00'))
+
+        # 4. Cupom inativo
+        coupon_fix.is_active = False
+        coupon_fix.save()
+        is_valid, msg = coupon_fix.validate_for_order(subtotal=Decimal('50.00'))
+        self.assertFalse(is_valid)
+        self.assertIn("desativado", msg)
+
+        # 5. Cupom expirado
+        coupon_fix.is_active = True
+        coupon_fix.valid_until = timezone.now() - timedelta(days=1)
+        coupon_fix.save()
+        is_valid, msg = coupon_fix.validate_for_order(subtotal=Decimal('50.00'))
+        self.assertFalse(is_valid)
+        self.assertIn("expirou", msg)
+
+    def test_pos_api_endpoint_counter_sale(self):
+        """Valida endpoint REST do PDV POST /api/v1/orders/merchant/<store_id>/pos/."""
+        self.client.force_authenticate(user=self.owner)
+        payload = {
+            "items": [
+                {"product_id": self.product.id, "quantity": 2, "notes": "Embalar para presente"}
+            ],
+            "customer_name": "Balcão José",
+            "customer_phone": "11912345678",
+            "payment_method": "MONEY",
+            "change_for": "100.00",
+            "notes": "Cliente regular"
+        }
+        resp = self.client.post(f'/api/v1/orders/merchant/{self.store.id}/pos/', payload, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        data = resp.json()
+        self.assertEqual(data['origin'], 'PDV')
+        self.assertEqual(data['delivery_type'], 'PICKUP')
+        self.assertEqual(data['status'], 'CONCLUIDO')
+        self.assertEqual(data['total'], '70.00')
+        self.assertEqual(data['change_for'], '100.00')
+
+        order = Order.objects.get(id=data['id'])
+        self.assertEqual(order.change_for - order.total, Decimal('30.00'))
+        self.assertEqual(order.operator, self.owner)
+
+    def test_validate_coupon_api_endpoint(self):
+        """Valida endpoint REST POST /api/v1/orders/coupon/validate/."""
+        Coupon.objects.create(
+            store=self.store,
+            code='DESC10',
+            discount_type=Coupon.DISCOUNT_PERCENTAGE,
+            discount_value=Decimal('10.00'),
+            min_order_value=Decimal('20.00'),
+            is_active=True
+        )
+        payload = {
+            "store_slug": self.store.slug,
+            "code": "DESC10",
+            "subtotal": "50.00",
+            "delivery_fee": "5.00"
+        }
+        resp = self.client.post('/api/v1/orders/coupon/validate/', payload, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.json()
+        self.assertTrue(data['valid'])
+        self.assertEqual(data['discount_amount'], '5.00')
+        self.assertEqual(data['code'], 'DESC10')
+
+
+class ProductOptionCloningDashboardViewTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='lojista_opcoes@mepedi.com',
+            password='Password123!',
+            full_name='Lojista Opções'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name='Açaí & Delícias',
+            whatsapp='11955554444',
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(
+            user=self.owner,
+            store=self.store,
+            role=StoreMembership.ROLE_OWNER,
+            is_active=True
+        )
+        self.category = Category.objects.create(store=self.store, name='Açaí')
+        self.acai_500 = Product.objects.create(
+            store=self.store,
+            category=self.category,
+            name='Açaí no Copo 500ml',
+            price=Decimal('25.00')
+        )
+        self.group_toppings = OptionGroup.objects.create(
+            store=self.store,
+            product=self.acai_500,
+            name='Escolha 4 Complementos',
+            min_options=4,
+            max_options=4,
+            is_required=True
+        )
+        self.item_leite_ninho = OptionItem.objects.create(
+            option_group=self.group_toppings,
+            name='Leite Ninho',
+            price=Decimal('0.00')
+        )
+        self.item_granola = OptionItem.objects.create(
+            option_group=self.group_toppings,
+            name='Granola Artesanal',
+            price=Decimal('0.00')
+        )
+        self.item_nutella = OptionItem.objects.create(
+            option_group=self.group_toppings,
+            name='Nutella Pura',
+            price=Decimal('5.00')
+        )
+
+        self.acai_300 = Product.objects.create(
+            store=self.store,
+            category=self.category,
+            name='Açaí no Copo 300ml',
+            price=Decimal('18.00')
+        )
+        self.client = APIClient()
+        self.client.force_login(self.owner)
+
+    def test_dashboard_clone_group_view(self):
+        """Testa clonagem de grupo pelo painel ajustando limites para o copo menor."""
+        url = f'/painel/{self.store.slug}/produtos/{self.acai_300.id}/opcoes/'
+        payload = {
+            'action': 'clone_group',
+            'source_group_id': self.group_toppings.id,
+            'name': 'Escolha até 2 Complementos',
+            'description': 'Selecione 2 adicionais',
+            'min_options': '1',
+            'max_options': '2',
+            'is_required': 'on',
+            'selected_items': [str(self.item_leite_ninho.id), str(self.item_granola.id)]
+        }
+        resp = self.client.post(url, payload)
+        self.assertEqual(resp.status_code, 200)
+
+        cloned_grp = OptionGroup.objects.filter(product=self.acai_300).first()
+        self.assertIsNotNone(cloned_grp)
+        self.assertEqual(cloned_grp.name, 'Escolha até 2 Complementos')
+        self.assertEqual(cloned_grp.min_options, 1)
+        self.assertEqual(cloned_grp.max_options, 2)
+        self.assertEqual(cloned_grp.items.count(), 2)
+        # Nutella não estava em selected_items
+        self.assertFalse(cloned_grp.items.filter(name='Nutella Pura').exists())
+
+    def test_dashboard_edit_group_rules_view(self):
+        """Testa edição de regras (min/max/nome) sem perder os itens cadastrados."""
+        url = f'/painel/{self.store.slug}/produtos/{self.acai_500.id}/opcoes/'
+        payload = {
+            'action': 'edit_group',
+            'group_id': self.group_toppings.id,
+            'name': 'Escolha de 2 a 4 Complementos',
+            'description': 'Mínimo 2 e máximo 4',
+            'min_options': '2',
+            'max_options': '4',
+            'is_required': 'on'
+        }
+        resp = self.client.post(url, payload)
+        self.assertEqual(resp.status_code, 200)
+
+        self.group_toppings.refresh_from_db()
+        self.assertEqual(self.group_toppings.name, 'Escolha de 2 a 4 Complementos')
+        self.assertEqual(self.group_toppings.min_options, 2)
+        self.assertEqual(self.group_toppings.max_options, 4)
+        # Itens continuam intactos
+        self.assertEqual(self.group_toppings.items.count(), 3)
+
+    def test_dashboard_bulk_add_items_view(self):
+        """Testa adicionar vários sabores ou complementos em massa colando uma lista."""
+        url = f'/painel/{self.store.slug}/produtos/{self.acai_500.id}/opcoes/'
+        payload = {
+            'action': 'bulk_create_items',
+            'group_id': self.group_toppings.id,
+            'items_text': 'Morango Fresco\nBanana Prata\nPaçoca (+ R$ 2,50)\nGotas de Chocolate'
+        }
+        resp = self.client.post(url, payload)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(self.group_toppings.items.count(), 7)
+        pacoca = OptionItem.objects.get(option_group=self.group_toppings, name='Paçoca')
+        self.assertEqual(pacoca.price, Decimal('2.50'))
+
+    def test_create_product_with_copy_options_from(self):
+        """Testa criação de novo produto já copiando grupos e complementos na mesma requisição."""
+        url = f'/painel/{self.store.slug}/produtos/'
+        payload = {
+            'action': 'create',
+            'name': 'Açaí no Copo 700ml',
+            'category': self.category.id,
+            'price': '32.00',
+            'copy_options_from': str(self.acai_500.id)
+        }
+        resp = self.client.post(url, payload)
+        self.assertEqual(resp.status_code, 200)
+
+        acai_700 = Product.objects.get(name='Açaí no Copo 700ml', store=self.store)
+        self.assertEqual(acai_700.option_groups.count(), 1)
+        self.assertEqual(acai_700.option_groups.first().items.count(), 3)
+
+
 
 
 

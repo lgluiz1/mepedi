@@ -48,12 +48,34 @@ class IAPedidosCart {
     this.items.push(item);
     this.saveToStorage();
     this.renderCartUI();
+
+    // Telemetria leve do funil (ADD_TO_CART)
+    try {
+      fetch(`/api/v1/analytics/${this.storeSlug}/event/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'ADD_TO_CART',
+          product_id: item.productId,
+          metadata: { name: item.name, quantity: item.quantity, total: item.total }
+        })
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   updateQuantity(index, delta) {
     if (this.items[index]) {
-      this.items[index].quantity += delta;
-      if (this.items[index].quantity <= 0) {
+      const item = this.items[index];
+      const product = this.catalog[item.productId];
+      if (delta > 0 && product && product.track_stock) {
+        const totalInCart = this.items.filter(i => i.productId === item.productId).reduce((s, i) => s + i.quantity, 0);
+        if (totalInCart + delta > product.stock_quantity) {
+          alert(`Limite de estoque atingido para "${item.name}". Disponível: ${product.stock_quantity}.`);
+          return;
+        }
+      }
+      item.quantity += delta;
+      if (item.quantity <= 0) {
         this.items.splice(index, 1);
       }
       this.saveToStorage();
@@ -116,6 +138,13 @@ class IAPedidosCart {
         }
       });
       btnPlus.addEventListener('click', () => {
+        if (this.activeProduct && this.activeProduct.track_stock) {
+          const currentInCart = this.items.filter(i => i.productId === this.activeProduct.id).reduce((s, i) => s + i.quantity, 0);
+          if (currentInCart + this.modalQuantity >= this.activeProduct.stock_quantity) {
+            alert(`Apenas ${this.activeProduct.stock_quantity} unidades disponíveis em estoque.`);
+            return;
+          }
+        }
         this.modalQuantity++;
         this.updateModalPriceAndValidation();
       });
@@ -153,12 +182,41 @@ class IAPedidosCart {
     const product = this.catalog[productId];
     if (!product) return;
 
+    if (product.track_stock && !product.is_in_stock) {
+      alert(`O produto "${product.name}" está esgotado no momento.`);
+      return;
+    }
+
     this.activeProduct = product;
     this.modalQuantity = 1;
 
+    // Telemetria leve do funil (PRODUCT_VIEW)
+    try {
+      fetch(`/api/v1/analytics/${this.storeSlug}/event/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'PRODUCT_VIEW',
+          product_id: productId,
+          metadata: { name: product.name }
+        })
+      }).catch(() => {});
+    } catch (e) {}
+
     document.getElementById('modal-product-name').textContent = product.name;
     document.getElementById('modal-product-desc').textContent = product.description || '';
-    document.getElementById('modal-product-base-price').textContent = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
+
+    const effectivePrice = Number(product.current_price !== undefined ? product.current_price : product.price);
+    const priceEl = document.getElementById('modal-product-base-price');
+    if (product.is_promotional && product.promotional_price) {
+      priceEl.innerHTML = `
+        <span style="font-size:0.8rem; text-decoration:line-through; color:#94a3b8; margin-right:4px;">R$ ${product.price.toFixed(2).replace('.', ',')}</span>
+        <span style="color:#dc2626; font-weight:800;">R$ ${effectivePrice.toFixed(2).replace('.', ',')}</span>
+        <span style="background:#fee2e2; color:#dc2626; font-size:0.7rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:4px;">${product.discount_percent}% OFF</span>
+      `;
+    } else {
+      priceEl.textContent = `R$ ${effectivePrice.toFixed(2).replace('.', ',')}`;
+    }
 
     // Foto do produto no modal
     const imgContainer = document.getElementById('modal-product-image-container');

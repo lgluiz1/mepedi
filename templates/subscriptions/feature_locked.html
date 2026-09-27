@@ -1,0 +1,474 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recurso Exclusivo — MePedi SaaS | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(22, 30, 46, 0.85);
+      --card-border: rgba(99, 102, 241, 0.25);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #090d16 80%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Top Brand */
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 0 8px;
+    }
+
+    .brand-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      height: 32px;
+      width: auto;
+    }
+
+    .btn-back-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-back-header:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      transform: translateX(-2px);
+    }
+
+    /* Feature Locked Hero Card */
+    .gate-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gate-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+      filter: blur(40px);
+      pointer-events: none;
+    }
+
+    .lock-icon-wrapper {
+      width: 80px;
+      height: 80px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15));
+      border: 1.5px solid rgba(99, 102, 241, 0.4);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+    }
+
+    .gate-badge {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .gate-title {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .gate-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 24px auto;
+      line-height: 1.5;
+    }
+
+    /* Status Box */
+    .status-alert-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.92rem;
+      color: #cbd5e1;
+    }
+
+    .status-alert-box strong {
+      color: #ffffff;
+    }
+
+    /* Plans Grid */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+      text-align: left;
+    }
+
+    .plan-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .plan-card:hover {
+      border-color: rgba(99, 102, 241, 0.6);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .plan-card.featured {
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%);
+      border-color: rgba(99, 102, 241, 0.7);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+    }
+
+    .plan-badge-top {
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: #4f46e5;
+      color: #ffffff;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .plan-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .plan-price-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .plan-price-val {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .plan-price-period {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .plan-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 16px;
+      flex-grow: 1;
+    }
+
+    .plan-unlimited-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-select-plan {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: inline-block;
+      box-sizing: border-box;
+    }
+
+    .btn-select-plan:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .plan-card.featured .btn-select-plan {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .plan-card.featured .btn-select-plan:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Actions Footer */
+    .gate-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary-action {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #ffffff;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-secondary-action {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary-action:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+
+    @media (max-width: 640px) {
+      .gate-card {
+        padding: 24px 16px;
+      }
+      .gate-title {
+        font-size: 1.5rem;
+      }
+      .plans-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Brand Bar -->
+    <div class="brand-bar">
+      <a href="/painel/{{ store.slug }}/" class="brand-link">
+        <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="brand-logo">
+      </a>
+      <a href="/painel/{{ store.slug }}/" class="btn-back-header">
+        <span>← Voltar ao Painel</span>
+      </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="gate-card">
+      <div class="gate-glow"></div>
+
+      <div class="lock-icon-wrapper">
+        🔒
+      </div>
+
+      <span class="gate-badge">Recurso do MePedi SaaS</span>
+
+      <h1 class="gate-title">
+        {% if feature %}
+          {{ feature.name }}
+        {% else %}
+          Funcionalidade Exclusiva
+        {% endif %}
+      </h1>
+
+      <p class="gate-subtitle">
+        {% if feature and feature.description %}
+          {{ feature.description }}
+        {% else %}
+          Esta funcionalidade requer um plano comercial ativo ou período de testes vigente.
+        {% endif %}
+      </p>
+
+      <!-- Informação da Assinatura Atual -->
+      <div class="status-alert-box">
+        {% if trial_info.is_expired %}
+          <span>⚠️ <strong>Período de Testes Expirado:</strong> Seus dados e produtos continuam salvos! Contrate um plano comercial para reativar todos os recursos.</span>
+        {% elif subscription and subscription.plan %}
+          <span>ℹ️ <strong>Plano Atual:</strong> Sua loja está no plano <strong>{{ subscription.plan.name }}</strong>. Faça upgrade para desbloquear esta funcionalidade.</span>
+        {% else %}
+          <span>ℹ️ Esta funcionalidade não está disponível no plano atual de sua loja.</span>
+        {% endif %}
+      </div>
+
+      <!-- Vitrine dos Planos que possuem a feature -->
+      <div class="plans-grid">
+        {% for plan in plans_with_feature %}
+          <div class="plan-card {% if plan.slug == 'pro' %}featured{% endif %}">
+            {% if plan.slug == 'pro' %}
+              <div class="plan-badge-top">Mais Popular</div>
+            {% endif %}
+
+            <div>
+              <h3 class="plan-name">Plano {{ plan.name }}</h3>
+              <div class="plan-price-wrap">
+                <span class="plan-price-val">R$ {{ plan.price }}</span>
+                <span class="plan-price-period">/mês</span>
+              </div>
+              <div class="plan-unlimited-pill">
+                <span>🚀 Pedidos &amp; Faturamento Ilimitados</span>
+              </div>
+              <p class="plan-desc">{{ plan.description }}</p>
+            </div>
+
+            <a href="/painel/{{ store.slug }}/assinatura/?highlight={{ plan.slug }}"
+               class="btn-select-plan">
+              Escolher {{ plan.name }}
+            </a>
+          </div>
+        {% empty %}
+          <!-- Fallback genérico se a feature não estiver vinculada a nenhum plano ainda -->
+          <div class="plan-card featured" style="grid-column: 1 / -1; text-align: center;">
+            <h3 class="plan-name">Fale com nossa Equipe</h3>
+            <p class="plan-desc">Entre em contato para saber mais sobre condições especiais para sua loja.</p>
+            <a href="https://wa.me/5511999999999?text=Ol%C3%A1!%20Gostaria%20de%20ativar%20uma%20funcionalidade%20exclusiva%20na%20loja%20{{ store.name }}"
+               target="_blank"
+               class="btn-select-plan">
+              Falar com Suporte MePedi
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Ações de Rodapé -->
+      <div class="gate-actions">
+        <a href="/painel/{{ store.slug }}/" class="btn-secondary-action">
+          ← Voltar ao Painel de Pedidos
+        </a>
+        <a href="https://wa.me/5511999999999?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20upgrade%20da%20minha%20loja%20{{ store.name }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="btn-primary-action">
+          💬 Falar com Especialista MePedi
+        </a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

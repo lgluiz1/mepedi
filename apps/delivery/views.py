@@ -72,6 +72,7 @@ class PublicDeliveryZoneListView(generics.ListAPIView):
     Endpoint público: retorna as regiões e taxas ativas de uma loja pelo slug.
     Ex: /api/v1/delivery/public/{store_slug}/zones/
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     serializer_class = DeliveryZoneSerializer
 
@@ -85,6 +86,7 @@ class PublicCalculateDeliveryFeeView(APIView):
     """
     Calcula a taxa de entrega da loja para um bairro informado.
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, store_slug):

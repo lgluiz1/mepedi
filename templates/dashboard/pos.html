@@ -1,0 +1,1867 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MePedi PDV - Ponto de Venda Balcão | {{ store.name }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+  <style>
+    :root {
+      --dash-bg: #f1f5f9;
+      --dash-header: #ffffff;
+      --dash-card: #ffffff;
+      --dash-card-border: #e2e8f0;
+      --dash-text: #0f172a;
+      --dash-muted: #64748b;
+      --pos-primary: #4f46e5;
+      --pos-success: #10b981;
+      --pos-warning: #f59e0b;
+      --pos-danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--dash-bg);
+      color: var(--dash-text);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Header MePedi PDV */
+    .pos-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 8px 18px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    .pos-header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .pos-brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .mepedi-logo-img {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+    .pos-badge {
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pos-header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pos-nav-link {
+      color: #475569;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .pos-nav-link:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    /* Layout Principal */
+    .pos-layout {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 16px;
+      padding: 16px;
+      height: calc(100vh - 60px);
+    }
+
+    /* Coluna Esquerda: Catálogo e Busca */
+    .pos-catalog-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+      min-width: 0;
+    }
+
+    /* Barra de Busca Rápida / Código de Barras */
+    .pos-search-bar {
+      display: flex;
+      gap: 10px;
+      background: #ffffff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .pos-search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0f172a;
+      background: transparent;
+    }
+    .pos-search-input::placeholder {
+      color: #94a3b8;
+    }
+
+    /* Categorias Filtros */
+    .pos-categories-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+      flex-shrink: 0;
+    }
+    .pos-cat-pill {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .pos-cat-pill:hover {
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .pos-cat-pill.active {
+      background: #4f46e5;
+      border-color: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+
+    /* Grid de Produtos */
+    .pos-products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 4px;
+      flex: 1;
+    }
+    .pos-product-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+      user-select: none;
+    }
+    .pos-product-card:hover {
+      border-color: #818cf8;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
+      transform: translateY(-2px);
+    }
+    .pos-product-card.out-of-stock {
+      opacity: 0.55;
+      cursor: not-allowed;
+      border-color: #fca5a5;
+      background: #fff5f5;
+    }
+    .pos-product-card.out-of-stock:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .pos-prod-code-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #1e293b;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .pos-prod-stock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      width: fit-content;
+      margin-top: 4px;
+    }
+    .pos-prod-stock-badge.ok {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .pos-prod-stock-badge.low {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .pos-prod-stock-badge.zero {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .pos-prod-stock-badge.unlimited {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .pos-prod-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-top: 18px;
+      margin-bottom: 4px;
+    }
+    .pos-prod-pricing {
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pos-prod-price {
+      font-size: 1.12rem;
+      font-weight: 900;
+      color: #4f46e5;
+    }
+    .pos-prod-price-old {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      text-decoration: line-through;
+    }
+    .pos-prod-promo-tag {
+      background: #fee2e2;
+      color: #dc2626;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* Coluna Direita: Carrinho e Checkout */
+    .pos-cart-column {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+    }
+    .pos-cart-header {
+      padding: 14px 18px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pos-cart-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pos-btn-clear {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .pos-btn-clear:hover {
+      background: #fee2e2;
+    }
+
+    /* Lista de Itens no Carrinho */
+    .pos-cart-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .pos-cart-empty {
+      text-align: center;
+      padding: 40px 10px;
+      color: #94a3b8;
+    }
+    .pos-cart-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pos-cart-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .pos-cart-item-name {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #0f172a;
+      flex: 1;
+    }
+    .pos-cart-item-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .pos-step-btn {
+      background: none;
+      border: none;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #475569;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pos-step-btn:hover {
+      color: #0f172a;
+    }
+    .pos-step-qty {
+      font-weight: 800;
+      font-size: 0.85rem;
+      min-width: 16px;
+      text-align: center;
+    }
+    .pos-cart-item-total {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+      min-width: 65px;
+      text-align: right;
+    }
+    .pos-cart-item-opts {
+      font-size: 0.75rem;
+      color: #64748b;
+      padding-left: 6px;
+    }
+
+    /* Painel Inferior do Carrinho: Cliente, Cupom, Pagamento, Totais */
+    .pos-cart-footer {
+      border-top: 1px solid #e2e8f0;
+      background: #ffffff;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Input Cliente Balcão */
+    .pos-customer-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pos-field-sm {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .pos-field-sm:focus {
+      border-color: #4f46e5;
+    }
+
+    /* Cupom */
+    .pos-coupon-row {
+      display: flex;
+      gap: 6px;
+    }
+    .pos-btn-apply-coupon {
+      background: #1e293b;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Pagamento Seleção em Chips */
+    .pos-pay-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .pos-pay-chip {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 7px 4px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      color: #334155;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .pos-pay-chip.active {
+      background: #eef2ff;
+      border-color: #4f46e5;
+      color: #4338ca;
+    }
+
+    /* Totais */
+    .pos-totals-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+    .pos-totals-row.discount {
+      color: #10b981;
+      font-weight: 700;
+    }
+    .pos-totals-row.grand {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #0f172a;
+      margin-top: 4px;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 6px;
+    }
+
+    /* Botão Finalizar */
+    .pos-btn-checkout {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .pos-btn-checkout:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .pos-btn-checkout:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Modal de Adicionais / Opções do PDV */
+    .pos-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .pos-modal-box {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    .pos-modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pos-modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .pos-modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .btn-dash, .pos-btn-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      text-decoration: none;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .btn-dash:hover, .pos-btn-outline:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .btn-dash:active, .pos-btn-outline:active {
+      transform: scale(0.98);
+    }
+
+    /* Modal do Cupom Térmico (Impressão 58mm / 80mm) */
+    #thermalReceiptModal .thermal-receipt-paper {
+      background: #fff;
+      color: #000;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 16px;
+      margin: 0 auto;
+      border: 1px dashed #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .receipt-58mm {
+      width: 58mm;
+      font-size: 11px;
+    }
+    .receipt-80mm {
+      width: 80mm;
+      font-size: 12px;
+    }
+
+    /* Mobile Floating Drawer Trigger */
+    .pos-mobile-cart-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #ffffff;
+      padding: 12px 18px;
+      z-index: 95;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.22);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .pos-mobile-cart-bar:active {
+      transform: scale(0.98);
+    }
+    @keyframes barPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); filter: brightness(1.2); }
+      100% { transform: scale(1); }
+    }
+    .bar-pulse {
+      animation: barPulse 0.35s ease;
+    }
+
+    /* Botão Voltar aos Produtos no Header do Carrinho */
+    .pos-mobile-back-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .pos-mobile-back-btn:hover, .pos-mobile-back-btn:active {
+      background: #e0e7ff;
+      border-color: #818cf8;
+      color: #312e81;
+    }
+
+    .pos-btn-close-mobile {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-size: 1rem;
+      font-weight: 800;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .pos-btn-close-mobile:hover, .pos-btn-close-mobile:active {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #ef4444;
+    }
+
+    /* Botão Adicionar Mais Itens na Lista */
+    .pos-add-more-container {
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+    .pos-btn-add-more-items {
+      width: 100%;
+      background: #f5f3ff;
+      border: 2px dashed #818cf8;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08);
+      box-sizing: border-box;
+    }
+    .pos-btn-add-more-items:hover, .pos-btn-add-more-items:active {
+      background: #ede9fe;
+      border-color: #6366f1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    }
+    .pos-add-more-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pos-add-more-icon {
+      font-size: 1.25rem;
+      background: #e0e7ff;
+      color: #4338ca;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pos-add-more-texts strong {
+      display: block;
+      color: #3730a3;
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+    .pos-add-more-texts small {
+      display: block;
+      color: #6366f1;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .pos-add-more-arrow {
+      color: #6366f1;
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    /* Botão Continuar Comprando no Rodapé */
+    .pos-btn-continue-shopping {
+      width: 100%;
+      background: #f8fafc;
+      color: #475569;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+    .pos-btn-continue-shopping:hover, .pos-btn-continue-shopping:active {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    /* Toast Flutuante de Feedback */
+    .pos-toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .pos-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @media (min-width: 993px) {
+      .pos-btn-continue-shopping {
+        display: none;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .pos-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        padding-bottom: 85px;
+      }
+      .pos-cart-column {
+        display: none; /* vira slide-up modal / drawer no mobile */
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        border-radius: 0;
+        height: 100vh;
+        height: 100dvh;
+      }
+      .pos-cart-column.mobile-open {
+        display: flex;
+      }
+      .pos-mobile-cart-bar {
+        display: flex;
+      }
+      .pos-mobile-back-btn {
+        display: inline-flex;
+      }
+      .pos-btn-close-mobile {
+        display: inline-flex;
+      }
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printArea, #printArea * {
+        visibility: visible !important;
+      }
+      #printArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include 'dashboard/includes/saas_banner.html' %}
+
+  <!-- Top Header MePedi PDV -->
+  <header class="pos-header">
+    <div class="pos-header-inner">
+      <div class="pos-brand-cluster">
+        <a href="/painel/{{ store.slug }}/" title="Voltar ao Painel">
+          <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="mepedi-logo-img">
+        </a>
+        <span class="pos-badge">🖥️ PDV Balcão</span>
+        <span style="font-weight: 800; font-size: 0.95rem; color: #1e293b;">{{ store.name }}</span>
+      </div>
+
+      <div class="pos-header-nav">
+        <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;" class="hide-mobile">
+          👤 Operador: <strong>{{ request.user.full_name|default:request.user.first_name|default:request.user.email }}</strong>
+        </span>
+        <a href="/painel/{{ store.slug }}/" class="pos-nav-link">
+          <span>🧾</span>
+          <span>Pedidos Online</span>
+        </a>
+        <a href="/painel/{{ store.slug }}/produtos/" class="pos-nav-link">
+          <span>🍕</span>
+          <span>Produtos</span>
+        </a>
+        <a href="/painel/{{ store.slug }}/analytics/" class="pos-nav-link">
+          <span>📊</span>
+          <span>Analytics</span>
+        </a>
+        <a href="/painel/{{ store.slug }}/assinatura/" class="pos-nav-link">
+          <span>💎</span>
+          <span>Assinatura</span>
+        </a>
+        <button type="button" class="pos-nav-link" onclick="toggleFullscreen()" style="background:none; border:none; cursor:pointer;" title="Tela Cheia">
+          <span>⛶</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout Principal do PDV -->
+  <main class="pos-layout">
+
+    <!-- COLUNA ESQUERDA: Busca, Categorias e Grade de Produtos -->
+    <section class="pos-catalog-column">
+      <!-- Busca por Nome ou Código de Produto -->
+      <div class="pos-search-bar">
+        <span style="font-size: 1.2rem;">🔍</span>
+        <input type="text" id="posSearchInput" class="pos-search-input" placeholder="Buscar por Nome ou Código do Produto (ex: FAT001)..." autofocus autocomplete="off">
+        <button type="button" id="posSearchClear" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.1rem; display:none;" onclick="clearSearch()">✕</button>
+      </div>
+
+      <!-- Filtro de Categorias -->
+      <div class="pos-categories-bar" id="posCategoriesBar">
+        <button type="button" class="pos-cat-pill active" data-cat-id="ALL" onclick="filterCategory('ALL', this)">
+          Todos os Produtos
+        </button>
+        {% for cat in categories %}
+          {% if cat.products.all %}
+            <button type="button" class="pos-cat-pill" data-cat-id="{{ cat.id }}" onclick="filterCategory('{{ cat.id }}', this)">
+              {{ cat.name }}
+            </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <!-- Grid de Cards de Produtos -->
+      <div class="pos-products-grid" id="posProductsGrid">
+        <!-- Renderizado dinamicamente via JS a partir de pos_catalog_json -->
+      </div>
+    </section>
+
+    <!-- COLUNA DIREITA: Carrinho e Checkout Balcão -->
+    <aside class="pos-cart-column" id="posCartColumn">
+      <div class="pos-cart-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="pos-mobile-back-btn" id="posMobileBackBtn" onclick="closeMobileCart()" title="Voltar para a lista de produtos">
+            ← Produtos
+          </button>
+          <div class="pos-cart-title">
+            <span>🛒</span>
+            <span>Venda Balcão</span>
+            <span id="posCartCountBadge" style="background:#e0e7ff; color:#4338ca; font-size:0.75rem; padding:2px 7px; border-radius:999px;">0</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="pos-btn-clear" onclick="posCart.clear()">Limpar</button>
+          <button type="button" class="pos-btn-close-mobile" id="posCloseMobileCart" onclick="closeMobileCart()" title="Fechar e voltar aos produtos">✕</button>
+        </div>
+      </div>
+
+      <!-- Lista de Itens -->
+      <div class="pos-cart-items" id="posCartItemsList">
+        <div class="pos-cart-empty">
+          <div style="font-size: 2.2rem; margin-bottom: 6px;">🛒</div>
+          <p style="font-weight:700; margin:0;">Nenhum item adicionado</p>
+          <small>Selecione produtos na grade ao lado ou digite o código</small>
+        </div>
+      </div>
+
+      <!-- Rodapé do Carrinho: Cliente, Cupom, Pagamento e Ações -->
+      <div class="pos-cart-footer">
+        <!-- Identificação do Cliente (Opcional) -->
+        <div class="pos-customer-row">
+          <input type="text" id="posCustName" class="pos-field-sm" placeholder="Nome (ex: Venda Balcão)">
+          <input type="tel" id="posCustPhone" class="pos-field-sm" placeholder="WhatsApp (opcional)">
+        </div>
+
+        <!-- Cupom de Desconto -->
+        <div class="pos-coupon-row">
+          <input type="text" id="posCouponCode" class="pos-field-sm" placeholder="Cupom de Desconto" style="text-transform:uppercase;">
+          <button type="button" class="pos-btn-apply-coupon" onclick="applyPOSCoupon()">Aplicar</button>
+        </div>
+        <div id="posCouponFeedback" style="display:none; font-size:0.75rem; font-weight:700;"></div>
+
+        <!-- Forma de Pagamento -->
+        <div>
+          <label style="font-size:0.75rem; font-weight:700; color:#64748b; margin-bottom:4px; display:block;">FORMA DE PAGAMENTO</label>
+          <div class="pos-pay-chips">
+            <div class="pos-pay-chip active" data-method="MONEY" onclick="selectPayMethod('MONEY', this)">💵 Dinheiro</div>
+            <div class="pos-pay-chip" data-method="PIX" onclick="selectPayMethod('PIX', this)">💠 Pix</div>
+            <div class="pos-pay-chip" data-method="CREDIT_CARD" onclick="selectPayMethod('CREDIT_CARD', this)">💳 Crédito</div>
+            <div class="pos-pay-chip" data-method="DEBIT_CARD" onclick="selectPayMethod('DEBIT_CARD', this)">💳 Débito</div>
+          </div>
+        </div>
+
+        <!-- Troco (Apenas quando Dinheiro) -->
+        <div id="posChangeBox" style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#f8fafc; padding:6px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+          <span style="font-size:0.8rem; font-weight:700; color:#475569;">Troco para: R$</span>
+          <input type="number" id="posChangeInput" class="pos-field-sm" style="width:110px; text-align:right;" placeholder="0,00" step="0.50" oninput="calculateChange()">
+          <span id="posChangeReturn" style="font-size:0.8rem; font-weight:800; color:#10b981;">Troco: R$ 0,00</span>
+        </div>
+
+        <!-- Totais -->
+        <div>
+          <div class="pos-totals-row">
+            <span>Subtotal:</span>
+            <strong id="posSubtotalText">R$ 0,00</strong>
+          </div>
+          <div class="pos-totals-row discount" id="posDiscountRow" style="display:none;">
+            <span>Desconto:</span>
+            <strong id="posDiscountText">- R$ 0,00</strong>
+          </div>
+          <div class="pos-totals-row grand">
+            <span>TOTAL:</span>
+            <span id="posGrandTotalText" style="color:#4f46e5;">R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Botão Adicionar Mais Itens ao Pedido (Mobile) -->
+        <button type="button" class="pos-btn-continue-shopping" onclick="onAddMoreItemsClick()">
+          <span>← Adicionar mais itens ao pedido</span>
+        </button>
+
+        <!-- Botão Finalizar Venda -->
+        <button type="button" id="posBtnCheckout" class="pos-btn-checkout" onclick="submitPOSOrder()" disabled>
+          <span>Finalizar Venda (F2)</span>
+          <span>➔</span>
+        </button>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Barra Flutuante Mobile para abrir o Carrinho -->
+  <div class="pos-mobile-cart-bar" id="posMobileBar" onclick="openMobileCart()">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:1.3rem;">🛒</span>
+      <div>
+        <div style="font-size:0.95rem; font-weight:800;">Ver Pedido (<span id="mobileItemCount">0</span>)</div>
+        <div style="font-size:0.75rem; color:#cbd5e1;">Toque para ir ao checkout</div>
+      </div>
+    </div>
+    <div style="font-size:1.15rem; font-weight:900; color:#38bdf8;" id="mobileGrandTotal">
+      R$ 0,00 ➔
+    </div>
+  </div>
+
+  <!-- MODAL: Escolha de Adicionais / Opções do Produto -->
+  <div class="pos-modal-backdrop" id="posOptionsModal">
+    <div class="pos-modal-box">
+      <div class="pos-modal-header">
+        <div>
+          <h3 id="modalProdTitle" style="margin:0; font-size:1.15rem; font-weight:800; color:#0f172a;">Personalizar Item</h3>
+          <span id="modalProdPrice" style="font-size:0.9rem; font-weight:700; color:#4f46e5;">R$ 0,00</span>
+        </div>
+        <button type="button" onclick="closeOptionsModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#64748b;">✕</button>
+      </div>
+
+      <div class="pos-modal-body" id="modalOptionsContainer">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <div class="pos-modal-footer">
+        <div style="display:inline-flex; align-items:center; gap:8px;">
+          <span style="font-weight:700; font-size:0.85rem; color:#64748b;">Qtd:</span>
+          <div class="pos-cart-item-stepper">
+            <button type="button" class="pos-step-btn" onclick="updateModalQty(-1)">-</button>
+            <span class="pos-step-qty" id="modalQtyDisplay">1</span>
+            <button type="button" class="pos-step-btn" onclick="updateModalQty(1)">+</button>
+          </div>
+        </div>
+        <button type="button" id="btnConfirmAddOptions" class="pos-btn-checkout" style="padding:10px 18px; font-size:0.95rem;" onclick="confirmAddProductWithOptions()">
+          Adicionar ao Pedido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Impressão Térmica do Cupom (58mm / 80mm) -->
+  <div class="pos-modal-backdrop" id="thermalReceiptModal">
+    <div class="pos-modal-box" style="max-width: 480px;">
+      <div class="pos-modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.3rem;">🖨️</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:800;">Venda Concluída!</h3>
+            <small style="color:#10b981; font-weight:700;">Estoque debitado com sucesso.</small>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" class="pos-cat-pill" id="btnTogglePaper58" onclick="setReceiptPaper('58mm')" style="padding:4px 8px; font-size:0.75rem;">58mm</button>
+          <button type="button" class="pos-cat-pill active" id="btnTogglePaper80" onclick="setReceiptPaper('80mm')" style="padding:4px 8px; font-size:0.75rem;">80mm</button>
+        </div>
+      </div>
+
+      <div class="pos-modal-body" style="background:#f1f5f9; padding:16px;">
+        <div id="printArea">
+          <div class="thermal-receipt-paper receipt-80mm" id="thermalReceiptContent">
+            <!-- Preenchido dinamicamente com dados da venda -->
+          </div>
+        </div>
+      </div>
+
+      <div class="pos-modal-footer">
+        <button type="button" class="pos-btn-outline" onclick="closeReceiptModal()">✕ Nova Venda (Esc)</button>
+        <button type="button" class="pos-btn-checkout" style="padding:10px 22px; margin:0;" onclick="printReceipt()">🖨️ Imprimir Cupom</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dados do Catálogo em JSON -->
+  <script id="pos-catalog-data" type="application/json">
+    {{ pos_catalog_json|safe }}
+  </script>
+
+  <script>
+    const storeSlug = "{{ store.slug }}";
+    const storeId = "{{ store.id }}";
+    const storeName = "{{ store.name|escapejs }}";
+    const storeAddress = "{{ store.street|escapejs }}, {{ store.number|escapejs }} - {{ store.neighborhood|escapejs }}";
+    const storeReceiptMsg = "{{ store.thermal_receipt_message|default:'Obrigado pela preferência! Volte sempre.'|escapejs }}";
+    const operatorName = "{{ request.user.full_name|default:request.user.first_name|default:request.user.email|escapejs }}";
+
+    let catalog = {};
+    try {
+      catalog = JSON.parse(document.getElementById('pos-catalog-data').textContent);
+    } catch (e) {
+      console.error("Erro ao carregar catálogo:", e);
+    }
+
+    // Gerenciador do Carrinho do PDV
+    class POSCart {
+      constructor() {
+        this.items = [];
+        this.selectedPaymentMethod = 'MONEY';
+        this.appliedCoupon = null;
+      }
+
+      addItem(product, quantity = 1, options = [], notes = '') {
+        // Validação de Estoque
+        if (product.track_stock) {
+          const currentInCart = this.getProductCountInCart(product.id);
+          if (currentInCart + quantity > product.stock_quantity) {
+            alert(`Estoque insuficiente para "${product.name}". Disponível: ${product.stock_quantity}.`);
+            return false;
+          }
+        }
+
+        const optionsTotal = options.reduce((sum, opt) => sum + (Number(opt.price) || 0), 0);
+        const unitPrice = Number(product.current_price);
+        const itemTotal = (unitPrice + optionsTotal) * quantity;
+
+        this.items.push({
+          product_id: product.id,
+          name: product.name,
+          code: product.code,
+          unit_price: unitPrice,
+          quantity: quantity,
+          options: options,
+          notes: notes,
+          total: itemTotal,
+          track_stock: product.track_stock,
+          stock_quantity: product.stock_quantity
+        });
+
+        this.render();
+        showPosToast(`"${product.name}" adicionado ao pedido!`);
+        const mobileBar = document.getElementById('posMobileBar');
+        if (mobileBar) {
+          mobileBar.classList.remove('bar-pulse');
+          void mobileBar.offsetWidth;
+          mobileBar.classList.add('bar-pulse');
+        }
+        return true;
+      }
+
+      updateQuantity(index, delta) {
+        const item = this.items[index];
+        if (!item) return;
+
+        if (delta > 0 && item.track_stock) {
+          const currentInCart = this.getProductCountInCart(item.product_id);
+          if (currentInCart + delta > item.stock_quantity) {
+            alert(`Limite de estoque atingido para "${item.name}".`);
+            return;
+          }
+        }
+
+        item.quantity += delta;
+        if (item.quantity <= 0) {
+          const itemName = item.name;
+          this.items.splice(index, 1);
+          showPosToast(`"${itemName}" removido do pedido`, '🗑️');
+        } else {
+          const optionsTotal = item.options.reduce((sum, opt) => sum + (Number(opt.price) || 0), 0);
+          item.total = (item.unit_price + optionsTotal) * item.quantity;
+        }
+
+        this.render();
+      }
+
+      removeItem(index) {
+        const item = this.items[index];
+        const itemName = item ? item.name : 'Item';
+        this.items.splice(index, 1);
+        showPosToast(`"${itemName}" removido do pedido`, '🗑️');
+        this.render();
+      }
+
+      clear() {
+        this.items = [];
+        this.appliedCoupon = null;
+        document.getElementById('posCouponFeedback').style.display = 'none';
+        document.getElementById('posCouponCode').value = '';
+        this.render();
+        showPosToast('Carrinho limpo', '🧹');
+      }
+
+      getProductCountInCart(productId) {
+        return this.items
+          .filter(i => i.product_id === productId)
+          .reduce((sum, i) => sum + i.quantity, 0);
+      }
+
+      getSubtotal() {
+        return this.items.reduce((sum, i) => sum + i.total, 0);
+      }
+
+      getDiscount() {
+        if (!this.appliedCoupon) return 0;
+        return Number(this.appliedCoupon.discount_amount) || 0;
+      }
+
+      getGrandTotal() {
+        return Math.max(0, this.getSubtotal() - this.getDiscount());
+      }
+
+      render() {
+        const listEl = document.getElementById('posCartItemsList');
+        const badgeEl = document.getElementById('posCartCountBadge');
+        const subtotalEl = document.getElementById('posSubtotalText');
+        const grandTotalEl = document.getElementById('posGrandTotalText');
+        const btnCheckout = document.getElementById('posBtnCheckout');
+        const mobileBar = document.getElementById('posMobileBar');
+        const mobileCount = document.getElementById('mobileItemCount');
+        const mobileTotal = document.getElementById('mobileGrandTotal');
+        const discountRow = document.getElementById('posDiscountRow');
+        const discountText = document.getElementById('posDiscountText');
+
+        const totalItemsCount = this.items.reduce((sum, i) => sum + i.quantity, 0);
+        badgeEl.textContent = totalItemsCount;
+        mobileCount.textContent = totalItemsCount;
+
+        if (this.items.length === 0) {
+          listEl.innerHTML = `
+            <div class="pos-cart-empty">
+              <div style="font-size: 2.2rem; margin-bottom: 6px;">🛒</div>
+              <p style="font-weight:700; margin:0;">Nenhum item adicionado</p>
+              <small>Selecione produtos na grade ao lado ou digite o código</small>
+              <div style="margin-top:16px;">
+                <button type="button" class="pos-btn-continue-shopping" style="display:inline-flex; width:auto; padding:8px 18px;" onclick="onAddMoreItemsClick()">
+                  ← Ver catálogo de produtos
+                </button>
+              </div>
+            </div>
+          `;
+          btnCheckout.disabled = true;
+          mobileBar.style.display = 'none';
+        } else {
+          listEl.innerHTML = this.items.map((item, idx) => `
+            <div class="pos-cart-item">
+              <div class="pos-cart-item-row">
+                <div class="pos-cart-item-name">
+                  ${item.code ? `<span style="font-family:'JetBrains Mono'; font-size:0.75rem; color:#6366f1;">[${item.code}]</span> ` : ''}
+                  ${item.name}
+                </div>
+                <div class="pos-cart-item-stepper">
+                  <button type="button" class="pos-step-btn" onclick="posCart.updateQuantity(${idx}, -1)">-</button>
+                  <span class="pos-step-qty">${item.quantity}</span>
+                  <button type="button" class="pos-step-btn" onclick="posCart.updateQuantity(${idx}, 1)">+</button>
+                </div>
+                <div class="pos-cart-item-total">R$ ${item.total.toFixed(2).replace('.', ',')}</div>
+                <button type="button" class="pos-step-btn" style="color:#ef4444;" onclick="posCart.removeItem(${idx})" title="Remover item">🗑️</button>
+              </div>
+              ${item.options.length > 0 ? `
+                <div class="pos-cart-item-opts">
+                  ${item.options.map(o => `+ ${o.name} (${o.price > 0 ? '+R$ ' + o.price.toFixed(2).replace('.', ',') : 'Incluso'})`).join('<br>')}
+                </div>
+              ` : ''}
+              ${item.notes ? `<div style="font-size:0.72rem; color:#b45309; font-style:italic;">Obs: "${item.notes}"</div>` : ''}
+            </div>
+          `).join('') + `
+            <div class="pos-add-more-container">
+              <button type="button" class="pos-btn-add-more-items" onclick="onAddMoreItemsClick()">
+                <div class="pos-add-more-left">
+                  <span class="pos-add-more-icon">➕</span>
+                  <div class="pos-add-more-texts">
+                    <strong>Adicionar mais produtos ao pedido</strong>
+                    <small>Toque para voltar à lista de produtos</small>
+                  </div>
+                </div>
+                <span class="pos-add-more-arrow">➔</span>
+              </button>
+            </div>
+          `;
+          btnCheckout.disabled = false;
+          if (window.innerWidth <= 992) {
+            mobileBar.style.display = 'flex';
+          }
+        }
+
+        const subtotal = this.getSubtotal();
+        const discount = this.getDiscount();
+        const grandTotal = this.getGrandTotal();
+
+        subtotalEl.textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
+        grandTotalEl.textContent = `R$ ${grandTotal.toFixed(2).replace('.', ',')}`;
+        mobileTotal.textContent = `R$ ${grandTotal.toFixed(2).replace('.', ',')} ➔`;
+
+        if (discount > 0) {
+          discountRow.style.display = 'flex';
+          discountText.textContent = `- R$ ${discount.toFixed(2).replace('.', ',')}`;
+        } else {
+          discountRow.style.display = 'none';
+        }
+
+        calculateChange();
+      }
+    }
+
+    const posCart = new POSCart();
+
+    // Renderização dos Produtos no PDV
+    let currentCategoryFilter = 'ALL';
+    let currentSearchTerm = '';
+
+    function renderProductsGrid() {
+      const grid = document.getElementById('posProductsGrid');
+      const filtered = Object.values(catalog).filter(prod => {
+        const matchesCategory = currentCategoryFilter === 'ALL' || String(prod.category_id) === String(currentCategoryFilter);
+        const s = currentSearchTerm.toLowerCase();
+        const matchesSearch = !s || prod.name.toLowerCase().includes(s) || (prod.code && prod.code.toLowerCase().includes(s));
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align:center; padding:50px 20px; color:#94a3b8;">
+            <div style="font-size:2.5rem; margin-bottom:8px;">🔍</div>
+            <h4 style="margin:0; font-size:1.1rem; color:#475569;">Nenhum produto encontrado</h4>
+            <small>Tente buscar por outro termo ou selecione outra categoria</small>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(prod => {
+        const isOutOfStock = prod.track_stock && !prod.is_in_stock;
+
+        let stockBadgeHtml = '';
+        if (!prod.track_stock) {
+          stockBadgeHtml = `<span class="pos-prod-stock-badge unlimited">Estoque: ∞</span>`;
+        } else if (prod.stock_quantity <= 0) {
+          stockBadgeHtml = `<span class="pos-prod-stock-badge zero">⚠️ Esgotado</span>`;
+        } else if (prod.stock_quantity <= 3) {
+          stockBadgeHtml = `<span class="pos-prod-stock-badge low">Resta apenas ${prod.stock_quantity}</span>`;
+        } else {
+          stockBadgeHtml = `<span class="pos-prod-stock-badge ok">Estoque: ${prod.stock_quantity}</span>`;
+        }
+
+        return `
+          <div class="pos-product-card ${isOutOfStock ? 'out-of-stock' : ''}" onclick="handleProductClick(${prod.id})">
+            ${prod.code ? `<span class="pos-prod-code-badge">${prod.code}</span>` : ''}
+            <div>
+              ${stockBadgeHtml}
+              <div class="pos-prod-title">${prod.name}</div>
+            </div>
+            <div class="pos-prod-pricing">
+              <span class="pos-prod-price">R$ ${prod.current_price.toFixed(2).replace('.', ',')}</span>
+              ${prod.is_promotional && prod.promotional_price ? `
+                <span class="pos-prod-price-old">R$ ${prod.base_price.toFixed(2).replace('.', ',')}</span>
+                <span class="pos-prod-promo-tag">${prod.discount_percent}% OFF</span>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleProductClick(productId) {
+      const prod = catalog[productId];
+      if (!prod) return;
+
+      if (prod.track_stock && !prod.is_in_stock) {
+        alert(`O produto "${prod.name}" está esgotado no estoque centralizado.`);
+        return;
+      }
+
+      // Se possui grupos de opções / adicionais, abre o modal de personalização
+      if (prod.option_groups && prod.option_groups.length > 0) {
+        openOptionsModal(prod);
+      } else {
+        // Adiciona direto ao carrinho
+        posCart.addItem(prod, 1, [], '');
+      }
+    }
+
+    // Modal de Opções / Adicionais
+    let activeModalProduct = null;
+    let modalQuantity = 1;
+
+    function openOptionsModal(prod) {
+      activeModalProduct = prod;
+      modalQuantity = 1;
+      document.getElementById('modalQtyDisplay').textContent = '1';
+      document.getElementById('modalProdTitle').textContent = prod.name;
+      document.getElementById('modalProdPrice').textContent = `R$ ${prod.current_price.toFixed(2).replace('.', ',')}`;
+
+      const container = document.getElementById('modalOptionsContainer');
+      container.innerHTML = prod.option_groups.map(group => `
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div>
+              <strong style="color:#0f172a; font-size:0.95rem;">${group.name}</strong>
+              ${group.description ? `<div style="font-size:0.75rem; color:#64748b;">${group.description}</div>` : ''}
+            </div>
+            <span style="font-size:0.75rem; font-weight:800; background:#eef2ff; color:#4338ca; padding:2px 8px; border-radius:999px;">
+              ${group.is_required ? 'Obrigatório' : 'Opcional'} (Até ${group.max_options})
+            </span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${group.items.map(item => `
+              <label style="display:flex; align-items:center; justify-content:space-between; background:#ffffff; border:1px solid #cbd5e1; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                <div style="display:inline-flex; align-items:center; gap:8px;">
+                  <input type="${group.max_options === 1 ? 'radio' : 'checkbox'}" name="group_${group.id}" value="${item.id}" data-name="${item.name}" data-price="${item.price}" onchange="validateModalGroupRules(${group.id}, ${group.max_options})">
+                  <span style="font-weight:700; font-size:0.88rem; color:#1e293b;">${item.name}</span>
+                </div>
+                <span style="font-weight:800; font-size:0.85rem; color:#4f46e5;">
+                  ${item.price > 0 ? '+ R$ ' + item.price.toFixed(2).replace('.', ',') : 'Incluso'}
+                </span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('posOptionsModal').style.display = 'flex';
+    }
+
+    function validateModalGroupRules(groupId, max) {
+      const inputs = document.querySelectorAll(`input[name="group_${groupId}"]:checked`);
+      if (inputs.length > max) {
+        alert(`Você pode escolher no máximo ${max} opções para este grupo.`);
+        event.target.checked = false;
+      }
+    }
+
+    function updateModalQty(delta) {
+      if (modalQuantity + delta >= 1) {
+        modalQuantity += delta;
+        document.getElementById('modalQtyDisplay').textContent = modalQuantity;
+      }
+    }
+
+    function closeOptionsModal() {
+      document.getElementById('posOptionsModal').style.display = 'none';
+      activeModalProduct = null;
+    }
+
+    function confirmAddProductWithOptions() {
+      if (!activeModalProduct) return;
+
+      // Validação de grupos obrigatórios
+      for (const group of activeModalProduct.option_groups) {
+        const checked = document.querySelectorAll(`input[name="group_${group.id}"]:checked`);
+        if (group.is_required && checked.length < group.min_options) {
+          alert(`Por favor, selecione ao menos ${group.min_options} opção em "${group.name}".`);
+          return;
+        }
+      }
+
+      const selectedOptions = [];
+      document.querySelectorAll('#modalOptionsContainer input:checked').forEach(inp => {
+        selectedOptions.push({
+          id: parseInt(inp.value),
+          name: inp.getAttribute('data-name'),
+          price: parseFloat(inp.getAttribute('data-price')) || 0
+        });
+      });
+
+      const success = posCart.addItem(activeModalProduct, modalQuantity, selectedOptions, '');
+      if (success) {
+        closeOptionsModal();
+      }
+    }
+
+    // Filtros de Categoria e Busca
+    function filterCategory(catId, btn) {
+      currentCategoryFilter = catId;
+      document.querySelectorAll('.pos-cat-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderProductsGrid();
+    }
+
+    const searchInput = document.getElementById('posSearchInput');
+    const searchClear = document.getElementById('posSearchClear');
+
+    searchInput.addEventListener('input', (e) => {
+      currentSearchTerm = e.target.value.trim();
+      searchClear.style.display = currentSearchTerm ? 'block' : 'none';
+      renderProductsGrid();
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const s = currentSearchTerm.toLowerCase();
+        // Se houver correspondência exata de código
+        const exactCodeMatch = Object.values(catalog).find(p => p.code && p.code.toLowerCase() === s);
+        if (exactCodeMatch) {
+          handleProductClick(exactCodeMatch.id);
+          clearSearch();
+          return;
+        }
+        // Se houver apenas 1 produto resultante na tela
+        const visible = Object.values(catalog).filter(p => p.name.toLowerCase().includes(s) || (p.code && p.code.toLowerCase().includes(s)));
+        if (visible.length === 1) {
+          handleProductClick(visible[0].id);
+          clearSearch();
+        }
+      }
+    });
+
+    function clearSearch() {
+      searchInput.value = '';
+      currentSearchTerm = '';
+      searchClear.style.display = 'none';
+      renderProductsGrid();
+      searchInput.focus();
+    }
+
+    // Seleção de Forma de Pagamento
+    function selectPayMethod(method, chip) {
+      posCart.selectedPaymentMethod = method;
+      document.querySelectorAll('.pos-pay-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      const changeBox = document.getElementById('posChangeBox');
+      if (method === 'MONEY') {
+        changeBox.style.display = 'flex';
+      } else {
+        changeBox.style.display = 'none';
+      }
+    }
+
+    function calculateChange() {
+      const changeInput = document.getElementById('posChangeInput');
+      const changeReturn = document.getElementById('posChangeReturn');
+      const val = parseFloat(changeInput.value) || 0;
+      const total = posCart.getGrandTotal();
+
+      if (val >= total) {
+        const troco = val - total;
+        changeReturn.textContent = `Troco: R$ ${troco.toFixed(2).replace('.', ',')}`;
+        changeReturn.style.color = '#10b981';
+      } else if (val > 0) {
+        changeReturn.textContent = `Faltam R$ ${(total - val).toFixed(2).replace('.', ',')}`;
+        changeReturn.style.color = '#ef4444';
+      } else {
+        changeReturn.textContent = `Troco: R$ 0,00`;
+        changeReturn.style.color = '#64748b';
+      }
+    }
+
+    // Validação e Aplicação de Cupom no PDV
+    async function applyPOSCoupon() {
+      const codeInput = document.getElementById('posCouponCode');
+      const feedback = document.getElementById('posCouponFeedback');
+      const code = codeInput.value.trim().toUpperCase();
+
+      if (!code) {
+        alert("Digite o código do cupom.");
+        return;
+      }
+
+      feedback.style.display = 'block';
+      feedback.style.color = '#64748b';
+      feedback.textContent = 'Validando cupom...';
+
+      try {
+        const response = await fetch('/api/v1/orders/coupon/validate/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({
+            store_slug: storeSlug,
+            code: code,
+            subtotal: posCart.getSubtotal().toFixed(2),
+            delivery_fee: '0.00'
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.valid) {
+          posCart.appliedCoupon = data;
+          feedback.style.color = '#10b981';
+          feedback.textContent = data.message;
+          posCart.render();
+        } else {
+          posCart.appliedCoupon = null;
+          feedback.style.color = '#ef4444';
+          feedback.textContent = data.error || 'Cupom inválido.';
+          posCart.render();
+        }
+      } catch (e) {
+        feedback.style.color = '#ef4444';
+        feedback.textContent = 'Erro ao validar cupom.';
+      }
+    }
+
+    // Envio do Pedido PDV
+    async function submitPOSOrder() {
+      if (posCart.items.length === 0) return;
+
+      const btn = document.getElementById('posBtnCheckout');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Processando venda...</span>';
+
+      const payload = {
+        customer_name: document.getElementById('posCustName').value.trim() || 'Venda Balcão',
+        customer_phone: document.getElementById('posCustPhone').value.trim() || '',
+        payment_method: posCart.selectedPaymentMethod,
+        change_for: posCart.selectedPaymentMethod === 'MONEY' ? document.getElementById('posChangeInput').value : null,
+        coupon_code: posCart.appliedCoupon ? posCart.appliedCoupon.code : null,
+        items: posCart.items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          notes: item.notes,
+          options: item.options.map(o => o.id)
+        }))
+      };
+
+      try {
+        const response = await fetch(`/api/v1/orders/merchant/${storeId}/pos/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const orderData = await response.json();
+
+        if (response.ok) {
+          // Atualiza estoque no catálogo local
+          posCart.items.forEach(item => {
+            const prod = catalog[item.product_id];
+            if (prod && prod.track_stock) {
+              prod.stock_quantity = Math.max(0, prod.stock_quantity - item.quantity);
+              prod.is_in_stock = prod.stock_quantity > 0;
+            }
+          });
+
+          // Mostra Cupom Térmico
+          showThermalReceipt(orderData, payload);
+
+          // Limpa carrinho
+          posCart.clear();
+          renderProductsGrid();
+        } else {
+          alert(`Erro ao registrar venda: ${orderData.error || 'Verifique os dados.'}`);
+        }
+      } catch (e) {
+        alert("Erro de conexão ao processar venda no PDV.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Finalizar Venda (F2)</span><span>➔</span>';
+      }
+    }
+
+    // Exibição e Impressão Térmica
+    function showThermalReceipt(order, payload) {
+      const modal = document.getElementById('thermalReceiptModal');
+      const content = document.getElementById('thermalReceiptContent');
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+      const payLabels = {
+        'MONEY': 'Dinheiro',
+        'PIX': 'Pix',
+        'CREDIT_CARD': 'Cartão de Crédito',
+        'DEBIT_CARD': 'Cartão de Débito',
+        'MEAL_VOUCHER': 'Vale-Refeição'
+      };
+      const payDisplay = payLabels[payload.payment_method] || payload.payment_method;
+      let changeInfo = '';
+      if (payload.payment_method === 'MONEY' && payload.change_for) {
+        const changeForVal = parseFloat(payload.change_for) || 0;
+        const totalVal = parseFloat(order.total) || 0;
+        const changeDue = Math.max(0, changeForVal - totalVal);
+        changeInfo = `<br>Troco para: R$ ${changeForVal.toFixed(2).replace('.', ',')} (Troco: R$ ${changeDue.toFixed(2).replace('.', ',')})`;
+      }
+
+      content.innerHTML = `
+        <div style="text-align:center; font-weight:800; font-size:14px; margin-bottom:4px;">
+          ${storeName.toUpperCase()}
+        </div>
+        <div style="text-align:center; font-size:10px; margin-bottom:8px;">
+          ${storeAddress}
+        </div>
+        <div style="text-align:center; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:6px 0; margin-bottom:8px; font-weight:800;">
+          PEDIDO #${order.order_number} PDV (BALCÃO)
+        </div>
+        <div style="font-size:10px; margin-bottom:6px;">
+          Data/Hora: ${dateStr}<br>
+          Operador: ${operatorName}<br>
+          Cliente: ${payload.customer_name || 'Venda Balcão'}
+        </div>
+        <div style="border-top:1px dashed #000; padding-top:6px; margin-bottom:6px;">
+          <table style="width:100%; border-collapse:collapse; font-size:10px;">
+            ${(order.items || []).map(item => `
+              <tr>
+                <td style="vertical-align:top; font-weight:bold;">${item.quantity}x ${item.product_name}</td>
+                <td style="text-align:right; vertical-align:top;">R$ ${parseFloat(item.total).toFixed(2).replace('.', ',')}</td>
+              </tr>
+              ${(item.selected_options || []).map(opt => `
+                <tr>
+                  <td style="padding-left:8px; font-size:9px; color:#333;">+ ${opt.name}</td>
+                  <td style="text-align:right; font-size:9px; color:#333;">${parseFloat(opt.price) > 0 ? '+R$ ' + parseFloat(opt.price).toFixed(2).replace('.', ',') : ''}</td>
+                </tr>
+              `).join('')}
+            `).join('')}
+          </table>
+        </div>
+        <div style="border-top:1px dashed #000; padding-top:6px; margin-bottom:6px; font-size:11px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Subtotal:</span>
+            <span>R$ ${parseFloat(order.subtotal).toFixed(2).replace('.', ',')}</span>
+          </div>
+          ${parseFloat(order.discount) > 0 ? `
+            <div style="display:flex; justify-content:space-between; font-weight:bold;">
+              <span>Desconto:</span>
+              <span>- R$ ${parseFloat(order.discount).toFixed(2).replace('.', ',')}</span>
+            </div>
+          ` : ''}
+          <div style="display:flex; justify-content:space-between; font-weight:900; font-size:13px; margin-top:4px;">
+            <span>TOTAL:</span>
+            <span>R$ ${parseFloat(order.total).toFixed(2).replace('.', ',')}</span>
+          </div>
+        </div>
+        <div style="font-size:10px; border-top:1px dashed #000; padding-top:6px; margin-bottom:8px;">
+          Pagamento: <strong>${payDisplay}</strong>${changeInfo}
+        </div>
+        <div style="text-align:center; font-size:10px; font-style:italic;">
+          ${storeReceiptMsg}
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    }
+
+    function setReceiptPaper(type) {
+      const paper = document.getElementById('thermalReceiptContent');
+      const btn58 = document.getElementById('btnTogglePaper58');
+      const btn80 = document.getElementById('btnTogglePaper80');
+
+      if (type === '58mm') {
+        paper.className = 'thermal-receipt-paper receipt-58mm';
+        btn58.classList.add('active');
+        btn80.classList.remove('active');
+      } else {
+        paper.className = 'thermal-receipt-paper receipt-80mm';
+        btn80.classList.add('active');
+        btn58.classList.remove('active');
+      }
+    }
+
+    function printReceipt() {
+      window.print();
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('thermalReceiptModal').style.display = 'none';
+    }
+
+    // Atalhos de Teclado (F2 = Finalizar, Esc = Fechar Modal)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        submitPOSOrder();
+      } else if (e.key === 'Escape') {
+        closeOptionsModal();
+        closeReceiptModal();
+      }
+    });
+
+    // Mobile Drawer & Navegação
+    function openMobileCart() {
+      const cartCol = document.getElementById('posCartColumn');
+      if (cartCol) cartCol.classList.add('mobile-open');
+      const closeBtn = document.getElementById('posCloseMobileCart');
+      if (closeBtn) closeBtn.style.display = 'flex';
+      const backBtn = document.getElementById('posMobileBackBtn');
+      if (backBtn) backBtn.style.display = 'inline-flex';
+    }
+
+    function closeMobileCart() {
+      const cartCol = document.getElementById('posCartColumn');
+      if (cartCol) cartCol.classList.remove('mobile-open');
+      const closeBtn = document.getElementById('posCloseMobileCart');
+      if (closeBtn) closeBtn.style.display = 'none';
+      const backBtn = document.getElementById('posMobileBackBtn');
+      if (backBtn) backBtn.style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function onAddMoreItemsClick() {
+      if (window.innerWidth <= 992) {
+        closeMobileCart();
+      } else {
+        const searchInput = document.getElementById('posSearchInput');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+
+    // Feedback Toast Flutuante
+    function showPosToast(message, icon = '✓') {
+      let toast = document.getElementById('posToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'posToast';
+        toast.className = 'pos-toast';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span style="color:#10b981; font-weight:900; font-size:1.1rem;">${icon}</span> <span>${message}</span>`;
+      toast.classList.add('show');
+      clearTimeout(window._posToastTimer);
+      window._posToastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Inicialização
+    renderProductsGrid();
+  </script>
+
+  <!-- Inclusão do Notificador Global de Pedidos Online -->
+  {% include 'dashboard/includes/order_notifier.html' %}
+
+</body>
+</html>

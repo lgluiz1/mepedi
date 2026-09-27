@@ -38,7 +38,7 @@ class CategoryAndProductModelTest(TestCase):
             name="Hambúrgueres",
             order=1
         )
-        self.assertEqual(cat1.name, "Hambúrgueres")
+        self.assertEqual(cat1.name, "🍔 Hambúrgueres")
 
         # Não permite categoria com mesmo nome na MESMA loja
         with transaction.atomic():
@@ -315,7 +315,7 @@ class PublicStoreMenuAPITest(TestCase):
         # Deve conter apenas 1 categoria ativa (ignora a inativa)
         categories = data['categories']
         self.assertEqual(len(categories), 1)
-        self.assertEqual(categories[0]['name'], "Hambúrgueres")
+        self.assertEqual(categories[0]['name'], "🍔 Hambúrgueres")
 
         # Deve conter apenas 1 produto ativo (ignora o produto esgotado)
         products = categories[0]['products']
@@ -333,3 +333,176 @@ class PublicStoreMenuAPITest(TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]['name'], "Bacon Extra")
         self.assertEqual(Decimal(str(items[0]['price'])), Decimal("5.00"))
+
+    def test_auto_category_icons_and_seed_catalog(self):
+        """
+        Testa o sistema inteligente de ícones automáticos de categorias:
+        - Detecta palavras-chave e insere ícone apropriado
+        - Preserva ícone customizado fornecido pelo lojista
+        - Seeding em massa de categorias completas
+        """
+        from catalog.category_catalog import format_category_name_with_icon, seed_store_categories
+
+        # Palavras-chave automáticas
+        self.assertEqual(format_category_name_with_icon("Bolos Caseiros"), "🎂 Bolos Caseiros")
+        self.assertEqual(format_category_name_with_icon("Bebidas Geladas"), "🥤 Bebidas Geladas")
+        self.assertEqual(format_category_name_with_icon("Pizzas Especiais"), "🍕 Pizzas Especiais")
+        self.assertEqual(format_category_name_with_icon("Marmitex"), "🍱 Marmitex")
+        self.assertEqual(format_category_name_with_icon("Vinhos Finos"), "🍷 Vinhos Finos")
+        self.assertEqual(format_category_name_with_icon("Pastel de Feira"), "🥟 Pastel de Feira")
+
+        # Preserva emoji se já fornecido
+        self.assertEqual(format_category_name_with_icon("⭐ Criações do Chef"), "⭐ Criações do Chef")
+
+        # Teste de persistência no modelo
+        cat_bolo = Category.objects.create(store=self.store, name="Bolos")
+        self.assertEqual(cat_bolo.name, "🎂 Bolos")
+
+        # Teste de seeding para a loja
+        new_count = seed_store_categories(self.store)
+        self.assertGreater(new_count, 30)
+        # Verifica que o total de categorias na loja agora inclui os presets
+        total_cats = Category.objects.filter(store=self.store).count()
+        self.assertGreater(total_cats, 35)
+
+
+class OptionCloningAndReuseTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email='pizzaiolo@teste.com',
+            password='Password123!',
+            full_name='Pizzaiolo Mestre'
+        )
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="Pizzaria Napolitana",
+            whatsapp="11977778888",
+            is_active=True,
+            is_open=True
+        )
+        self.category_pizzas = Category.objects.create(
+            store=self.store,
+            name="Pizzas"
+        )
+        # Pizza Família com 4 sabores e bordas
+        self.pizza_familia = Product.objects.create(
+            store=self.store,
+            category=self.category_pizzas,
+            name="Pizza Família 40cm",
+            price=Decimal("70.00")
+        )
+        self.group_sabores = OptionGroup.objects.create(
+            store=self.store,
+            product=self.pizza_familia,
+            name="Escolha 4 Sabores",
+            min_options=4,
+            max_options=4,
+            is_required=True
+        )
+        self.item_calabresa = OptionItem.objects.create(
+            option_group=self.group_sabores,
+            name="Calabresa Especial",
+            price=Decimal("0.00")
+        )
+        self.item_quatro_queijos = OptionItem.objects.create(
+            option_group=self.group_sabores,
+            name="Quatro Queijos",
+            price=Decimal("0.00")
+        )
+        self.item_camarao = OptionItem.objects.create(
+            option_group=self.group_sabores,
+            name="Camarão Especial",
+            price=Decimal("12.00")
+        )
+
+        self.group_borda = OptionGroup.objects.create(
+            store=self.store,
+            product=self.pizza_familia,
+            name="Borda Recheada",
+            min_options=0,
+            max_options=1,
+            is_required=False
+        )
+        self.item_catupiry = OptionItem.objects.create(
+            option_group=self.group_borda,
+            name="Catupiry Original",
+            price=Decimal("9.00")
+        )
+
+        # Pizza Média que receberá a cópia
+        self.pizza_media = Product.objects.create(
+            store=self.store,
+            category=self.category_pizzas,
+            name="Pizza Média 30cm",
+            price=Decimal("45.00")
+        )
+
+    def test_clone_single_group_with_custom_limits_and_item_filter(self):
+        """
+        Testa clonagem de grupo de opções permitindo:
+        - Ajustar nome e limites (de 4 para 2 sabores)
+        - Desmarcar itens indesejados (excluir Camarão)
+        """
+        from catalog.options_service import clone_option_group_to_product
+
+        cloned_group = clone_option_group_to_product(
+            source_group=self.group_sabores,
+            target_product=self.pizza_media,
+            new_name="Escolha até 2 Sabores",
+            description="Selecione 2 sabores para sua pizza média",
+            min_options=1,
+            max_options=2,
+            is_required=True,
+            selected_item_ids=[self.item_calabresa.id, self.item_quatro_queijos.id]
+        )
+
+        self.assertEqual(cloned_group.product, self.pizza_media)
+        self.assertEqual(cloned_group.name, "Escolha até 2 Sabores")
+        self.assertEqual(cloned_group.min_options, 1)
+        self.assertEqual(cloned_group.max_options, 2)
+        self.assertTrue(cloned_group.is_required)
+
+        # Apenas os 2 itens selecionados foram copiados (Camarão excluído)
+        items = list(cloned_group.items.values_list('name', flat=True))
+        self.assertEqual(len(items), 2)
+        self.assertIn("Calabresa Especial", items)
+        self.assertIn("Quatro Queijos", items)
+        self.assertNotIn("Camarão Especial", items)
+
+    def test_clone_all_product_groups(self):
+        """
+        Testa clonagem de TODOS os grupos e itens de uma pizza para outra.
+        """
+        from catalog.options_service import clone_all_product_groups
+
+        grps_cnt, items_cnt = clone_all_product_groups(self.pizza_familia, self.pizza_media)
+        self.assertEqual(grps_cnt, 2)
+        self.assertEqual(items_cnt, 4)
+
+        media_groups = self.pizza_media.option_groups.all()
+        self.assertEqual(media_groups.count(), 2)
+
+    def test_bulk_create_option_items_parsing(self):
+        """
+        Testa criação de itens em massa a partir de lista colada de texto,
+        reconhecendo nomes e preços opcionais.
+        """
+        from catalog.options_service import bulk_create_option_items
+
+        text_input = """
+        Marguerita Clássica
+        Portuguesa Suprema
+        Frango com Catupiry (+ R$ 4,50)
+        Nutella com Morango (+8.00)
+        """
+        added = bulk_create_option_items(self.group_sabores, text_input)
+        self.assertEqual(added, 4)
+
+        marguerita = OptionItem.objects.get(option_group=self.group_sabores, name="Marguerita Clássica")
+        self.assertEqual(marguerita.price, Decimal("0.00"))
+
+        frango = OptionItem.objects.get(option_group=self.group_sabores, name="Frango com Catupiry")
+        self.assertEqual(frango.price, Decimal("4.50"))
+
+        nutella = OptionItem.objects.get(option_group=self.group_sabores, name="Nutella com Morango")
+        self.assertEqual(nutella.price, Decimal("8.00"))
