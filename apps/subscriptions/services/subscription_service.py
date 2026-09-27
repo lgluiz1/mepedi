@@ -62,12 +62,19 @@ class SubscriptionService:
         # Localiza qualquer assinatura existente com lock
         sub = Subscription.objects.select_for_update().filter(
             store=store,
-            status__in=[Subscription.STATUS_TRIAL, Subscription.STATUS_ACTIVE, Subscription.STATUS_PAST_DUE]
+            status__in=[
+                Subscription.STATUS_TRIAL,
+                Subscription.STATUS_ACTIVE,
+                Subscription.STATUS_PAST_DUE,
+                Subscription.STATUS_EXPIRED,
+                Subscription.STATUS_SUSPENDED
+            ]
         ).first()
 
         if sub:
             sub.plan = plan
             sub.status = Subscription.STATUS_ACTIVE
+            sub.trial_expired_reason = None
             sub.started_at = sub.started_at or now
             sub.current_period_start = now
             sub.current_period_end = period_end

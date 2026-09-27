@@ -1,0 +1,224 @@
+{% extends 'saas_admin/base.html' %}
+
+{% block title %}Gateways de Pagamento - MePedi SaaS Admin{% endblock %}
+{% block page_title %}Configuração de Gateways de Cobrança{% endblock %}
+
+{% block content %}
+
+{% if request.GET.msg == 'saved' %}
+  <div class="admin-msg-banner success">
+    <span>✓ Configurações do Gateway salvas com sucesso e auditadas no sistema.</span>
+  </div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 28px;">
+
+  <!-- Formulário Principal: Mercado Pago -->
+  <div class="table-card">
+    <div class="table-card-header" style="justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 1.5rem;">💳</span>
+        <div>
+          <h2 class="table-card-title">Mercado Pago (Gateway Oficial)</h2>
+          <span style="font-size: 0.8rem; color: #94a3b8;">Processamento de assinaturas recorrentes, Pix e Cartão</span>
+        </div>
+      </div>
+      <div>
+        {% if mp_config.is_active %}
+          <span class="badge badge-success">● Gateway Ativo</span>
+        {% else %}
+          <span class="badge badge-danger">○ Desativado</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="POST" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+      {% csrf_token %}
+
+      <!-- Ambiente -->
+      <div>
+        <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.85rem; color: #cbd5e1;">
+          Ambiente de Execução
+        </label>
+        <select name="environment" class="form-control" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); color: #ffffff; padding: 10px 14px; border-radius: 8px;">
+          <option value="SANDBOX" {% if mp_config.environment == 'SANDBOX' %}selected{% endif %}>
+            🛠️ Sandbox (Ambiente de Testes / Homologação)
+          </option>
+          <option value="PRODUCTION" {% if mp_config.environment == 'PRODUCTION' %}selected{% endif %}>
+            🚀 Produção (Cobranças Reais)
+          </option>
+        </select>
+        <span style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px; display: block;">
+          Em modo Sandbox, utilize cartões de teste e compradores fictícios fornecidos pelo Mercado Pago.
+        </span>
+      </div>
+
+      <!-- Access Token -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="form-label" style="font-weight: 700; font-size: 0.85rem; color: #cbd5e1;">
+            Access Token (Chave Privada)
+          </label>
+          <button type="button" onclick="toggleSecretVisibility('access_token')" style="background: none; border: none; color: #a5b4fc; font-size: 0.78rem; cursor: pointer; font-weight: 600;">
+            Mostrar / Ocultar
+          </button>
+        </div>
+        <input type="password" id="access_token" name="access_token" value="{{ mp_config.access_token }}" placeholder="TEST-... ou APP_USR-..." class="form-control" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); color: #ffffff; padding: 10px 14px; border-radius: 8px; font-family: monospace;">
+        <span style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px; display: block;">
+          Token de autorização OAuth para chamadas de API Server-to-Server.
+        </span>
+      </div>
+
+      <!-- Public Key -->
+      <div>
+        <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.85rem; color: #cbd5e1;">
+          Public Key (Chave Pública)
+        </label>
+        <input type="text" name="public_key" value="{{ mp_config.public_key }}" placeholder="TEST-... ou APP_USR-..." class="form-control" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); color: #ffffff; padding: 10px 14px; border-radius: 8px; font-family: monospace;">
+        <span style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px; display: block;">
+          Chave pública utilizada para inicialização de SDKs cliente se necessário.
+        </span>
+      </div>
+
+      <!-- Webhook Secret -->
+      <div>
+        <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.85rem; color: #cbd5e1;">
+          Webhook Secret (Segredo de Assinatura HMAC)
+        </label>
+        <input type="password" id="webhook_secret" name="webhook_secret" value="{{ mp_config.webhook_secret }}" placeholder="Chave de assinatura de notificações" class="form-control" style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); color: #ffffff; padding: 10px 14px; border-radius: 8px; font-family: monospace;">
+        <span style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px; display: block;">
+          Utilizado para verificar a autenticidade dos headers x-signature das notificações recebidas.
+        </span>
+      </div>
+
+      <!-- Status Ativo -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid var(--border-color);">
+        <input type="checkbox" id="is_active" name="is_active" {% if mp_config.is_active %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--brand-primary); cursor: pointer;">
+        <label for="is_active" style="font-size: 0.9rem; font-weight: 600; color: #ffffff; cursor: pointer;">
+          Habilitar Mercado Pago como processador de assinaturas ativo
+        </label>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button type="submit" class="btn-action btn-action-primary" style="padding: 10px 20px; font-size: 0.95rem; font-weight: 700;">
+          💾 Salvar Configurações
+        </button>
+
+        <button type="button" id="btnTestConnection" class="btn-action btn-action-neutral" style="padding: 10px 18px; font-size: 0.95rem; font-weight: 600;" onclick="testGatewayConnection()">
+          ⚡ Testar Conexão com a API
+        </button>
+      </div>
+
+      <!-- Feedback de Teste AJAX -->
+      <div id="testResultBox" style="display: none; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 600;"></div>
+    </form>
+  </div>
+
+  <!-- Painel Lateral: Webhook URL & Instruções -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    
+    <!-- Caixa do Webhook -->
+    <div class="table-card" style="padding: 22px;">
+      <h3 style="font-size: 1rem; font-weight: 800; color: #ffffff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <span>🔔</span> URL do Webhook
+      </h3>
+      <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5; margin-bottom: 14px;">
+        Configure esta URL no Painel do Desenvolvedor do Mercado Pago para receber atualizações automáticas de pagamento em tempo real:
+      </p>
+
+      <div style="background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; position: relative;">
+        <code id="webhookUrlText" style="font-size: 0.78rem; color: #38bdf8; word-break: break-all;">{{ request.scheme }}://{{ request.get_host }}/assinatura/webhook/mercadopago/</code>
+        <button type="button" onclick="copyWebhookUrl()" style="position: absolute; right: 8px; top: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); border-radius: 4px; color: #ffffff; font-size: 0.7rem; padding: 2px 6px; cursor: pointer;">
+          Copiar
+        </button>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 0.78rem; color: #94a3b8; line-height: 1.5;">
+        <strong style="color: #cbd5e1;">Eventos obrigatórios para habilitar:</strong>
+        <ul style="margin-left: 18px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <li><code>payment</code> (Cobranças avulsas / Pix / Cartão)</li>
+          <li><code>subscription_preapproval</code> (Assinaturas e Recorrência)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Guia de Segurança -->
+    <div class="table-card" style="padding: 22px;">
+      <h3 style="font-size: 1rem; font-weight: 800; color: #ffffff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <span>🛡️</span> Segurança &amp; Idempotência
+      </h3>
+      <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+        Todas as transações recebidas são registradas no modelo <code>WebhookEvent</code>. Notificações duplicadas com o mesmo ID são descartadas com status <code>IGNORED</code> sem reprocessamento financeiro.
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleSecretVisibility(id) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+      input.type = 'text';
+    } else {
+      input.type = 'password';
+    }
+  }
+
+  function copyWebhookUrl() {
+    const text = document.getElementById('webhookUrlText').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('URL do Webhook copiada para a área de transferência!');
+    });
+  }
+
+  function testGatewayConnection() {
+    const btn = document.getElementById('btnTestConnection');
+    const resultBox = document.getElementById('testResultBox');
+
+    btn.disabled = true;
+    btn.innerText = '⏳ Verificando...';
+    resultBox.style.display = 'none';
+
+    fetch("{% url 'saas_admin:test_gateway' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/json"
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerText = '⚡ Testar Conexão com a API';
+      resultBox.style.display = 'block';
+
+      if (data.status === 'success') {
+        resultBox.style.background = 'rgba(16, 185, 129, 0.15)';
+        resultBox.style.border = '1px solid #10b981';
+        resultBox.style.color = '#6ee7b7';
+        resultBox.innerText = '✓ ' + data.message;
+      } else {
+        resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+        resultBox.style.border = '1px solid #ef4444';
+        resultBox.style.color = '#fca5a5';
+        resultBox.innerText = '✕ ' + data.message;
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerText = '⚡ Testar Conexão com a API';
+      resultBox.style.display = 'block';
+      resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+      resultBox.style.border = '1px solid #ef4444';
+      resultBox.style.color = '#fca5a5';
+      resultBox.innerText = '✕ Falha de rede ao tentar contatar o servidor.';
+    });
+  }
+</script>
+{% endblock %}

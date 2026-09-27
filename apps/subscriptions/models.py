@@ -92,6 +92,11 @@ class Plan(TimeStampedModel):
         default=True,
         help_text=_('Permite desativar um plano sem apagar o histórico de quem já contratou.')
     )
+    is_custom = models.BooleanField(
+        _('Plano Personalizado'),
+        default=False,
+        help_text=_('Indica se o plano foi desenhado sob medida para um cliente específico.')
+    )
     display_order = models.PositiveIntegerField(
         _('Ordem de Exibição'),
         default=0,
@@ -473,3 +478,74 @@ class WebhookEvent(TimeStampedModel):
 
     def __str__(self):
         return f"{self.gateway} - {self.event_type} ({self.external_id}) [{self.get_status_display()}]"
+
+
+class AuditLog(TimeStampedModel):
+    """
+    Trilha de auditoria administrativa do SaaS MePedi.
+    Registra ações de governança, suporte, alterações financeiras e cadastrais.
+    """
+    ACTION_SUPPORT_START = 'SUPPORT_START'
+    ACTION_SUPPORT_END = 'SUPPORT_END'
+    ACTION_PLAN_CHANGE = 'PLAN_CHANGE'
+    ACTION_TRIAL_EXTEND = 'TRIAL_EXTEND'
+    ACTION_STORE_SUSPEND = 'STORE_SUSPEND'
+    ACTION_STORE_REACTIVATE = 'STORE_REACTIVATE'
+    ACTION_GATEWAY_UPDATE = 'GATEWAY_UPDATE'
+    ACTION_PAYMENT_MANUAL = 'PAYMENT_MANUAL'
+    ACTION_CUSTOM_PLAN = 'CUSTOM_PLAN'
+
+    ACTION_CHOICES = [
+        (ACTION_SUPPORT_START, _('Início de Modo Suporte')),
+        (ACTION_SUPPORT_END, _('Encerramento de Modo Suporte')),
+        (ACTION_PLAN_CHANGE, _('Alteração Manual de Plano')),
+        (ACTION_TRIAL_EXTEND, _('Extensão de Trial')),
+        (ACTION_STORE_SUSPEND, _('Suspensão de Loja')),
+        (ACTION_STORE_REACTIVATE, _('Reativação de Loja')),
+        (ACTION_GATEWAY_UPDATE, _('Atualização de Gateway / Credenciais')),
+        (ACTION_PAYMENT_MANUAL, _('Lançamento / Ajuste Manual Financeiro')),
+        (ACTION_CUSTOM_PLAN, _('Criação / Ajuste de Plano Personalizado')),
+    ]
+
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='saas_audit_logs',
+        verbose_name=_('Administrador / Responsável')
+    )
+    store = models.ForeignKey(
+        'stores.Store',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='saas_audit_logs',
+        verbose_name=_('Loja Afetada')
+    )
+    action = models.CharField(
+        _('Ação'),
+        max_length=50,
+        choices=ACTION_CHOICES,
+        db_index=True
+    )
+    ip_address = models.GenericIPAddressField(
+        _('Endereço IP'),
+        null=True,
+        blank=True
+    )
+    details = models.JSONField(
+        _('Detalhes da Ação'),
+        default=dict,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = _('Registro de Auditoria')
+        verbose_name_plural = _('Trilha de Auditoria')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        user_name = self.user.email if self.user else "Sistema"
+        store_name = self.store.name if self.store else "Geral"
+        return f"[{self.get_action_display()}] {user_name} -> {store_name} ({self.created_at.strftime('%d/%m/%Y %H:%M')})"

@@ -6,13 +6,14 @@ from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.urls import reverse
 
 from stores.models import Store
 from accounts.models import StoreMembership
 from customers.models import Customer
 from orders.models import Order
 from subscriptions.models import (
-    Feature, Plan, Subscription, PaymentGatewayConfig, PaymentHistory, WebhookEvent
+    Feature, Plan, Subscription, PaymentGatewayConfig, PaymentHistory, WebhookEvent, AuditLog
 )
 from subscriptions.services.trial_service import TrialService
 from subscriptions.services.feature_service import FeatureService, can_access_feature, get_accessible_features
@@ -637,4 +638,428 @@ class SaaSMePediSubscriptionTestCase(TestCase):
 
         pay.refresh_from_db()
         self.assertEqual(pay.status, PaymentHistory.STATUS_APPROVED)
+
+
+class SaaSAdminTestCase(TestCase):
+    """
+    Testes automatizados para as Fases 15 a 18 do MePedi SaaS:
+    Painel Administrativo Proprietário MePedi (/gestao-saas/).
+    """
+
+    def setUp(self):
+        # 1. Usuário Admin MePedi (Staff / Superuser)
+        self.admin_user = User.objects.create_user(
+            email='admin@mepedi.com',
+            password='AdminPassword123!',
+            full_name='Super Admin MePedi',
+            is_staff=True,
+            is_superuser=True
+        )
+
+        # 2. Usuário Lojista Comum (Sem privilégios de staff)
+        self.merchant_user = User.objects.create_user(
+            email='lojista.comum@mepedi.com',
+            password='LojistaPassword123!',
+            full_name='Lojista Comum'
+        )
+
+        # 3. Loja de Teste
+        self.store = Store.objects.create(
+            owner=self.merchant_user,
+            name="Pizzaria Bella Forno",
+            slug="pizzaria-bella-forno",
+            whatsapp="11999998888",
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(
+            user=self.merchant_user,
+            store=self.store,
+            role='owner',
+            is_active=True
+        )
+
+        # 4. Dados SaaS Padrão
+        seed = SubscriptionService.seed_default_saas_data()
+        self.plan_start = seed['plans']['start']
+        self.plan_pro = seed['plans']['pro']
+        self.plan_gestao = seed['plans']['gestao']
+
+        # Inicializa o Trial da Loja
+        self.subscription = SubscriptionService.start_trial(self.store)
+
+        self.client = Client()
+
+    def test_saas_admin_unauthorized_access(self):
+        """
+        Usuário não autenticado ou lojista comum não pode acessar o /gestao-saas/.
+        Deve receber status 403 com a página de acesso negado proprietária.
+        """
+        # Anônimo é redirecionado para o login
+        resp_anon = self.client.get('/gestao-saas/')
+        self.assertEqual(resp_anon.status_code, 302)
+
+        # Lojista comum recebe 403
+        self.client.login(email='lojista.comum@mepedi.com', password='LojistaPassword123!')
+        resp_merchant = self.client.get('/gestao-saas/')
+        self.assertEqual(resp_merchant.status_code, 403)
+        self.assertTemplateUsed(resp_merchant, 'saas_admin/forbidden.html')
+
+    def test_saas_admin_dashboard_kpis(self):
+        """
+        Administrador acessa o Dashboard Geral e visualiza os KPIs consolidados.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+        resp = self.client.get('/gestao-saas/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'saas_admin/dashboard.html')
+
+        self.assertIn('total_stores', resp.context)
+        self.assertEqual(resp.context['total_stores'], 1)
+        self.assertEqual(resp.context['trial_stores'], 1)
+        self.assertEqual(resp.context['active_paid_stores'], 0)
+
+    def test_saas_admin_merchants_list_and_filters(self):
+        """
+        Valida a listagem de estabelecimentos e filtros por status e busca.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        # Listagem padrão
+        resp = self.client.get('/gestao-saas/lojistas/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'saas_admin/merchants.html')
+        self.assertEqual(len(resp.context['page_obj']), 1)
+
+        # Filtro por busca de nome
+        resp_search = self.client.get('/gestao-saas/lojistas/?q=Bella')
+        self.assertEqual(len(resp_search.context['page_obj']), 1)
+
+        resp_search_empty = self.client.get('/gestao-saas/lojistas/?q=Inexistente')
+        self.assertEqual(len(resp_search_empty.context['page_obj']), 0)
+
+    def test_saas_admin_store_detail_360(self):
+        """
+        Valida a tela de detalhes 360° de um estabelecimento.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+        resp = self.client.get(f'/gestao-saas/lojas/{self.store.id}/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'saas_admin/store_detail.html')
+        self.assertEqual(resp.context['store'].id, self.store.id)
+        self.assertIsNotNone(resp.context['subscription'])
+
+    def test_saas_admin_change_plan_action_and_audit(self):
+        """
+        Administrador altera manualmente o plano da loja e valida o registro na auditoria.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        resp = self.client.post(reverse('saas_admin:change_plan', args=[self.store.id]), {
+            'plan_id': self.plan_gestao.id,
+            'reason': 'Upgrade solicitado via suporte telefônico'
+        })
+        self.assertEqual(resp.status_code, 302)
+
+        # Valida se o plano foi alterado no banco
+        self.subscription.refresh_from_db()
+        self.assertEqual(self.subscription.status, Subscription.STATUS_ACTIVE)
+        self.assertEqual(self.subscription.plan, self.plan_gestao)
+
+        # Valida se a auditoria registrou o evento
+        log = AuditLog.objects.filter(
+            store=self.store,
+            action=AuditLog.ACTION_PLAN_CHANGE
+        ).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.user, self.admin_user)
+        self.assertIn('Upgrade solicitado via suporte telefônico', log.details.get('reason', ''))
+
+    def test_saas_admin_extend_trial_action_and_audit(self):
+        """
+        Administrador estende o período de trial da loja e valida auditoria.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+        old_ends_at = self.subscription.trial_ends_at
+
+        resp = self.client.post(reverse('saas_admin:extend_trial', args=[self.store.id]), {
+            'days': 15,
+            'reason': 'Cortesia de onboarding'
+        })
+        self.assertEqual(resp.status_code, 302)
+
+        self.subscription.refresh_from_db()
+        self.assertGreater(self.subscription.trial_ends_at, old_ends_at)
+
+        log = AuditLog.objects.filter(
+            store=self.store,
+            action=AuditLog.ACTION_TRIAL_EXTEND
+        ).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.details.get('added_days'), 15)
+
+    def test_saas_admin_toggle_store_status(self):
+        """
+        Administrador suspende e posteriormente reativa um estabelecimento.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        # 1. Suspender
+        resp_suspend = self.client.post(reverse('saas_admin:toggle_status', args=[self.store.id]), {
+            'action_type': 'suspend',
+            'reason': 'Inadimplência prolongada'
+        })
+        self.assertEqual(resp_suspend.status_code, 302)
+        self.store.refresh_from_db()
+        self.assertFalse(self.store.is_active)
+
+        self.assertTrue(
+            AuditLog.objects.filter(store=self.store, action=AuditLog.ACTION_STORE_SUSPEND).exists()
+        )
+
+        # 2. Reativar
+        resp_reactivate = self.client.post(reverse('saas_admin:toggle_status', args=[self.store.id]), {
+            'action_type': 'reactivate',
+            'reason': 'Comprovante de pagamento apresentado'
+        })
+        self.assertEqual(resp_reactivate.status_code, 302)
+        self.store.refresh_from_db()
+        self.assertTrue(self.store.is_active)
+
+        self.assertTrue(
+            AuditLog.objects.filter(store=self.store, action=AuditLog.ACTION_STORE_REACTIVATE).exists()
+        )
+
+    def test_saas_admin_support_mode_flow(self):
+        """
+        Valida o Modo Suporte ("Acessar como Loja"):
+        1. Inicia o modo suporte via POST
+        2. Acessa o painel do lojista sem necessidade de associação na StoreMembership
+        3. Encerra o modo suporte e retorna à visão 360° do admin
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        # 1. Iniciar Suporte (POST)
+        resp_start = self.client.post(reverse('saas_admin:support_start', args=[self.store.id]))
+        self.assertEqual(resp_start.status_code, 302)
+        self.assertEqual(resp_start.url, f'/painel/{self.store.slug}/')
+
+        # Verifica se as chaves de sessão foram injetadas
+        session = self.client.session
+        self.assertEqual(session.get('support_mode_store_id'), self.store.id)
+
+        # Verifica se o log de auditoria registrou o início do suporte
+        self.assertTrue(
+            AuditLog.objects.filter(store=self.store, action=AuditLog.ACTION_SUPPORT_START).exists()
+        )
+
+        # 2. Acessa o painel da loja como suporte (o admin não tem StoreMembership nessa loja)
+        resp_panel = self.client.get(f'/painel/{self.store.slug}/')
+        self.assertEqual(resp_panel.status_code, 200)
+
+        # 3. Encerra o suporte
+        resp_end = self.client.get(reverse('saas_admin:support_end'))
+        self.assertEqual(resp_end.status_code, 302)
+        self.assertIn(f'/gestao-saas/lojas/{self.store.id}/', resp_end.url)
+
+        # Verifica se as variáveis de sessão foram limpas
+        session = self.client.session
+        self.assertIsNone(session.get('support_mode_store_id'))
+
+        # Verifica se o log de auditoria registrou o fim do suporte
+        self.assertTrue(
+            AuditLog.objects.filter(store=self.store, action=AuditLog.ACTION_SUPPORT_END).exists()
+        )
+
+    def test_saas_admin_finance_and_gateways_view(self):
+        """
+        Valida os módulos de finanças e configuração do Mercado Pago.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        # Financeiro
+        resp_fin = self.client.get('/gestao-saas/financeiro/')
+        self.assertEqual(resp_fin.status_code, 200)
+        self.assertTemplateUsed(resp_fin, 'saas_admin/finance.html')
+        self.assertIn('mrr', resp_fin.context)
+
+        # Gateways
+        resp_gw = self.client.get('/gestao-saas/gateways/')
+        self.assertEqual(resp_gw.status_code, 200)
+        self.assertTemplateUsed(resp_gw, 'saas_admin/gateways.html')
+
+        # Atualização do Gateway Mercado Pago
+        resp_gw_post = self.client.post('/gestao-saas/gateways/', {
+            'environment': 'SANDBOX',
+            'access_token': 'TEST-ACCESS-TOKEN-12345',
+            'public_key': 'TEST-PUBLIC-KEY-12345',
+            'webhook_secret': 'SECRET-XYZ',
+            'is_active': 'on'
+        })
+        self.assertEqual(resp_gw_post.status_code, 302)
+
+        gw_config = PaymentGatewayConfig.objects.get(gateway='MERCADOPAGO')
+        self.assertEqual(gw_config.access_token, 'TEST-ACCESS-TOKEN-12345')
+        self.assertTrue(gw_config.is_active)
+
+        # Teste AJAX de conexão
+        resp_ajax = self.client.post(reverse('saas_admin:test_gateway'))
+        self.assertEqual(resp_ajax.status_code, 200)
+        data = resp_ajax.json()
+        self.assertIn('status', data)
+
+    def test_saas_admin_audit_trail_view(self):
+        """
+        Valida a tela de consulta da trilha de auditoria administrativa.
+        """
+        self.client.login(email='admin@mepedi.com', password='AdminPassword123!')
+
+        resp = self.client.get(reverse('saas_admin:audit'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'saas_admin/audit.html')
+        self.assertIn('page_obj', resp.context)
+
+
+class SaaSE2EFlowTestCase(TestCase):
+    """
+    Fase 20 e 21: Teste de Integração Ponta a Ponta (E2E) e Governança do SaaS MePedi.
+    Valida o ciclo de vida completo:
+    1. Criação da Loja -> Trial de 30 dias automático
+    2. Operação dentro do Trial
+    3. Esgotamento por pedidos (> 300) -> Status EXPIRED
+    4. Checkout do Plano Pro (R$ 99,90)
+    5. Confirmação via Webhook Mercado Pago -> Status ACTIVE (Sem limites)
+    6. Atualização imediata do MRR no Painel Administrativo do SaaS
+    7. Auditoria de ponta a ponta e Suporte
+    """
+
+    def setUp(self):
+        # Admin Central
+        self.admin = User.objects.create_user(
+            email='diretoria@mepedi.com',
+            password='AdminPassword123!',
+            full_name='Diretor SaaS MePedi',
+            is_staff=True,
+            is_superuser=True
+        )
+
+        # Lojista
+        self.merchant = User.objects.create_user(
+            email='dono.pastelaria@mepedi.com',
+            password='MerchantPassword123!',
+            full_name='Seu Zé do Pastel'
+        )
+
+        # Dados Padrão do SaaS
+        seed = SubscriptionService.seed_default_saas_data()
+        self.plan_pro = seed['plans']['pro']
+
+        self.client = Client()
+
+    def test_complete_saas_lifecycle_e2e(self):
+        # 1. Nova loja é criada e recebe Trial de 30 dias automaticamente
+        store = Store.objects.create(
+            owner=self.merchant,
+            name="Pastelaria do Zé",
+            slug="pastelaria-do-ze",
+            whatsapp="11911112222",
+            is_active=True,
+            is_open=True
+        )
+        StoreMembership.objects.create(
+            user=self.merchant,
+            store=store,
+            role='owner',
+            is_active=True
+        )
+
+        sub = SubscriptionService.get_current_subscription(store)
+        self.assertIsNotNone(sub)
+        self.assertEqual(sub.status, Subscription.STATUS_TRIAL)
+
+        # 2. Lojista acessa o painel da sua loja
+        self.client.login(email='dono.pastelaria@mepedi.com', password='MerchantPassword123!')
+        resp_dashboard = self.client.get(f'/painel/{store.slug}/')
+        self.assertEqual(resp_dashboard.status_code, 200)
+        self.assertIn('saas_subscription', resp_dashboard.context)
+        self.assertIn('saas_trial_info', resp_dashboard.context)
+
+        # 3. Loja atinge limite do trial (> 300 pedidos válidos)
+        customer = Customer.objects.create(store=store, name="Cliente Teste", phone="11955554444")
+        orders = []
+        for i in range(301):
+            orders.append(Order(
+                store=store,
+                customer=customer,
+                order_number=20000 + i,
+                status=Order.STATUS_COMPLETED,
+                subtotal=Decimal('5.00'),
+                total=Decimal('5.00'),
+                origin=Order.ORIGIN_ONLINE
+            ))
+        Order.objects.bulk_create(orders)
+
+        trial_status = TrialService.check_trial_status(store)
+        self.assertFalse(trial_status['is_active'])
+        self.assertTrue(trial_status['is_expired'])
+        self.assertEqual(trial_status['expired_reason'], 'ORDERS_LIMIT')
+
+        # 4. Lojista escolhe o Plano Pro e inicia o Checkout
+        resp_checkout = self.client.post(f'/painel/{store.slug}/assinatura/checkout/{self.plan_pro.slug}/')
+        self.assertEqual(resp_checkout.status_code, 302)
+
+        # 5. Gateway notifica pagamento aprovado via Webhook
+        pending_payment = PaymentHistory.objects.filter(
+            subscription__store=store,
+            status=PaymentHistory.STATUS_PENDING
+        ).first()
+        self.assertIsNotNone(pending_payment)
+
+        ext_ref = f"mepedi_sub_{sub.id}_{self.plan_pro.id}_{pending_payment.id}"
+        webhook_payload = {
+            'action': 'payment.created',
+            'data': {'id': 'mp_pay_e2e_888999'},
+            'status': 'approved',
+            'transaction_amount': float(self.plan_pro.price),
+            'external_reference': ext_ref,
+        }
+
+        payment_service = PaymentService('MERCADOPAGO')
+        webhook_result = payment_service.process_webhook_event(
+            gateway='MERCADOPAGO',
+            external_id='mp_pay_e2e_888999',
+            event_type='payment.created',
+            payload=webhook_payload
+        )
+        self.assertEqual(webhook_result['status'], 'PROCESSED')
+
+        # Assinatura agora é ACTIVE e ilimitada
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, Subscription.STATUS_ACTIVE)
+        self.assertEqual(sub.plan, self.plan_pro)
+
+        # 6. Admin Central acessa o Painel de Gestão do SaaS
+        self.client.login(email='diretoria@mepedi.com', password='AdminPassword123!')
+        resp_admin = self.client.get(reverse('saas_admin:dashboard'))
+        self.assertEqual(resp_admin.status_code, 200)
+        self.assertGreaterEqual(resp_admin.context['active_paid_stores'], 1)
+        self.assertGreaterEqual(resp_admin.context['estimated_mrr'], self.plan_pro.price)
+
+        # 7. Admin inicia Modo Suporte na loja e verifica dados
+        resp_support = self.client.post(reverse('saas_admin:support_start', args=[store.id]))
+        self.assertEqual(resp_support.status_code, 302)
+
+        resp_store_panel = self.client.get(f'/painel/{store.slug}/')
+        self.assertEqual(resp_store_panel.status_code, 200)
+
+        # Encerra Modo Suporte
+        resp_exit_support = self.client.get(reverse('saas_admin:support_end'))
+        self.assertEqual(resp_exit_support.status_code, 302)
+        self.assertIsNone(self.client.session.get('support_mode_store_id'))
+
+        # Valida que todos os eventos foram auditados
+        self.assertTrue(AuditLog.objects.filter(store=store, action=AuditLog.ACTION_SUPPORT_START).exists())
+        self.assertTrue(AuditLog.objects.filter(store=store, action=AuditLog.ACTION_SUPPORT_END).exists())
+
+
 

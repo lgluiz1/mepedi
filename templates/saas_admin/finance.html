@@ -1,0 +1,221 @@
+{% extends 'saas_admin/base.html' %}
+
+{% block title %}Financeiro & MRR - MePedi SaaS Admin{% endblock %}
+{% block page_title %}Módulo Financeiro & Gestão de Receita{% endblock %}
+
+{% block content %}
+
+<!-- Grid de Métricas Financeiras -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px;">
+  <div class="stat-card" style="background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 100%); border-top: 3px solid #6366f1;">
+    <span class="stat-card-title" style="color: #c7d2fe;">💵 MRR (Receita Recorrente)</span>
+    <span class="stat-card-val" style="color: #ffffff;">R$ {{ mrr|floatformat:2 }}</span>
+    <span style="font-size: 0.8rem; color: #a5b4fc;">Soma dos planos ativos mensais</span>
+  </div>
+
+  <div class="stat-card" style="border-top: 3px solid #10b981;">
+    <span class="stat-card-title">💳 Receita Aprovada (Mês Atual)</span>
+    <span class="stat-card-val" style="color: #10b981;">R$ {{ month_revenue|floatformat:2 }}</span>
+    <span style="font-size: 0.8rem; color: #94a3b8;">Faturas pagas no ciclo vigente</span>
+  </div>
+
+  <div class="stat-card" style="border-top: 3px solid #38bdf8;">
+    <span class="stat-card-title">🏦 Receita Total Acumulada</span>
+    <span class="stat-card-val" style="color: #38bdf8;">R$ {{ total_revenue_all_time|floatformat:2 }}</span>
+    <span style="font-size: 0.8rem; color: #94a3b8;">Histórico total de pagamentos</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="stat-card-title">📊 Faturas Registradas</span>
+    <div style="display: flex; gap: 14px; margin-top: 6px;">
+      <div>
+        <div style="font-size: 1.25rem; font-weight: 800; color: #10b981;">{{ approved_count }}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Pagas</div>
+      </div>
+      <div style="border-left: 1px solid #334155; padding-left: 14px;">
+        <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b;">{{ pending_count }}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Pendentes</div>
+      </div>
+      <div style="border-left: 1px solid #334155; padding-left: 14px;">
+        <div style="font-size: 1.25rem; font-weight: 800; color: #ef4444;">{{ rejected_count }}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Falhas</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grid: Distribuição de MRR por Plano -->
+<div class="table-card" style="margin-bottom: 32px;">
+  <div class="table-card-header">
+    <h2 class="table-card-title">
+      <span>📊</span> Composição de Receita por Plano de Assinatura
+    </h2>
+    <span style="font-size: 0.82rem; color: #94a3b8;">Impacto no MRR da plataforma</span>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Plano</th>
+          <th>Preço Mensal</th>
+          <th>Assinaturas Ativas</th>
+          <th>Receita Mensal Prevista</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in revenue_by_plan %}
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">
+              {{ p.name }}
+              {% if p.is_custom %}
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.7rem; margin-left: 6px;">Personalizado</span>
+              {% endif %}
+            </td>
+            <td>R$ {{ p.price|floatformat:2 }} / mês</td>
+            <td>
+              <span class="badge badge-success" style="font-size: 0.82rem;">
+                {{ p.active_subscriptions_count }} ativa{{ p.active_subscriptions_count|pluralize }}
+              </span>
+            </td>
+            <td style="font-weight: 800; color: #10b981; font-size: 1rem;">
+              R$ {{ p.total_monthly_value|default:"0.00"|floatformat:2 }}
+            </td>
+            <td>
+              <span style="font-size: 0.82rem; color: #94a3b8;">{{ p.get_billing_cycle_display }}</span>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">
+              Nenhum plano cadastrado no sistema.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Histórico Completo de Faturas -->
+<div class="table-card">
+  <div class="table-card-header" style="flex-wrap: wrap; gap: 14px;">
+    <h2 class="table-card-title">
+      <span>🧾</span> Histórico Transacional de Faturas
+    </h2>
+
+    <!-- Filtros de Status -->
+    <div style="display: flex; gap: 8px;">
+      <a href="?status=all" class="badge" style="text-decoration: none; padding: 6px 12px; font-size: 0.82rem; {% if status_filter == 'all' %}background: var(--brand-primary); color: #ffffff;{% else %}background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);{% endif %}">
+        Todas
+      </a>
+      <a href="?status=approved" class="badge" style="text-decoration: none; padding: 6px 12px; font-size: 0.82rem; {% if status_filter == 'approved' %}background: #10b981; color: #ffffff;{% else %}background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);{% endif %}">
+        Aprovadas
+      </a>
+      <a href="?status=pending" class="badge" style="text-decoration: none; padding: 6px 12px; font-size: 0.82rem; {% if status_filter == 'pending' %}background: #f59e0b; color: #ffffff;{% else %}background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);{% endif %}">
+        Pendentes
+      </a>
+      <a href="?status=rejected" class="badge" style="text-decoration: none; padding: 6px 12px; font-size: 0.82rem; {% if status_filter == 'rejected' %}background: #ef4444; color: #ffffff;{% else %}background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);{% endif %}">
+        Falhas / Rejeitadas
+      </a>
+    </div>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Data / Hora</th>
+          <th>Estabelecimento</th>
+          <th>Plano</th>
+          <th>Valor</th>
+          <th>Método / Gateway</th>
+          <th>Status</th>
+          <th>ID Transação</th>
+          <th style="text-align: right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in page_obj %}
+          <tr>
+            <td style="white-space: nowrap; color: #94a3b8; font-size: 0.85rem;">
+              {{ pay.created_at|date:"d/m/Y H:i" }}
+            </td>
+            <td>
+              <a href="{% url 'saas_admin:store_detail' pay.subscription.store.id %}" style="color: #ffffff; text-decoration: none; font-weight: 700;">
+                {{ pay.subscription.store.name }}
+              </a>
+              <div style="font-size: 0.75rem; color: #64748b;">{{ pay.subscription.store.slug }}</div>
+            </td>
+            <td>
+              <span style="font-weight: 600; color: #c7d2fe;">
+                {{ pay.subscription.plan.name|default:"Sem Plano" }}
+              </span>
+            </td>
+            <td style="font-weight: 800; color: #ffffff;">
+              R$ {{ pay.amount|floatformat:2 }}
+            </td>
+            <td>
+              <span style="font-size: 0.82rem; color: #94a3b8;">
+                {{ pay.payment_method|default:pay.gateway }}
+              </span>
+            </td>
+            <td>
+              {% if pay.status == 'APPROVED' %}
+                <span class="badge badge-success">✓ Aprovado</span>
+              {% elif pay.status == 'PENDING' %}
+                <span class="badge badge-warning">⏳ Pendente</span>
+              {% elif pay.status == 'REJECTED' %}
+                <span class="badge badge-danger">✕ Rejeitado</span>
+              {% elif pay.status == 'REFUNDED' %}
+                <span class="badge badge-info">↩ Estornado</span>
+              {% else %}
+                <span class="badge badge-neutral">{{ pay.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <code style="font-size: 0.75rem; background: #0f172a; padding: 2px 6px; border-radius: 4px; color: #94a3b8;">
+                {{ pay.external_id|default:pay.id|stringformat:"s"|slice:":16" }}
+              </code>
+            </td>
+            <td style="text-align: right;">
+              <a href="{% url 'saas_admin:store_detail' pay.subscription.store.id %}" class="btn-action btn-action-neutral" title="Ver 360° da Loja">
+                Ver Loja
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: #94a3b8; padding: 32px;">
+              Nenhum pagamento registrado nesta categoria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-top: 1px solid var(--border-color);">
+      <span style="font-size: 0.85rem; color: #94a3b8;">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} registros)
+      </span>
+      <div style="display: flex; gap: 8px;">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}" class="btn-action btn-action-neutral">
+            ← Anterior
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}" class="btn-action btn-action-neutral">
+            Próxima →
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

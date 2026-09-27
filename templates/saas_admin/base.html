@@ -1,0 +1,467 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Gestão SaaS MePedi{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-mepedi.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-surface: #111827;
+      --bg-card: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --brand-primary: #6366f1;
+      --brand-primary-hover: #4f46e5;
+      --brand-success: #10b981;
+      --brand-warning: #f59e0b;
+      --brand-danger: #ef4444;
+      --sidebar-width: 260px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar Fixa */
+    .admin-sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .brand-logo-img {
+      height: 32px;
+      width: auto;
+    }
+    .brand-badge {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #a5b4fc;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+    .nav-section-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 12px 4px 12px;
+    }
+    .nav-link-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .nav-link-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffffff;
+    }
+    .nav-link-item.active {
+      background: var(--brand-primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .nav-icon {
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .user-info-cluster {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .user-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    .user-role {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .btn-logout-admin {
+      color: #ef4444;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .btn-logout-admin:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Conteúdo Principal */
+    .admin-main-wrapper {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* Topbar */
+    .admin-topbar {
+      height: 64px;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .page-heading-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .system-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .status-dot-pulse {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+    }
+    .link-technical-admin {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      transition: all 0.15s ease;
+    }
+    .link-technical-admin:hover {
+      color: #ffffff;
+      border-color: #64748b;
+    }
+
+    /* Container de Conteúdo */
+    .admin-content-container {
+      padding: 32px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Feedback Alert Toasts */
+    .admin-msg-banner {
+      padding: 12px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+    .admin-msg-banner.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+    }
+
+    /* Cards e Tabelas Compartilhadas */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .stat-card-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .stat-card-val {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .table-card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .table-card-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .admin-table th {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 12px 18px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    .admin-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      color: var(--text-main);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .admin-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Badges de Status */
+    .saas-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .saas-status-badge.TRIAL { background: rgba(99, 102, 241, 0.2); color: #c7d2fe; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .saas-status-badge.ACTIVE { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .saas-status-badge.PAST_DUE { background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .saas-status-badge.EXPIRED { background: rgba(239, 68, 68, 0.2); color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .saas-status-badge.SUSPENDED { background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.3); }
+    .saas-status-badge.CANCELLED { background: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.3); }
+
+    /* Botões */
+    .btn-admin {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-admin-primary {
+      background: var(--brand-primary);
+      color: #ffffff;
+    }
+    .btn-admin-primary:hover {
+      background: var(--brand-primary-hover);
+    }
+    .btn-admin-support {
+      background: #d97706;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+    }
+    .btn-admin-support:hover {
+      background: #b45309;
+    }
+    .btn-admin-secondary {
+      background: #334155;
+      color: #f1f5f9;
+    }
+    .btn-admin-secondary:hover {
+      background: #475569;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'img/mepedi-logo.png' %}" alt="MePedi" class="brand-logo-img">
+      <span class="brand-badge">SaaS Admin</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-title">Principal</span>
+      <a href="{% url 'saas_admin:dashboard' %}" class="nav-link-item {% if active_nav == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span>
+        <span>Visão Geral</span>
+      </a>
+      <a href="{% url 'saas_admin:merchants' %}" class="nav-link-item {% if active_nav == 'merchants' %}active{% endif %}">
+        <span class="nav-icon">🏪</span>
+        <span>Lojistas &amp; Lojas</span>
+      </a>
+
+      <span class="nav-section-title" style="margin-top: 14px;">Gestão &amp; Controle</span>
+      <a href="{% url 'saas_admin:finance' %}" class="nav-link-item {% if active_nav == 'finance' %}active{% endif %}">
+        <span class="nav-icon">💰</span>
+        <span>Financeiro &amp; MRR</span>
+      </a>
+      <a href="{% url 'saas_admin:gateways' %}" class="nav-link-item {% if active_nav == 'gateways' %}active{% endif %}">
+        <span class="nav-icon">🔌</span>
+        <span>Gateways (Mercado Pago)</span>
+      </a>
+      <a href="{% url 'saas_admin:audit' %}" class="nav-link-item {% if active_nav == 'audit' %}active{% endif %}">
+        <span class="nav-icon">🛡️</span>
+        <span>Auditoria</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info-cluster">
+        <span class="user-name">{{ request.user.full_name|default:request.user.email }}</span>
+        <span class="user-role">Administrador MePedi</span>
+      </div>
+      <a href="/painel/logout/" class="btn-logout-admin" title="Sair da Conta">Sair</a>
+    </div>
+  </aside>
+
+  <!-- Main Wrapper -->
+  <div class="admin-main-wrapper">
+    <!-- Topbar -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <h1 class="page-heading-title">{% block page_title %}Painel Administrativo MePedi{% endblock %}</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="system-status-indicator">
+          <span class="status-dot-pulse"></span>
+          <span>SaaS Operacional</span>
+        </div>
+        <a href="/admin/" target="_blank" class="link-technical-admin" title="Django Admin Técnico">
+          ⚙️ Django Admin
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="admin-content-container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

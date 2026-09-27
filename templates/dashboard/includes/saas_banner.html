@@ -1,3 +1,22 @@
+{% if is_support_mode %}
+  <!-- Banner de Modo Suporte Ativo -->
+  <div id="mepediSupportModeBanner" class="saas-trial-banner support-mode-active">
+    <div class="saas-banner-inner">
+      <div class="saas-banner-left">
+        <span class="saas-pulse-badge support">⚠️ MODO SUPORTE ATIVO</span>
+        <span class="saas-banner-text">
+          Você está navegando como suporte na loja <strong>{{ support_mode_store_name|default:store.name }}</strong>. Todas as ações operacionais afetam a loja real.
+        </span>
+      </div>
+      <div class="saas-banner-right">
+        <a href="/gestao-saas/suporte/sair/" class="saas-btn-action support">
+          🚪 Sair do Modo Suporte
+        </a>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
 {% if current_subscription or saas_subscription %}
   {% with sub=current_subscription|default:saas_subscription info=trial_info|default:saas_trial_info %}
     {% if sub.status == 'TRIAL' %}
@@ -83,6 +102,11 @@
       background: linear-gradient(90deg, #451a03 0%, #78350f 50%, #451a03 100%);
       border-bottom: 1px solid rgba(251, 191, 36, 0.4);
     }
+    .saas-trial-banner.support-mode-active {
+      background: linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%);
+      border-bottom: 2px solid #f59e0b;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+    }
     .saas-banner-inner {
       max-width: 1440px;
       margin: 0 auto;
@@ -119,6 +143,12 @@
       background: rgba(245, 158, 11, 0.3);
       border-color: rgba(253, 230, 138, 0.4);
       color: #fef3c7;
+    }
+    .saas-pulse-badge.support {
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #b45309;
+      font-weight: 900;
     }
     .saas-banner-text {
       color: #f1f5f9;
@@ -157,6 +187,14 @@
     }
     .saas-btn-action.warning:hover {
       background: #b45309;
+    }
+    .saas-btn-action.support {
+      background: #1e1b4b;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .saas-btn-action.support:hover {
+      background: #0f172a;
     }
     @media (max-width: 768px) {
       .saas-banner-inner {

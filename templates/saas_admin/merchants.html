@@ -1,0 +1,228 @@
+{% extends 'saas_admin/base.html' %}
+
+{% block title %}Lojistas & Lojas - MePedi SaaS Admin{% endblock %}
+{% block page_title %}Gestão de Lojistas &amp; Estabelecimentos{% endblock %}
+
+{% block content %}
+
+<!-- Barra de Filtros e Busca -->
+<div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+  <form method="GET" action="{% url 'saas_admin:merchants' %}" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+    
+    <!-- Busca Textual -->
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px;">
+      <input type="text"
+             name="q"
+             value="{{ search_query }}"
+             placeholder="Buscar por loja, lojista, CPF/CNPJ, email ou telefone..."
+             style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; color: #ffffff; font-size: 0.9rem; outline: none;">
+      <button type="submit" class="btn-admin btn-admin-primary">
+        🔍 Buscar
+      </button>
+      {% if search_query or status_filter != 'all' or plan_filter != 'all' %}
+        <a href="{% url 'saas_admin:merchants' %}" class="btn-admin btn-admin-secondary" title="Limpar Filtros">
+          ✕ Limpar
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Filtro de Plano -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">Plano:</span>
+      <select name="plan" onchange="this.form.submit()" style="background: #0f172a; border: 1px solid var(--border-color); border-radius: 8px; padding: 9px 12px; color: #ffffff; font-size: 0.88rem; outline: none; cursor: pointer;">
+        <option value="all">Todos os Planos</option>
+        {% for p in plans %}
+          <option value="{{ p.slug }}" {% if plan_filter == p.slug %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <!-- Abas de Status -->
+  <div style="display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid rgba(51, 65, 85, 0.5); padding-top: 14px; overflow-x: auto;">
+    <a href="?status=all{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'all' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      Todos
+    </a>
+    <a href="?status=trial{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'trial' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      ⚡ Trial
+    </a>
+    <a href="?status=active{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'active' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      🚀 Ativos (Pagos)
+    </a>
+    <a href="?status=past_due{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'past_due' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      ⚠️ Inadimplentes
+    </a>
+    <a href="?status=expired{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'expired' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      ⌛ Expirados
+    </a>
+    <a href="?status=cancelled{% if plan_filter != 'all' %}&plan={{ plan_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+       class="btn-admin {% if status_filter == 'cancelled' %}btn-admin-primary{% else %}btn-admin-secondary{% endif %}" style="padding: 6px 12px; font-size: 0.8rem;">
+      ✕ Cancelados
+    </a>
+  </div>
+</div>
+
+<!-- Tabela de Lojistas -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h2 class="table-card-title">
+      <span>🏪</span> Estabelecimentos Encontrados ({{ page_obj.paginator.count }})
+    </h2>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Estabelecimento</th>
+          <th>Responsável</th>
+          <th>CPF / CNPJ</th>
+          <th>WhatsApp / Contato</th>
+          <th>Plano</th>
+          <th>Status Assinatura</th>
+          <th>Período / Trial</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for st in page_obj %}
+          <tr>
+            <!-- Loja -->
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                {% if st.logo %}
+                  <img src="{{ st.logo.url }}" alt="{{ st.name }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;">🍕</div>
+                {% endif %}
+                <div>
+                  <a href="{% url 'saas_admin:store_detail' st.id %}" style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.95rem;">
+                    {{ st.name }}
+                  </a>
+                  <div style="font-size: 0.75rem; color: #94a3b8;">
+                    slug: <code>{{ st.slug }}</code>
+                    &bull; {% if st.is_active %}<span style="color: #10b981;">Ativa</span>{% else %}<span style="color: #ef4444;">Inativa</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Responsável -->
+            <td>
+              <div style="font-weight: 700; color: #f1f5f9;">{{ st.owner.full_name|default:st.owner.email }}</div>
+              <div style="font-size: 0.75rem; color: #94a3b8;">{{ st.owner.email }}</div>
+            </td>
+
+            <!-- Documento -->
+            <td>
+              {% if st.document %}
+                <code style="font-size: 0.8rem; color: #cbd5e1; background: #0f172a; padding: 2px 6px; border-radius: 4px;">{{ st.document }}</code>
+              {% else %}
+                <span style="color: #64748b; font-size: 0.8rem;">Não informado</span>
+              {% endif %}
+            </td>
+
+            <!-- WhatsApp -->
+            <td>
+              {% if st.whatsapp %}
+                <a href="https://wa.me/55{{ st.whatsapp }}" target="_blank" style="color: #34d399; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                  <span>💬</span> {{ st.whatsapp }}
+                </a>
+              {% else %}
+                <span style="color: #64748b;">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Plano -->
+            <td>
+              {% if st.latest_sub and st.latest_sub.plan %}
+                <div style="font-weight: 800; color: #c7d2fe;">{{ st.latest_sub.plan.name }}</div>
+                <div style="font-size: 0.75rem; color: #94a3b8;">R$ {{ st.latest_sub.plan.price }}/mês</div>
+              {% else %}
+                <span style="color: #94a3b8; font-weight: 600;">Sem Plano (Trial)</span>
+              {% endif %}
+            </td>
+
+            <!-- Status -->
+            <td>
+              <span class="saas-status-badge {{ st.latest_sub.status|default:'TRIAL' }}">
+                {{ st.latest_sub.get_status_display|default:'Trial' }}
+              </span>
+            </td>
+
+            <!-- Período / Métricas -->
+            <td>
+              {% if st.latest_sub and st.latest_sub.status == 'TRIAL' and st.trial_calc %}
+                <div style="font-size: 0.78rem; color: #e2e8f0;">
+                  <strong>{{ st.trial_calc.days_remaining }}d restantes</strong>
+                </div>
+                <div style="font-size: 0.72rem; color: #94a3b8;">
+                  {{ st.trial_calc.orders_count }}/300 ped. &bull; R$ {{ st.trial_calc.revenue_total|floatformat:0 }}/2k
+                </div>
+              {% elif st.latest_sub and st.latest_sub.status == 'ACTIVE' %}
+                <div style="font-size: 0.78rem; color: #10b981;">
+                  Renova: {{ st.latest_sub.current_period_end|date:"d/m/Y" }}
+                </div>
+                <div style="font-size: 0.72rem; color: #94a3b8;">Ilimitado</div>
+              {% else %}
+                <span style="font-size: 0.78rem; color: #94a3b8;">{{ st.created_at|date:"d/m/Y" }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Ações -->
+            <td>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <a href="{% url 'saas_admin:store_detail' st.id %}" class="btn-admin btn-admin-secondary" style="padding: 5px 10px; font-size: 0.78rem;" title="Ver Ficha Completa">
+                  Detalhes
+                </a>
+
+                <!-- Botão de Acesso em Modo Suporte -->
+                <form method="POST" action="{% url 'saas_admin:support_start' st.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-admin btn-admin-support" style="padding: 5px 10px; font-size: 0.78rem;" title="Acessar painel como esta loja em Modo Suporte">
+                    🛠️ Suporte
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: #94a3b8; padding: 32px;">
+              Nenhum estabelecimento encontrado com os filtros selecionados.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if page_obj.has_other_pages %}
+    <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-size: 0.85rem; color: #94a3b8;">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+
+      <div style="display: flex; gap: 6px;">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&plan={{ plan_filter }}&q={{ search_query }}" class="btn-admin btn-admin-secondary" style="padding: 4px 10px; font-size: 0.8rem;">
+            ← Anterior
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&plan={{ plan_filter }}&q={{ search_query }}" class="btn-admin btn-admin-secondary" style="padding: 4px 10px; font-size: 0.8rem;">
+            Próxima →
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

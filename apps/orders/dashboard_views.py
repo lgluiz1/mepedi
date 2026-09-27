@@ -62,7 +62,13 @@ def merchant_dashboard_root_view(request):
 def get_user_active_store(user, store_slug):
     """
     Helper com validação multi-tenant para obter a loja ativa do lojista autenticado.
+    Permite acesso a administradores da plataforma (is_staff / is_superuser) em modo de suporte.
     """
+    if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+        target_store = Store.objects.filter(slug=store_slug, is_active=True).first()
+        if target_store:
+            return target_store, [target_store]
+
     user_memberships = user.memberships.filter(is_active=True).select_related('store')
     active_stores = [m.store for m in user_memberships if m.store.is_active]
     current_store = next((s for s in active_stores if s.slug == store_slug), None)

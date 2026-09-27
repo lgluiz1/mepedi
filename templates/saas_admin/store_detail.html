@@ -1,0 +1,326 @@
+{% extends 'saas_admin/base.html' %}
+
+{% block title %}{{ store.name }} - Detalhes 360° | MePedi SaaS Admin{% endblock %}
+{% block page_title %}Ficha Detalhada do Estabelecimento{% endblock %}
+
+{% block content %}
+
+<!-- Alertas de Feedback -->
+{% if request.GET.msg == 'plan_changed' %}
+  <div class="admin-msg-banner success">
+    ✓ Plano comercial alterado com sucesso! Ação registrada na auditoria.
+  </div>
+{% elif request.GET.msg == 'trial_extended' %}
+  <div class="admin-msg-banner success">
+    ✓ Prazo do Trial estendido com sucesso! Ação registrada na auditoria.
+  </div>
+{% elif request.GET.msg == 'status_updated' %}
+  <div class="admin-msg-banner success">
+    ✓ Status do estabelecimento atualizado com sucesso!
+  </div>
+{% elif request.GET.msg == 'support_ended' %}
+  <div class="admin-msg-banner success">
+    ✓ Sessão em Modo Suporte encerrada. Você retornou à gestão central.
+  </div>
+{% endif %}
+
+<!-- Header da Loja -->
+<div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
+  <div style="display: flex; align-items: center; gap: 16px;">
+    {% if store.logo %}
+      <img src="{{ store.logo.url }}" alt="{{ store.name }}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1;">
+    {% else %}
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 2px solid #6366f1;">🍕</div>
+    {% endif %}
+
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+        <h1 style="font-size: 1.6rem; font-weight: 900; color: #ffffff;">{{ store.name }}</h1>
+        <span class="saas-status-badge {{ subscription.status|default:'TRIAL' }}">
+          {{ subscription.get_status_display|default:'Trial' }}
+        </span>
+      </div>
+      <div style="font-size: 0.85rem; color: #94a3b8; display: flex; gap: 14px; flex-wrap: wrap;">
+        <span>Slug: <code>{{ store.slug }}</code></span>
+        {% if store.document %}<span>CPF/CNPJ: <code>{{ store.document }}</code></span>{% endif %}
+        <span>Desde: <strong>{{ store.created_at|date:"d/m/Y" }}</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <a href="/{{ store.slug }}/" target="_blank" class="btn-admin btn-admin-secondary" style="padding: 10px 16px;">
+      🌐 Cardápio Online
+    </a>
+
+    <!-- Botão de Acesso em Modo Suporte -->
+    <form method="POST" action="{% url 'saas_admin:support_start' store.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-admin btn-admin-support" style="padding: 10px 18px; font-size: 0.95rem;">
+        <span>🛠️ Acessar em Modo Suporte</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Layout em Grid: Coluna 1 (Assinatura e Ações) | Coluna 2 (Dados Operacionais) -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+
+  <!-- Bloco de Assinatura & Ações Administrativas -->
+  <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 24px;">
+    <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+      <span>💎</span> Assinatura &amp; Ciclo Comercial
+    </h3>
+
+    <div style="background: #0f172a; border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #94a3b8; font-size: 0.85rem;">Plano Contratado:</span>
+        <strong style="color: #c7d2fe; font-size: 1rem;">
+          {{ subscription.plan.name|default:"Sem Plano Comercial (Trial Ativo)" }}
+        </strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #94a3b8; font-size: 0.85rem;">Valor Mensal:</span>
+        <strong style="color: #ffffff;">
+          {% if subscription.plan %}R$ {{ subscription.plan.price }}/mês{% else %}Gratuito (Trial){% endif %}
+        </strong>
+      </div>
+      {% if subscription.status == 'TRIAL' %}
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="color: #94a3b8; font-size: 0.85rem;">Previsão Término Trial:</span>
+          <strong style="color: #f59e0b;">{{ subscription.trial_ends_at|date:"d/m/Y H:i"|default:"30 dias" }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8; font-size: 0.85rem;">Consumo no Teste:</span>
+          <span style="color: #ffffff; font-size: 0.85rem;">
+            <strong>{{ trial_info.days_used }}d</strong> usados &bull; 
+            <strong>{{ trial_info.orders_count }}</strong>/300 ped. &bull; 
+            <strong>R$ {{ trial_info.revenue_total }}</strong>/R$ 2k
+          </span>
+        </div>
+      {% elif subscription.status == 'ACTIVE' %}
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8; font-size: 0.85rem;">Renovação do Ciclo:</span>
+          <strong style="color: #10b981;">{{ subscription.current_period_end|date:"d/m/Y" }}</strong>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Formulário 1: Alteração Manual de Plano -->
+    <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
+      <h4 style="font-size: 0.9rem; font-weight: 700; color: #e2e8f0; margin-bottom: 10px;">
+        ⚙️ Alterar Plano Manualmente (Admin)
+      </h4>
+      <form method="POST" action="{% url 'saas_admin:change_plan' store.id %}">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+          <select name="plan_id" required style="flex: 1; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; color: #ffffff; font-size: 0.88rem;">
+            {% for p in available_plans %}
+              <option value="{{ p.id }}" {% if subscription.plan.id == p.id %}selected{% endif %}>
+                {{ p.name }} (R$ {{ p.price }}/mês)
+              </option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-admin btn-admin-primary" style="padding: 8px 14px; font-size: 0.82rem;">
+            Salvar Plano
+          </button>
+        </div>
+        <input type="text" name="reason" placeholder="Motivo da alteração (para auditoria)..." style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: #ffffff; font-size: 0.8rem;">
+      </form>
+    </div>
+
+    <!-- Formulário 2: Estender Trial -->
+    <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
+      <h4 style="font-size: 0.9rem; font-weight: 700; color: #e2e8f0; margin-bottom: 10px;">
+        ⏳ Estender Período de Testes
+      </h4>
+      <form method="POST" action="{% url 'saas_admin:extend_trial' store.id %}">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+          <select name="days" style="flex: 1; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; color: #ffffff; font-size: 0.88rem;">
+            <option value="7">+7 dias de cortesia</option>
+            <option value="15">+15 dias de cortesia</option>
+            <option value="30" selected>+30 dias de cortesia</option>
+          </select>
+          <button type="submit" class="btn-admin btn-admin-secondary" style="padding: 8px 14px; font-size: 0.82rem;">
+            Estender
+          </button>
+        </div>
+        <input type="text" name="reason" placeholder="Motivo da concessão de prazo extra..." style="width: 100%; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: #ffffff; font-size: 0.8rem;">
+      </form>
+    </div>
+
+    <!-- Ação 3: Suspender ou Reativar -->
+    <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+      <form method="POST" action="{% url 'saas_admin:toggle_status' store.id %}" style="display: flex; align-items: center; justify-content: space-between;">
+        {% csrf_token %}
+        {% if store.is_active %}
+          <input type="hidden" name="action_type" value="suspend">
+          <span style="font-size: 0.85rem; color: #94a3b8;">Status atual: <strong style="color: #10b981;">Ativa</strong></span>
+          <button type="submit" class="btn-admin" style="background: #991b1b; color: #ffffff; padding: 6px 12px; font-size: 0.8rem;" onclick="return confirm('Deseja suspender temporariamente esta loja?')">
+            Suspender Loja
+          </button>
+        {% else %}
+          <input type="hidden" name="action_type" value="reactivate">
+          <span style="font-size: 0.85rem; color: #94a3b8;">Status atual: <strong style="color: #ef4444;">Suspensa</strong></span>
+          <button type="submit" class="btn-admin" style="background: #065f46; color: #ffffff; padding: 6px 12px; font-size: 0.8rem;">
+            Reativar Loja
+          </button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Bloco de Dados Operacionais & Cadastrais -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- Métricas Operacionais -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 24px;">
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <span>📊</span> Métricas de Operação
+      </h3>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+        <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total de Pedidos</span>
+          <div style="font-size: 1.4rem; font-weight: 900; color: #ffffff;">{{ orders_count }}</div>
+        </div>
+        <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Vendas Válidas (GMV)</span>
+          <div style="font-size: 1.4rem; font-weight: 900; color: #10b981;">R$ {{ valid_revenue|floatformat:2 }}</div>
+        </div>
+        <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Produtos Cadastrados</span>
+          <div style="font-size: 1.4rem; font-weight: 900; color: #ffffff;">{{ products_count }}</div>
+        </div>
+        <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Clientes no Banco</span>
+          <div style="font-size: 1.4rem; font-weight: 900; color: #ffffff;">{{ customers_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados do Proprietário -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 24px;">
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <span>👤</span> Dados do Proprietário &amp; Contato
+      </h3>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Nome Completo:</span>
+          <strong>{{ store.owner.full_name|default:store.owner.email }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">E-mail:</span>
+          <code>{{ store.owner.email }}</code>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">WhatsApp da Loja:</span>
+          {% if store.whatsapp %}
+            <a href="https://wa.me/55{{ store.whatsapp }}" target="_blank" style="color: #34d399; text-decoration: none; font-weight: 700;">
+              💬 {{ store.whatsapp }}
+            </a>
+          {% else %}
+            <span style="color: #64748b;">—</span>
+          {% endif %}
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Telefone Fixo / Comercial:</span>
+          <span>{{ store.phone|default:"—" }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Data de Cadastro:</span>
+          <span>{{ store.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de Histórico Financeiro da Loja -->
+<div class="table-card" style="margin-bottom: 32px;">
+  <div class="table-card-header">
+    <h3 class="table-card-title">
+      <span>💳</span> Histórico de Pagamentos &amp; Faturas da Loja
+    </h3>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>ID Transação / Ref</th>
+          <th>Plano Referência</th>
+          <th>Valor</th>
+          <th>Gateway</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in payments %}
+          <tr>
+            <td>{{ pay.created_at|date:"d/m/Y H:i" }}</td>
+            <td><code style="font-size: 0.8rem; color: #94a3b8;">{{ pay.external_id|default:pay.id|truncatechars:24 }}</code></td>
+            <td><strong>{{ pay.subscription.plan.name|default:"Assinatura" }}</strong></td>
+            <td><strong>R$ {{ pay.amount }}</strong></td>
+            <td>{{ pay.get_gateway_display|default:pay.gateway }}</td>
+            <td>
+              <span class="saas-status-badge {{ pay.status }}">
+                {{ pay.get_status_display }}
+              </span>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">
+              Nenhum pagamento registrado para esta loja ainda.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Tabela de Trilha de Auditoria da Loja -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3 class="table-card-title">
+      <span>🛡️</span> Histórico de Auditoria Desta Loja
+    </h3>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Data / Hora</th>
+          <th>Ação</th>
+          <th>Administrador Responsável</th>
+          <th>IP</th>
+          <th>Detalhes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in audits %}
+          <tr>
+            <td style="font-size: 0.82rem; color: #94a3b8;">{{ a.created_at|date:"d/m/Y H:i:s" }}</td>
+            <td><strong>{{ a.get_action_display }}</strong></td>
+            <td>{{ a.user.email|default:"Sistema" }}</td>
+            <td><code>{{ a.ip_address|default:"Local" }}</code></td>
+            <td style="font-size: 0.8rem; color: #cbd5e1;">{{ a.details }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">
+              Nenhuma ação administrativa registrada para esta loja.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

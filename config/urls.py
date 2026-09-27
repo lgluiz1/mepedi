@@ -43,6 +43,9 @@ urlpatterns = [
     path('api/v1/subscriptions/', include('subscriptions.urls', namespace='subscriptions')),
     path('api/v1/analytics/<slug:store_slug>/event/', track_event_api_view, name='analytics_track_event_api'),
 
+    # Painel Administrativo Proprietário MePedi SaaS
+    path('gestao-saas/', include('subscriptions.admin_urls', namespace='saas_admin')),
+
     # Painel do Lojista (Web Dashboard)
     path('painel/login/', merchant_login_view, name='merchant_login'),
     path('painel/logout/', merchant_logout_view, name='merchant_logout'),

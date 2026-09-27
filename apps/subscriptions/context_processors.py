@@ -43,6 +43,13 @@ def subscription_context(request):
             context['saas_features'] = accessible_features
             context['accessible_features'] = accessible_features
 
+        # Verifica se o administrador está conectado em Modo Suporte
+        if hasattr(request, 'session') and request.session.get('support_mode_store_id'):
+            context['is_support_mode'] = True
+            context['support_mode_store_id'] = request.session.get('support_mode_store_id')
+            context['support_mode_store_name'] = request.session.get('support_mode_store_name')
+            context['support_mode_admin_id'] = request.session.get('support_mode_original_admin_id')
+
     except Exception:
         # Falha silenciosa para nunca quebrar a renderização de páginas
         pass
