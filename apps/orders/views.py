@@ -9,14 +9,17 @@ from django.utils import timezone
 
 from stores.models import Store
 from catalog.services import StockService
-from .models import Order, Coupon, Table, TableSession
+from .models import Order, OrderItem, Coupon, Table, TableSession
 from .services import OrderService
 from .serializers import (
+    OrderItemSerializer,
     OrderDetailSerializer,
     CreateOrderRequestSerializer,
     UpdateOrderStatusSerializer,
+    UpdateOrderItemStatusSerializer,
     TableSerializer,
     TableSessionDetailSerializer,
+    TableIdentifyRequestSerializer,
     CreateTableOrderRequestSerializer,
     CloseTableSessionRequestSerializer
 )
@@ -478,6 +481,79 @@ def public_customer_orders_page(request, store_slug):
 # Endpoints de Mesa / Cardápio Digital QR Code (Público)
 # =====================================================================
 
+class PublicTableSessionIdentifyView(APIView):
+    """
+    Identifica o cliente na mesa pelo WhatsApp e PIN (4 dígitos) ou abre a comanda da mesa.
+    POST /api/v1/orders/table/<uuid:qr_token>/identify/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, qr_token):
+        table = get_object_or_404(Table, qr_token=qr_token, is_active=True)
+        store = table.store
+
+        if not store.is_active:
+            return Response({"error": "Este estabelecimento está inativo no momento."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TableIdentifyRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        result = OrderService.bind_table_session_to_customer(
+            store=store,
+            table=table,
+            phone=data.get('phone'),
+            name=data.get('name'),
+            pin_attempt=data.get('pin')
+        )
+
+        status_code = status.HTTP_200_OK if result.get('success') else status.HTTP_400_BAD_REQUEST
+        return Response(result, status=status_code)
+
+
+class PublicTableSessionStatusView(APIView):
+    """
+    Consulta o estado da comanda da mesa (se está livre, ocupada, com titular ou aguardando PIN).
+    GET /api/v1/orders/table/<uuid:qr_token>/session-status/
+    """
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, qr_token):
+        table = get_object_or_404(Table, qr_token=qr_token, is_active=True)
+        session = table.current_session
+
+        if not session or not session.customer_phone:
+            return Response({
+                "is_occupied": False,
+                "need_identification": True,
+                "table_number": table.number,
+                "table_name": table.name,
+                "message": f"Mesa {table.number} livre. Informe seu WhatsApp para abrir a comanda."
+            })
+
+        # Mascara o telefone deixando apenas os 4 dígitos finais (ex: (**) *****-4321)
+        masked_phone = f"(**) *****-{session.pin_code}" if session.pin_code else ""
+
+        return Response({
+            "is_occupied": True,
+            "need_identification": False,
+            "session_id": str(session.public_id),
+            "table_number": table.number,
+            "table_name": table.name,
+            "customer_name": session.customer_name,
+            "customer_phone_masked": masked_phone,
+            "pin_code": session.pin_code,
+            "status": session.status,
+            "status_display": session.get_status_display(),
+            "subtotal": float(session.calculate_subtotal()),
+            "total": float(session.calculate_total()),
+            "orders_count": session.get_valid_orders().count(),
+            "bill_requested": session.status == TableSession.STATUS_WAITING_PAYMENT,
+        })
+
+
 class PublicCreateTableOrderView(APIView):
     """
     Submissão de rodada de pedido realizada pelo cliente na mesa física via QR Code.
@@ -506,6 +582,7 @@ class PublicCreateTableOrderView(APIView):
                 items_payload=data['items'],
                 customer_name=data.get('customer_name', ''),
                 customer_phone=data.get('customer_phone', ''),
+                pin_code=data.get('pin_code', ''),
                 order_notes=data.get('notes', '')
             )
         except (DjangoValidationError, ValidationError) as e:
@@ -571,6 +648,33 @@ class PublicRequestTableBillView(APIView):
             "status": updated_session.status,
             "total": float(updated_session.calculate_total())
         })
+
+
+class MerchantOrderItemStatusUpdateView(APIView):
+    """
+    Atualiza o status de preparo de um item individual (PENDING, PREPARING, READY, SERVED, CANCELLED).
+    PATCH /api/v1/orders/merchant/<int:store_id>/items/<int:item_id>/status/
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStoreMember]
+
+    def patch(self, request, store_id, item_id):
+        store = get_user_store(request.user, store_id)
+        serializer = UpdateOrderItemStatusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_status = serializer.validated_data['status']
+
+        try:
+            item = OrderService.update_order_item_status(
+                store=store,
+                order_item_id=item_id,
+                new_status=new_status
+            )
+        except (DjangoValidationError, ValidationError, OrderItem.DoesNotExist) as e:
+            msg = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(OrderItemSerializer(item).data, status=status.HTTP_200_OK)
+
 
 
 # =====================================================================

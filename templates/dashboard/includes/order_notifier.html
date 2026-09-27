@@ -460,8 +460,7 @@
                   }
                 } else if (payload.type === 'TABLE_BILL_REQUESTED') {
                   const billData = payload.data;
-                  alert(`🔔 CONTA SOLICITADA NA MESA ${billData.table_number}! Total: R$ ${parseFloat(billData.total).toFixed(2)}`);
-                  this.playSound();
+                  this.showBillRequestedAlert(billData);
                 } else if (payload.type === 'ORDER_UPDATED') {
                   const order = payload.data;
                   if (order && order.status !== 'NOVO') {
@@ -570,6 +569,38 @@
           this.stopSound();
         } else {
           // Toca som se ainda não estiver tocando
+          this.playSound();
+        }
+      }
+
+      showBillRequestedAlert(billData) {
+        if (!this.bannerEl) return;
+        const badgeOriginEl = this.bannerEl.querySelector('.order-notifier-badge-origin');
+        if (badgeOriginEl) {
+          badgeOriginEl.textContent = '🔔 CONTA';
+          badgeOriginEl.style.background = '#f59e0b';
+        }
+        if (this.titleEl) {
+          this.titleEl.textContent = `MESA ${billData.table_number} PEDIU A CONTA!`;
+        }
+        if (this.detailsEl) {
+          const formattedTotal = 'R$ ' + (parseFloat(billData.total) || 0).toFixed(2).replace('.', ',');
+          const cName = billData.customer_name || 'Cliente';
+          this.detailsEl.textContent = `Titular: ${cName} • Total da Comanda: ${formattedTotal}`;
+        }
+        if (this.countBadgeEl) {
+          this.countBadgeEl.style.display = 'none';
+        }
+        if (this.btnAcceptEl) {
+          this.btnAcceptEl.style.display = 'inline-flex';
+          this.btnAcceptEl.disabled = false;
+          this.btnAcceptEl.innerHTML = `<span>💰 Ir para Mesas</span>`;
+          this.btnAcceptEl.onclick = () => {
+            window.location.href = `/painel/${this.storeSlug || ''}/mesas/`;
+          };
+        }
+        this.bannerEl.style.display = 'block';
+        if (!this.isMuted) {
           this.playSound();
         }
       }

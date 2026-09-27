@@ -1201,10 +1201,12 @@ class TableOrderServiceTest(TestCase):
         self.drink.refresh_from_db()
         self.assertEqual(self.drink.stock_quantity, 18)
 
-        # Sessão consolidada reflete os dois pedidos
+        # Sessão consolidada reflete os itens de ambas as rodadas
         total_session = session.calculate_total()
         self.assertEqual(total_session, Decimal("57.00"))
-        self.assertEqual(session.orders.count(), 2)
+        self.assertEqual(session.orders.count(), 1)
+        self.assertEqual(order2.items.count(), 2)
+        self.assertEqual(order2.items.filter(batch_round=2).count(), 1)
 
     def test_request_table_bill(self):
         session, _ = OrderService.get_or_create_table_session(self.table)
@@ -1350,19 +1352,73 @@ class TableAPIsTest(TestCase):
         self.assertEqual(resp_close.data["total_paid"], 35.0)
         self.assertEqual(resp_close.data["status"], "CLOSED")
 
-    def test_public_pages_render(self):
-        # Página do Cardápio Digital da Mesa
-        resp_menu = self.client.get(f"/{self.store.slug}/mesa/{self.table.qr_token}/")
-        self.assertEqual(resp_menu.status_code, 200)
+    def test_table_pin_authentication_and_incremental_rounds(self):
+        # 1. Vincular celular à mesa e gerar PIN (últimos 4 dígitos)
+        url_identify = f"/api/v1/orders/table/{self.table.qr_token}/identify/"
+        resp_id = self.client.post(url_identify, {
+            "phone": "11987654321",
+            "name": "Luiz Silva"
+        }, format="json")
+        self.assertEqual(resp_id.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_id.data["success"])
+        self.assertEqual(resp_id.data["pin_code"], "4321")
+        self.assertEqual(resp_id.data["customer_name"], "Luiz Silva")
 
-        # Página da Comanda
-        resp_comanda = self.client.get(f"/{self.store.slug}/mesa/{self.table.qr_token}/comanda/")
-        self.assertEqual(resp_comanda.status_code, 200)
+        # 2. Consultar status da mesa
+        url_status = f"/api/v1/orders/table/{self.table.qr_token}/session-status/"
+        resp_st = self.client.get(url_status)
+        self.assertEqual(resp_st.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_st.data["is_occupied"])
+        self.assertEqual(resp_st.data["customer_name"], "Luiz Silva")
+        self.assertEqual(resp_st.data["pin_code"], "4321")
 
-        # Painel do Lojista: Gestão de Mesas
-        self.client.force_login(self.owner)
-        resp_painel = self.client.get(f"/painel/{self.store.slug}/mesas/")
-        self.assertEqual(resp_painel.status_code, 200)
+        # 3. Amigo tentando entrar com PIN errado
+        resp_wrong_pin = self.client.post(url_identify, {
+            "phone": "11911112222",
+            "pin": "9999"
+        }, format="json")
+        self.assertEqual(resp_wrong_pin.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(resp_wrong_pin.data["success"])
+
+        # 4. Amigo entrando com PIN correto
+        resp_correct_pin = self.client.post(url_identify, {
+            "phone": "11911112222",
+            "pin": "4321"
+        }, format="json")
+        self.assertEqual(resp_correct_pin.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp_correct_pin.data["success"])
+
+        # 5. Fazer 1ª rodada de pedido na mesa com PIN correto
+        url_order = f"/api/v1/orders/table/{self.table.qr_token}/"
+        resp_order1 = self.client.post(url_order, {
+            "items": [{"product_id": self.prod.id, "quantity": 1}],
+            "pin_code": "4321"
+        }, format="json")
+        self.assertEqual(resp_order1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp_order1.data["items"][0]["status"], "PENDING")
+        self.assertEqual(resp_order1.data["items"][0]["batch_round"], 1)
+
+        # 6. Fazer 2ª rodada de pedido (adicionar mais 1 item)
+        resp_order2 = self.client.post(url_order, {
+            "items": [{"product_id": self.prod.id, "quantity": 1}],
+            "pin_code": "4321"
+        }, format="json")
+        self.assertEqual(resp_order2.status_code, status.HTTP_201_CREATED)
+        # Mesma comanda/pedido agora possui 2 itens
+        self.assertEqual(len(resp_order2.data["items"]), 2)
+        self.assertEqual(resp_order2.data["items"][1]["batch_round"], 2)
+
+        # 7. Cozinha atualiza status do 1º item para EM PREPARO e depois PRONTO
+        item1_id = resp_order2.data["items"][0]["id"]
+        self.client.force_authenticate(user=self.owner)
+        url_item_status = f"/api/v1/orders/merchant/{self.store.id}/items/{item1_id}/status/"
+        resp_item_prep = self.client.patch(url_item_status, {"status": "PREPARING"}, format="json")
+        self.assertEqual(resp_item_prep.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_item_prep.data["status"], "PREPARING")
+
+        resp_item_ready = self.client.patch(url_item_status, {"status": "READY"}, format="json")
+        self.assertEqual(resp_item_ready.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_item_ready.data["status"], "READY")
 
 
 

@@ -136,6 +136,37 @@ class TableSession(StoreBoundedModel, UUIDModel):
         _('Observações da Mesa / Comanda'),
         blank=True
     )
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='table_sessions',
+        verbose_name=_('Cliente Titular da Mesa')
+    )
+    customer_name = models.CharField(
+        _('Nome do Cliente'),
+        max_length=150,
+        blank=True
+    )
+    customer_phone = models.CharField(
+        _('Telefone / WhatsApp do Cliente'),
+        max_length=20,
+        blank=True,
+        db_index=True
+    )
+    pin_code = models.CharField(
+        _('Senha / PIN da Mesa (4 dígitos)'),
+        max_length=4,
+        blank=True,
+        help_text=_('Últimos 4 dígitos do telefone do titular da mesa.')
+    )
+    bill_requested_at = models.DateTimeField(
+        _('Conta Solicitada em'),
+        null=True,
+        blank=True,
+        help_text=_('Horário em que o cliente solicitou o fechamento da conta.')
+    )
 
     class Meta:
         verbose_name = _('Sessão de Mesa / Comanda')
@@ -604,8 +635,22 @@ class Order(StoreBoundedModel, UUIDModel):
 
 class OrderItem(TimeStampedModel):
     """
-    Item individual dentro de um pedido com precificação congelada.
+    Item individual dentro de um pedido com precificação congelada e status de preparo.
     """
+    STATUS_PENDING = 'PENDING'
+    STATUS_PREPARING = 'PREPARING'
+    STATUS_READY = 'READY'
+    STATUS_SERVED = 'SERVED'
+    STATUS_CANCELLED = 'CANCELLED'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, _('Aguardando Cozinha')),
+        (STATUS_PREPARING, _('Em Preparo')),
+        (STATUS_READY, _('Pronto para Servir')),
+        (STATUS_SERVED, _('Entregue na Mesa')),
+        (STATUS_CANCELLED, _('Cancelado')),
+    ]
+
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
@@ -626,6 +671,18 @@ class OrderItem(TimeStampedModel):
     subtotal = models.DecimalField(_('Subtotal do Item (R$)'), max_digits=10, decimal_places=2)
     total = models.DecimalField(_('Total com Adicionais (R$)'), max_digits=10, decimal_places=2)
     notes = models.TextField(_('Observações do Item'), blank=True)
+    status = models.CharField(
+        _('Status do Item'),
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True
+    )
+    batch_round = models.PositiveIntegerField(
+        _('Rodada do Pedido'),
+        default=1,
+        help_text=_('Identifica a rodada de adição do item na comanda (1ª rodada, 2ª rodada, etc).')
+    )
 
     class Meta:
         verbose_name = _('Item do Pedido')

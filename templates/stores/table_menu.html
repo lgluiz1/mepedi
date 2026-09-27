@@ -142,11 +142,12 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
             <div>
               <h1 class="store-title" style="margin:0;">{{ store.name }}</h1>
-              <div style="margin-top:6px;">
+              <div style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span class="table-banner-badge">
                   <span>🍽️</span>
                   <span>MESA {{ table.number }}{% if table.name %} • {{ table.name }}{% endif %}</span>
                 </span>
+                <span id="tableTitularBadge" style="display:none; font-size:0.78rem; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; font-weight:800; border:1px solid #bfdbfe;"></span>
               </div>
             </div>
 
@@ -364,11 +365,81 @@
     </div>
   </div>
 
+  <!-- Modal de Identificação e Senha da Mesa (WhatsApp / PIN 4 dígitos) -->
+  <div class="success-modal-overlay" id="tableAuthModal" style="display:none; z-index:10000;">
+    <div class="success-modal-box" style="text-align:left; max-width:440px; padding:28px 24px;">
+      
+      <!-- Seção 1: Abrir comanda com WhatsApp -->
+      <div id="authOpenSection">
+        <div style="text-align:center; margin-bottom:18px;">
+          <div style="font-size:2.8rem; margin-bottom:6px;">🍽️</div>
+          <h3 style="font-size:1.35rem; font-weight:900; color:#0f172a; margin-bottom:4px;">Boas-vindas à Mesa {{ table.number }}!</h3>
+          <p style="color:#64748b; font-size:0.88rem; line-height:1.4;">
+            Informe seu WhatsApp para iniciar a comanda. Seus <strong>últimos 4 dígitos</strong> serão a senha da mesa.
+          </p>
+        </div>
+
+        <form id="openTableForm" onsubmit="handleOpenTableSubmit(event)" style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label style="display:block; font-size:0.82rem; font-weight:800; color:#334155; margin-bottom:4px;">Seu Celular / WhatsApp:</label>
+            <input type="tel" id="authPhoneInput" required placeholder="(11) 98888-7777" class="form-input" style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:1rem; font-family:inherit;" oninput="formatPhoneInput(this)">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:0.82rem; font-weight:800; color:#334155; margin-bottom:4px;">Seu Nome:</label>
+            <input type="text" id="authNameInput" required placeholder="Como podemos te chamar?" class="form-input" style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:1rem; font-family:inherit;">
+          </div>
+
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 12px; font-size:0.8rem; color:#1e40af; display:flex; gap:8px; align-items:flex-start;">
+            <span style="font-size:1rem;">💡</span>
+            <span>Seus amigos na mesa poderão fazer pedidos na mesma comanda usando os últimos 4 dígitos do seu número.</span>
+          </div>
+
+          <div id="authOpenError" style="display:none; color:#dc2626; font-size:0.82rem; font-weight:700;"></div>
+
+          <button type="submit" id="btnAuthOpen" class="btn-confirm-add" style="justify-content:center; padding:14px; font-size:1rem; margin-top:4px;">
+            <span>🚀 Abrir Comanda da Mesa</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Seção 2: Mesa Já Ocupada -> Digitar os 4 dígitos -->
+      <div id="authPinSection" style="display:none;">
+        <div style="text-align:center; margin-bottom:18px;">
+          <div style="font-size:2.8rem; margin-bottom:6px;">🔒</div>
+          <h3 style="font-size:1.35rem; font-weight:900; color:#0f172a; margin-bottom:4px;">Mesa {{ table.number }} em Atendimento</h3>
+          <p style="color:#64748b; font-size:0.88rem; line-height:1.4;" id="authPinDesc">
+            Esta mesa foi aberta pelo titular. Digite a senha (<strong>4 últimos dígitos do celular</strong> dele) para liberar seus pedidos:
+          </p>
+        </div>
+
+        <form id="pinTableForm" onsubmit="handlePinTableSubmit(event)" style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label style="display:block; font-size:0.82rem; font-weight:800; color:#334155; margin-bottom:6px; text-align:center;">Senha da Comanda (4 Dígitos):</label>
+            <input type="password" maxlength="4" pattern="[0-9]*" inputmode="numeric" id="authPinInput" required placeholder="••••" style="width:100%; text-align:center; font-size:2rem; letter-spacing:12px; font-weight:900; padding:10px; border:2px solid #4f46e5; border-radius:12px; font-family:monospace;">
+          </div>
+
+          <div id="pinErrorMsg" style="display:none; color:#dc2626; font-size:0.82rem; font-weight:700; text-align:center;"></div>
+
+          <button type="submit" id="btnAuthPin" class="btn-confirm-add" style="justify-content:center; padding:14px; font-size:1rem;">
+            <span>✅ Acessar Comanda da Mesa</span>
+          </button>
+
+          <button type="button" onclick="switchToNewTableForm()" style="background:transparent; border:none; color:#64748b; font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline; text-align:center;">
+            Essa mesa está livre? Abrir nova comanda
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Script do Cardápio de Mesa -->
   <script>
     const QR_TOKEN = '{{ table.qr_token }}';
     const STORE_SLUG = '{{ store.slug }}';
     const TABLE_NUMBER = '{{ table.number }}';
+    const AUTH_KEY = `mepedi_table_auth_${QR_TOKEN}`;
 
     let catalog = {};
     try {
@@ -381,6 +452,182 @@
     let currentSelectedProduct = null;
     let currentQuantity = 1;
     let selectedOptions = [];
+    let tableAuth = null;
+
+    // Gerenciamento de Sessão e Autenticação por Celular / PIN
+    function loadTableAuth() {
+      try {
+        const saved = localStorage.getItem(AUTH_KEY);
+        if (saved) tableAuth = JSON.parse(saved);
+      } catch(e) {}
+    }
+
+    function saveTableAuth(data) {
+      tableAuth = data;
+      try {
+        localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+      } catch(e) {}
+      updateTitularBadge(data);
+    }
+
+    function updateTitularBadge(data) {
+      const badge = document.getElementById('tableTitularBadge');
+      if (badge && data && (data.customer_name || data.pin)) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = `Titular: ${data.customer_name || 'Mesa'} • Senha: ${data.pin || '••••'}`;
+      }
+    }
+
+    function formatPhoneInput(input) {
+      let v = input.value.replace(/\D/g, '');
+      if (v.length > 11) v = v.substring(0, 11);
+      if (v.length > 6) {
+        input.value = `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
+      } else if (v.length > 2) {
+        input.value = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+      } else {
+        input.value = v;
+      }
+    }
+
+    function showOpenTableModal() {
+      document.getElementById('authOpenSection').style.display = 'block';
+      document.getElementById('authPinSection').style.display = 'none';
+      document.getElementById('tableAuthModal').classList.add('active');
+    }
+
+    function showPinModal(titularName) {
+      document.getElementById('authOpenSection').style.display = 'none';
+      document.getElementById('authPinSection').style.display = 'block';
+      if (titularName) {
+        document.getElementById('authPinDesc').innerHTML = `
+          Esta mesa foi aberta por <strong>${titularName}</strong>. Digite os <strong>4 últimos dígitos do celular</strong> dele para liberar seus pedidos:
+        `;
+      }
+      document.getElementById('tableAuthModal').classList.add('active');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('tableAuthModal').classList.remove('active');
+    }
+
+    function switchToNewTableForm() {
+      document.getElementById('authOpenSection').style.display = 'block';
+      document.getElementById('authPinSection').style.display = 'none';
+    }
+
+    async function handleOpenTableSubmit(e) {
+      e.preventDefault();
+      const phoneInput = document.getElementById('authPhoneInput');
+      const nameInput = document.getElementById('authNameInput');
+      const errorDiv = document.getElementById('authOpenError');
+      const btn = document.getElementById('btnAuthOpen');
+
+      const phone = phoneInput.value.trim();
+      const name = nameInput.value.trim();
+      errorDiv.style.display = 'none';
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Abrindo comanda...</span>';
+
+      try {
+        const res = await fetch(`/api/v1/orders/table/${QR_TOKEN}/identify/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone, name: name })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = data.error || data.message || 'Erro ao abrir comanda.';
+          btn.disabled = false;
+          btn.innerHTML = '<span>🚀 Abrir Comanda da Mesa</span>';
+          return;
+        }
+
+        saveTableAuth({
+          phone: data.customer_phone,
+          customer_name: data.customer_name,
+          pin: data.pin_code
+        });
+
+        closeAuthModal();
+        alert(`Comanda da Mesa ${TABLE_NUMBER} aberta com sucesso!\nSua senha é: ${data.pin_code}\nSeus amigos podem adicionar pedidos usando essa senha.`);
+
+      } catch(err) {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Erro de conexão com o servidor.';
+        btn.disabled = false;
+        btn.innerHTML = '<span>🚀 Abrir Comanda da Mesa</span>';
+      }
+    }
+
+    async function handlePinTableSubmit(e) {
+      e.preventDefault();
+      const pinInput = document.getElementById('authPinInput');
+      const errorDiv = document.getElementById('pinErrorMsg');
+      const btn = document.getElementById('btnAuthPin');
+
+      const pin = pinInput.value.trim();
+      errorDiv.style.display = 'none';
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Validando senha...</span>';
+
+      try {
+        const res = await fetch(`/api/v1/orders/table/${QR_TOKEN}/identify/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pin })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = data.error || 'Senha incorreta. Tente novamente.';
+          btn.disabled = false;
+          btn.innerHTML = '<span>✅ Acessar Comanda da Mesa</span>';
+          return;
+        }
+
+        saveTableAuth({
+          phone: data.customer_phone,
+          customer_name: data.customer_name,
+          pin: data.pin_code
+        });
+
+        closeAuthModal();
+      } catch(err) {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Erro de conexão com o servidor.';
+        btn.disabled = false;
+        btn.innerHTML = '<span>✅ Acessar Comanda da Mesa</span>';
+      }
+    }
+
+    async function checkTableSessionStatus() {
+      loadTableAuth();
+      try {
+        const res = await fetch(`/api/v1/orders/table/${QR_TOKEN}/session-status/`);
+        const data = await res.json();
+
+        if (data.customer_name) {
+          updateTitularBadge({ customer_name: data.customer_name, pin: data.pin_code });
+        }
+
+        // Se já temos auth salvo e confere com a mesa ativa, libera direto
+        if (tableAuth && tableAuth.pin && (!data.pin_code || tableAuth.pin === data.pin_code)) {
+          return;
+        }
+
+        if (!data.is_occupied || data.need_identification) {
+          showOpenTableModal();
+        } else {
+          showPinModal(data.customer_name);
+        }
+      } catch(err) {
+        console.warn("Erro ao checar status da sessão:", err);
+      }
+    }
 
     // Local Storage do Carrinho da Mesa
     const CART_STORAGE_KEY = `mepedi_table_cart_${QR_TOKEN}`;
@@ -648,11 +895,18 @@
         return;
       }
 
+      const pinCode = tableAuth && tableAuth.pin ? tableAuth.pin : '';
+      if (!pinCode) {
+        alert('Por favor, informe a senha da mesa antes de enviar o pedido.');
+        checkTableSessionStatus();
+        return;
+      }
+
       const btn = document.getElementById('btnSendTableOrder');
       btn.disabled = true;
       btn.innerHTML = '<span>⏳ Enviando para a cozinha...</span>';
 
-      const customerName = document.getElementById('tableCustomerNameInput').value.trim();
+      const customerName = document.getElementById('tableCustomerNameInput').value.trim() || (tableAuth ? tableAuth.customer_name : '');
       const orderNotes = document.getElementById('tableOrderNotesInput').value.trim();
 
       const itemsPayload = cart.map(item => ({
@@ -671,6 +925,8 @@
           body: JSON.stringify({
             items: itemsPayload,
             customer_name: customerName,
+            customer_phone: tableAuth ? tableAuth.phone : '',
+            pin_code: pinCode,
             notes: orderNotes
           })
         });
@@ -680,6 +936,9 @@
           alert(data.error || 'Erro ao enviar pedido para a cozinha.');
           btn.disabled = false;
           btn.innerHTML = '<span>🚀 Enviar Pedido para a Cozinha</span>';
+          if (data.error && data.error.includes('Senha')) {
+            showPinModal(tableAuth ? tableAuth.customer_name : '');
+          }
           return;
         }
 
@@ -689,8 +948,8 @@
         closeCartDrawer();
 
         document.getElementById('orderSuccessDesc').innerHTML = `
-          Seu pedido <strong>#${data.order_number}</strong> foi enviado com sucesso para a cozinha e já está sendo preparado pela equipe!<br>
-          Mesa: <strong>${TABLE_NUMBER}</strong> • Total: <strong>R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}</strong>
+          Seus itens foram lançados com sucesso na comanda da <strong>Mesa ${TABLE_NUMBER}</strong> e estão sendo preparados pela equipe!<br>
+          Pedido <strong>#${data.order_number}</strong> • Total atual: <strong>R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}</strong>
         `;
         document.getElementById('orderSuccessModal').classList.add('active');
 
@@ -744,6 +1003,8 @@
 
     // Inicialização
     loadSavedCart();
+    checkTableSessionStatus();
   </script>
 </body>
 </html>
+

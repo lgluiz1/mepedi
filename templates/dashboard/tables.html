@@ -483,6 +483,18 @@
       background: #fef3c7;
       color: #b45309;
       border: 1px solid #fde68a;
+      animation: pulseAlert 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseAlert {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .card-waiting-alert {
+      border: 2px solid #f59e0b !important;
+      background: #fffdf5 !important;
+      animation: pulseAlert 2.5s infinite ease-in-out;
     }
 
     .table-body-info {
@@ -988,7 +1000,7 @@
       <div class="tables-grid" id="tablesGrid">
         {% for item in tables_data %}
           {% with table=item.table session=item.session %}
-            <div class="table-card"
+            <div class="table-card {% if session.status == 'WAITING_PAY' %}card-waiting-alert{% endif %}"
                  id="tableCard_{{ table.id }}"
                  data-status="{% if not item.is_occupied %}free{% elif session.status == 'WAITING_PAY' %}waiting{% else %}occupied{% endif %}"
                  data-table-id="{{ table.id }}"
@@ -1019,6 +1031,26 @@
                 <!-- Corpo com dados da sessão ou vazio -->
                 <div class="table-body-info">
                   {% if item.is_occupied and session %}
+                    <!-- Dados do Titular e Senha/PIN -->
+                    {% if session.customer_name or session.customer_phone or session.pin_code %}
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.82rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:4px 8px;">
+                        <span style="font-weight:700; color:#1e293b; display:inline-flex; align-items:center; gap:4px; max-width:65%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                          👤 {{ session.customer_name|default:session.customer_phone }}
+                        </span>
+                        {% if session.pin_code %}
+                          <span style="font-weight:800; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:1px 6px; font-size:0.78rem;" title="Senha de 4 dígitos desta comanda">
+                            🔑 {{ session.pin_code }}
+                          </span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+
+                    {% if session.status == 'WAITING_PAY' %}
+                      <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:6px 10px; margin-bottom:8px; display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:800; color:#b45309;">
+                        <span>🔔 Cliente solicitou o fechamento da conta!</span>
+                      </div>
+                    {% endif %}
+
                     <div class="session-stats-row">
                       <span class="session-total-val">R$ {{ session.total|floatformat:2 }}</span>
                       <span class="session-rounds-tag">{{ session.orders_count }} rodada(s)</span>
@@ -1152,7 +1184,7 @@
 
   <!-- Modal: Comanda da Mesa -->
   <div class="modal-overlay" id="comandaModal">
-    <div class="modal-card" style="max-width: 540px;">
+    <div class="modal-card" style="max-width: 580px;">
       <div class="modal-header">
         <h3 class="modal-title" id="comandaModalTitle">Comanda - Mesa</h3>
         <button type="button" class="modal-close-btn" onclick="closeModal('comandaModal')">&times;</button>
@@ -1163,15 +1195,25 @@
       </div>
 
       <div id="comandaContentBody" style="display:none;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem; color:#64748b;">
-          <span id="comandaOpenedAtText">Aberta em: --:--</span>
-          <span id="comandaStatusText" style="font-weight:700; color:#2563eb;">Status: Em Consumo</span>
+        <!-- Card de Identificação da Comanda -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div id="comandaCustomerInfo" style="font-size:0.95rem; font-weight:800; color:#0f172a;">👤 Cliente: -</div>
+            <div id="comandaOpenedAtText" style="font-size:0.8rem; color:#64748b; margin-top:3px;">Aberta em: --:--</div>
+          </div>
+          <div style="text-align:right;">
+            <div id="comandaPinBadge" style="font-size:0.82rem; font-weight:800; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; padding:3px 10px; border-radius:8px; display:inline-block;">🔑 Senha: ----</div>
+            <div id="comandaStatusText" style="font-size:0.82rem; font-weight:700; color:#2563eb; margin-top:3px;">Status: Em Consumo</div>
+          </div>
         </div>
 
-        <h4 style="font-size:0.9rem; font-weight:800; color:#1e293b; margin-bottom:8px;">Itens Consumidos (Agrupados)</h4>
-        <div class="comanda-items-list" id="comandaItemsList"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <h4 style="font-size:0.92rem; font-weight:800; color:#1e293b;">Itens da Comanda por Rodada</h4>
+          <span style="font-size:0.75rem; color:#64748b;">Atualizado em tempo real</span>
+        </div>
+        <div class="comanda-items-list" id="comandaItemsList" style="max-height: 320px; overflow-y:auto; padding:4px;"></div>
 
-        <div style="background:#f8fafc; border-radius:12px; padding:14px; margin-bottom:16px;">
+        <div style="background:#f8fafc; border-radius:12px; padding:14px; margin-top:14px; margin-bottom:16px;">
           <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-bottom:6px;">
             <span style="color:#64748b;">Subtotal:</span>
             <strong id="comandaSubtotalText">R$ 0,00</strong>
@@ -1376,13 +1418,88 @@
         document.getElementById('comandaContentLoading').style.display = 'none';
         document.getElementById('comandaContentBody').style.display = 'block';
 
+        const customerName = data.customer_name || data.customer_phone || 'Não identificado';
+        document.getElementById('comandaCustomerInfo').textContent = `👤 Titular: ${customerName}`;
+        if (data.pin_code) {
+          document.getElementById('comandaPinBadge').textContent = `🔑 Senha: ${data.pin_code}`;
+          document.getElementById('comandaPinBadge').style.display = 'inline-block';
+        } else {
+          document.getElementById('comandaPinBadge').style.display = 'none';
+        }
+        if (data.opened_at) {
+          const d = new Date(data.opened_at);
+          document.getElementById('comandaOpenedAtText').textContent = `Aberta às ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+
         document.getElementById('comandaStatusText').textContent = `Status: ${data.status_display}`;
         document.getElementById('comandaSubtotalText').textContent = `R$ ${parseFloat(data.subtotal).toFixed(2).replace('.', ',')}`;
         document.getElementById('comandaTotalText').textContent = `R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}`;
 
         const listEl = document.getElementById('comandaItemsList');
         listEl.innerHTML = '';
-        if (data.items_breakdown && data.items_breakdown.length > 0) {
+
+        let allItems = [];
+        if (data.orders && data.orders.length > 0) {
+          data.orders.forEach(order => {
+            if (order.items && order.items.length > 0) {
+              order.items.forEach(it => {
+                allItems.push(it);
+              });
+            }
+          });
+        }
+
+        const itemStatusConfig = {
+          'PENDING': { label: '🔔 Aguardando Cozinha', bg: '#fee2e2', color: '#b91c1c', next: 'PREPARING', nextLabel: '🍳 Preparar' },
+          'PREPARING': { label: '🍳 Em Preparo', bg: '#fef3c7', color: '#b45309', next: 'READY', nextLabel: '✅ Pronto' },
+          'READY': { label: '🍽️ Pronto para Servir', bg: '#ecfdf5', color: '#059669', next: 'SERVED', nextLabel: '✓ Entregar' },
+          'SERVED': { label: '✅ Entregue na Mesa', bg: '#eff6ff', color: '#1d4ed8', next: null, nextLabel: '' },
+          'CANCELLED': { label: '✕ Cancelado', bg: '#f1f5f9', color: '#64748b', next: null, nextLabel: '' },
+        };
+
+        if (allItems.length > 0) {
+          allItems.sort((a, b) => (a.batch_round - b.batch_round) || (a.id - b.id));
+
+          let currentRound = null;
+          allItems.forEach(item => {
+            if (item.batch_round !== currentRound) {
+              currentRound = item.batch_round;
+              const roundHeader = document.createElement('div');
+              roundHeader.style.cssText = 'background:#e2e8f0; padding:3px 9px; border-radius:6px; font-size:0.75rem; font-weight:800; color:#334155; margin:10px 0 6px; display:inline-block;';
+              roundHeader.textContent = `Rodada #${currentRound}`;
+              listEl.appendChild(roundHeader);
+            }
+
+            const cfg = itemStatusConfig[item.status] || itemStatusConfig['PENDING'];
+            const row = document.createElement('div');
+            row.className = 'comanda-item-row';
+            row.style.cssText = 'display:flex; justify-content:space-between; align-items:flex-start; padding:8px; border-bottom:1px solid #f1f5f9; font-size:0.86rem; gap:10px;';
+
+            const nextBtnHtml = cfg.next ? `
+              <button type="button" class="btn-action-sm" style="padding:3px 8px; font-size:0.75rem; border-color:${cfg.color}; color:${cfg.color};" onclick="advanceComandaItemStatus(${item.id}, '${cfg.next}', '${tableNumber}', '${tableName}', '${sessionId}')">
+                ${cfg.nextLabel}
+              </button>
+            ` : '';
+
+            row.innerHTML = `
+              <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <strong>${item.quantity}x ${item.product_name}</strong>
+                  <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:${cfg.bg}; color:${cfg.color};">
+                    ${cfg.label}
+                  </span>
+                </div>
+                ${item.selected_options && item.selected_options.length > 0 ? `<div style="font-size:0.75rem; color:#64748b; margin-top:2px;">+ ${item.selected_options.map(o => o.name).join(', ')}</div>` : ''}
+                ${item.notes ? `<div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "${item.notes}"</div>` : ''}
+              </div>
+              <div style="text-align:right; flex-shrink:0;">
+                <div style="font-weight:800; color:#0f172a; margin-bottom:4px;">R$ ${parseFloat(item.total).toFixed(2).replace('.', ',')}</div>
+                ${nextBtnHtml}
+              </div>
+            `;
+            listEl.appendChild(row);
+          });
+        } else if (data.items_breakdown && data.items_breakdown.length > 0) {
           data.items_breakdown.forEach(item => {
             const row = document.createElement('div');
             row.className = 'comanda-item-row';
@@ -1409,6 +1526,80 @@
         closeModal('comandaModal');
       }
     }
+
+    async function advanceComandaItemStatus(itemId, nextStatus, tableNumber, tableName, sessionId) {
+      try {
+        const res = await fetch(`/api/v1/orders/merchant/${STORE_ID}/items/${itemId}/status/`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ status: nextStatus })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || 'Erro ao atualizar status do item.');
+          return;
+        }
+        openComandaModal(tableNumber, tableName, sessionId);
+      } catch (e) {
+        alert('Erro de conexão ao atualizar item.');
+      }
+    }
+
+    // WebSocket em tempo real para o Salão de Mesas
+    function initTablesWebSocket() {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/orders/${STORE_ID}/`;
+      let ws = null;
+      let retryTimer = null;
+
+      function connect() {
+        try {
+          ws = new WebSocket(wsUrl);
+          ws.onmessage = function(event) {
+            try {
+              const payload = JSON.parse(event.data);
+              if (payload.type === 'TABLE_BILL_REQUESTED') {
+                const bData = payload.data;
+                const card = document.getElementById(`tableCard_${bData.table_id}`);
+                if (card) {
+                  card.classList.add('card-waiting-alert');
+                  card.setAttribute('data-status', 'waiting');
+                  const pill = card.querySelector('.status-badge-pill');
+                  if (pill) {
+                    pill.className = 'status-badge-pill badge-waiting';
+                    pill.textContent = '🔔 Pede Conta';
+                  }
+                }
+                if (window.orderNotifierEngine) {
+                  window.orderNotifierEngine.playSound();
+                }
+              } else if (payload.type === 'ORDER_CREATED' || payload.type === 'ORDER_UPDATED' || payload.type === 'TABLE_SESSION_CLOSED') {
+                const modal = document.getElementById('comandaModal');
+                if (!modal || !modal.classList.contains('open')) {
+                  // Se não estiver com modal aberto, recarrega dados para sincronia visual perfeita
+                  setTimeout(() => { window.location.reload(); }, 1200);
+                }
+              }
+            } catch(e) {
+              console.debug('WS parse error:', e);
+            }
+          };
+          ws.onclose = function() {
+            retryTimer = setTimeout(connect, 3000);
+          };
+          ws.onerror = function() {
+            try { ws.close(); } catch(e) {}
+          };
+        } catch(err) {
+          retryTimer = setTimeout(connect, 3000);
+        }
+      }
+      connect();
+    }
+    initTablesWebSocket();
 
     // Modal Fechar Mesa
     function openCloseSessionModal(sessionId, tableNumber, totalVal) {

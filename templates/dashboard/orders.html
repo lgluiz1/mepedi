@@ -1125,8 +1125,8 @@
           <!-- Itens do Pedido -->
           <div class="order-items-box">
             {% for item in order.items.all %}
-              <div class="order-item-row">
-                <div>
+              <div class="order-item-row" style="align-items:flex-start; margin-bottom:10px;">
+                <div style="flex:1;">
                   <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
                   {% for opt in item.selected_options.all %}
                     <span class="option-tag {% if opt.price > 0 %}add{% else %}sub{% endif %}">
@@ -1136,8 +1136,46 @@
                   {% if item.notes %}
                     <div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "{{ item.notes }}"</div>
                   {% endif %}
+
+                  {% if order.origin == 'TABLE' %}
+                    <div style="display:flex; align-items:center; gap:5px; margin-top:4px; flex-wrap:wrap;">
+                      <span style="font-size:0.7rem; font-weight:800; padding:1px 5px; border-radius:4px; background:#e2e8f0; color:#334155;">
+                        R#{{ item.batch_round }}
+                      </span>
+                      {% if item.status == 'PENDING' %}
+                        <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:#fee2e2; color:#b91c1c;">
+                          Aguardando
+                        </span>
+                        <button type="button" class="btn-dash" style="padding:2px 7px; font-size:0.72rem; min-height:24px; border-color:#b45309; color:#b45309;" onclick="updateOrderItemStatusDirect({{ item.id }}, 'PREPARING')">
+                          🍳 Preparar
+                        </button>
+                      {% elif item.status == 'PREPARING' %}
+                        <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:#fef3c7; color:#b45309;">
+                          Preparo
+                        </span>
+                        <button type="button" class="btn-dash" style="padding:2px 7px; font-size:0.72rem; min-height:24px; border-color:#059669; color:#059669;" onclick="updateOrderItemStatusDirect({{ item.id }}, 'READY')">
+                          ✅ Pronto
+                        </button>
+                      {% elif item.status == 'READY' %}
+                        <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:#ecfdf5; color:#059669;">
+                          Pronto
+                        </span>
+                        <button type="button" class="btn-dash" style="padding:2px 7px; font-size:0.72rem; min-height:24px; border-color:#1d4ed8; color:#1d4ed8;" onclick="updateOrderItemStatusDirect({{ item.id }}, 'SERVED')">
+                          🍽️ Entregar
+                        </button>
+                      {% elif item.status == 'SERVED' %}
+                        <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:#eff6ff; color:#1d4ed8;">
+                          Entregue
+                        </span>
+                      {% else %}
+                        <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:#f1f5f9; color:#64748b;">
+                          {{ item.get_status_display }}
+                        </span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
                 </div>
-                <span style="font-weight:700;">R$ {{ item.total|floatformat:2 }}</span>
+                <span style="font-weight:700; white-space:nowrap; margin-left:8px;">R$ {{ item.total|floatformat:2 }}</span>
               </div>
             {% endfor %}
           </div>
@@ -1702,17 +1740,54 @@
         }).join('');
         const notesHtml = item.notes ? `<div style="font-size:0.75rem; color:#b45309; font-style:italic;">Obs: "${item.notes}"</div>` : '';
         const itemTotal = parseFloat(item.total) || 0;
+
+        let tableItemBadge = '';
+        if (order.origin === 'TABLE') {
+          const itemStatus = item.status || 'PENDING';
+          const cfg = {
+            'PENDING': { label: 'Aguardando', bg: '#fee2e2', color: '#b91c1c', next: 'PREPARING', nextBtn: '🍳 Preparar' },
+            'PREPARING': { label: 'Preparo', bg: '#fef3c7', color: '#b45309', next: 'READY', nextBtn: '✅ Pronto' },
+            'READY': { label: 'Pronto', bg: '#ecfdf5', color: '#059669', next: 'SERVED', nextBtn: '🍽️ Entregar' },
+            'SERVED': { label: 'Entregue', bg: '#eff6ff', color: '#1d4ed8', next: null },
+            'CANCELLED': { label: 'Cancelado', bg: '#f1f5f9', color: '#64748b', next: null },
+          }[itemStatus] || { label: itemStatus, bg: '#f1f5f9', color: '#64748b', next: null };
+
+          const btnAction = cfg.next ? `
+            <button type="button" class="btn-dash" style="padding:2px 7px; font-size:0.72rem; min-height:24px; border-color:${cfg.color}; color:${cfg.color};" onclick="updateOrderItemStatusDirect(${item.id}, '${cfg.next}')">
+              ${cfg.nextBtn}
+            </button>
+          ` : '';
+
+          tableItemBadge = `
+            <div style="display:flex; align-items:center; gap:5px; margin-top:4px; flex-wrap:wrap;">
+              <span style="font-size:0.7rem; font-weight:800; padding:1px 5px; border-radius:4px; background:#e2e8f0; color:#334155;">
+                R#${item.batch_round || 1}
+              </span>
+              <span style="font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; background:${cfg.bg}; color:${cfg.color};">
+                ${cfg.label}
+              </span>
+              ${btnAction}
+            </div>
+          `;
+        }
+
         return `
-          <div class="order-item-row">
-            <div>
+          <div class="order-item-row" style="align-items:flex-start; margin-bottom:10px;">
+            <div style="flex:1;">
               <strong>${item.quantity}x ${item.product_name}</strong>
               ${optsHtml}
               ${notesHtml}
+              ${tableItemBadge}
             </div>
-            <span style="font-weight:700;">R$ ${itemTotal.toFixed(2).replace('.', ',')}</span>
+            <span style="font-weight:700; white-space:nowrap; margin-left:8px;">R$ ${itemTotal.toFixed(2).replace('.', ',')}</span>
           </div>
         `;
       }).join('');
+
+      const originLabel = order.origin === 'PDV' ? '🖥️ PDV' : (order.origin === 'TABLE' ? `🍽️ Mesa ${order.table_number || ''}` : '🌐 Online');
+      const originStyle = order.origin === 'PDV'
+        ? 'background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;'
+        : (order.origin === 'TABLE' ? 'background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe;' : 'background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;');
 
       return `
         <div>
@@ -1720,8 +1795,8 @@
           <div class="order-card-header">
             <div>
               <span class="order-card-num">${order.display_number}</span>
-              <span class="order-origin-pill origin-${order.origin}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; ${order.origin === 'PDV' ? 'background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;' : 'background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;'}">
-                ${order.origin === 'PDV' ? '🖥️ PDV' : '🌐 Online'}
+              <span class="order-origin-pill origin-${order.origin}" style="font-size:0.75rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:4px; ${originStyle}">
+                ${originLabel}
               </span>
               <span class="order-card-time">• ${timeStr}</span>
             </div>
@@ -1960,6 +2035,29 @@
       });
     }
 
+    // Atualização de Status de Item Individual (KDS / Cozinha / Mesa)
+    function updateOrderItemStatusDirect(itemId, newStatus) {
+      fetch(`/api/v1/orders/merchant/${storeId}/items/${itemId}/status/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Erro ao atualizar item');
+        return res.json();
+      })
+      .then(updatedOrder => {
+        handleLiveOrderUpdated(updatedOrder);
+        showToast('Item Atualizado!', `Status do item alterado para ${newStatus}`);
+      })
+      .catch(err => {
+        alert('Erro ao atualizar item: ' + err.message);
+      });
+    }
+
     // Toggle de Pausa e Abertura da Loja
     function toggleStoreStatus(type) {
       let payload = {};
@@ -2068,6 +2166,10 @@
                 handleLiveOrderCreated(payload.data);
               } else if (payload.type === 'ORDER_UPDATED') {
                 handleLiveOrderUpdated(payload.data);
+              } else if (payload.type === 'TABLE_BILL_REQUESTED') {
+                const bData = payload.data;
+                playNotificationSound();
+                showToast('🔔 Conta Solicitada!', `Mesa ${bData.table_number} pediu a conta (R$ ${parseFloat(bData.total).toFixed(2).replace('.', ',')})`);
               }
             } catch(e) {
               console.error('Erro ao ler mensagem WebSocket:', e);

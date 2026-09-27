@@ -418,32 +418,70 @@
       {% endif %}
     </section>
 
-    <!-- Histórico de Rodadas / Pedidos -->
+    <!-- Histórico de Rodadas / Itens da Comanda -->
     {% if orders %}
       <section class="section-card">
         <div class="section-title">
-          <span>🍳 Pedidos Realizados</span>
-          <span style="font-size:0.8rem; color:var(--muted); font-weight:600;">{{ orders|length }} envio(s)</span>
+          <span>🍳 Itens do Pedido</span>
+          <span style="font-size:0.8rem; color:var(--muted); font-weight:600;">Status por item em tempo real</span>
         </div>
 
         {% for ord in orders %}
           <div class="order-round-card">
             <div class="order-round-header">
-              <span class="order-round-title">Pedido {{ ord.display_number }} • {{ ord.created_at|date:"H:i" }}</span>
+              <span class="order-round-title">Comanda da Mesa • Pedido {{ ord.display_number }}</span>
               <span class="order-status-badge {% if ord.status == 'NOVO' %}badge-novo{% elif ord.status == 'ACEITO' %}badge-aceito{% elif ord.status == 'EM_PREPARACAO' %}badge-preparando{% elif ord.status == 'PRONTO' or ord.status == 'SAIU_PARA_ENTREGA' %}badge-pronto{% else %}badge-concluido{% endif %}">
                 {{ ord.get_status_display }}
               </span>
             </div>
 
             {% for item in ord.items.all %}
-              <div class="item-row">
-                <div>
-                  <span>{{ item.quantity }}x {{ item.product_name }}</span>
-                  {% for opt in item.selected_options.all %}
-                    <span style="font-size:0.75rem; color:#64748b;">(+{{ opt.name }})</span>
-                  {% endfor %}
+              <div class="item-row" style="align-items:flex-start; padding:10px 0; border-bottom:1px solid #e2e8f0;">
+                <div style="flex:1; padding-right:10px;">
+                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <strong style="color:#0f172a; font-size:0.92rem;">{{ item.quantity }}x {{ item.product_name }}</strong>
+                    <span style="font-size:0.7rem; background:#f1f5f9; color:#475569; padding:1px 6px; border-radius:4px; font-weight:800;">
+                      Rodada #{{ item.batch_round }}
+                    </span>
+                    {% if item.status == 'PENDING' %}
+                      <span style="font-size:0.7rem; background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:999px; font-weight:800;">
+                        🔔 Aguardando Cozinha
+                      </span>
+                    {% elif item.status == 'PREPARING' %}
+                      <span style="font-size:0.7rem; background:#e0e7ff; color:#4338ca; padding:2px 7px; border-radius:999px; font-weight:800;">
+                        ⏳ Em Preparo
+                      </span>
+                    {% elif item.status == 'READY' %}
+                      <span style="font-size:0.7rem; background:#dcfce7; color:#15803d; padding:2px 7px; border-radius:999px; font-weight:800;">
+                        🍽️ Pronto para Servir
+                      </span>
+                    {% elif item.status == 'SERVED' %}
+                      <span style="font-size:0.7rem; background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:999px; font-weight:800;">
+                        ✅ Entregue na Mesa
+                      </span>
+                    {% elif item.status == 'CANCELLED' %}
+                      <span style="font-size:0.7rem; background:#fee2e2; color:#b91c1c; padding:2px 7px; border-radius:999px; font-weight:800;">
+                        ❌ Cancelado
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  {% if item.selected_options.all %}
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">
+                      + {% for opt in item.selected_options.all %}{{ opt.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </div>
+                  {% endif %}
+
+                  {% if item.notes %}
+                    <div style="font-size:0.75rem; color:#b45309; font-style:italic; margin-top:2px;">
+                      Obs: "{{ item.notes }}"
+                    </div>
+                  {% endif %}
                 </div>
-                <span style="font-weight:700;">R$ {{ item.total|floatformat:2 }}</span>
+
+                <span style="font-weight:800; color:#0f172a; font-size:0.95rem; white-space:nowrap;">
+                  R$ {{ item.total|floatformat:2 }}
+                </span>
               </div>
             {% endfor %}
           </div>

@@ -12,12 +12,14 @@ class OrderItemOptionSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     selected_options = OrderItemOptionSerializer(many=True, read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = OrderItem
         fields = [
             'id', 'product', 'product_name', 'unit_price',
-            'quantity', 'subtotal', 'total', 'notes', 'selected_options'
+            'quantity', 'subtotal', 'total', 'notes', 'status', 'status_display',
+            'batch_round', 'selected_options'
         ]
 
 
@@ -108,17 +110,27 @@ class UpdateOrderStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.STATUS_CHOICES)
 
 
+class UpdateOrderItemStatusSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=OrderItem.STATUS_CHOICES)
+
+
 class TableSerializer(serializers.ModelSerializer):
     is_occupied = serializers.BooleanField(read_only=True)
     current_session_id = serializers.SerializerMethodField()
     current_session_total = serializers.SerializerMethodField()
     current_session_status = serializers.SerializerMethodField()
+    customer_name = serializers.SerializerMethodField()
+    customer_phone = serializers.SerializerMethodField()
+    pin_code = serializers.SerializerMethodField()
+    bill_requested_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Table
         fields = [
             'id', 'number', 'name', 'qr_token', 'is_active',
-            'is_occupied', 'current_session_id', 'current_session_total', 'current_session_status'
+            'is_occupied', 'current_session_id', 'current_session_total',
+            'current_session_status', 'customer_name', 'customer_phone', 'pin_code',
+            'bill_requested_at'
         ]
 
     def get_current_session_id(self, obj):
@@ -132,6 +144,22 @@ class TableSerializer(serializers.ModelSerializer):
     def get_current_session_status(self, obj):
         sess = obj.current_session
         return sess.status if sess else None
+
+    def get_customer_name(self, obj):
+        sess = obj.current_session
+        return sess.customer_name if sess else ''
+
+    def get_customer_phone(self, obj):
+        sess = obj.current_session
+        return sess.customer_phone if sess else ''
+
+    def get_pin_code(self, obj):
+        sess = obj.current_session
+        return sess.pin_code if sess else ''
+
+    def get_bill_requested_at(self, obj):
+        sess = obj.current_session
+        return sess.bill_requested_at.isoformat() if sess and sess.bill_requested_at else None
 
 
 class TableSessionDetailSerializer(serializers.ModelSerializer):
@@ -149,6 +177,7 @@ class TableSessionDetailSerializer(serializers.ModelSerializer):
             'id', 'public_id', 'table', 'table_number', 'table_name', 'status',
             'status_display', 'opened_at', 'closed_at', 'payment_method',
             'discount', 'total_paid', 'subtotal', 'total', 'notes',
+            'customer_name', 'customer_phone', 'pin_code', 'bill_requested_at',
             'orders', 'items_breakdown'
         ]
 
@@ -162,9 +191,16 @@ class TableSessionDetailSerializer(serializers.ModelSerializer):
         return obj.get_items_breakdown()
 
 
+class TableIdentifyRequestSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    name = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    pin = serializers.CharField(max_length=4, required=False, allow_blank=True, default='')
+
+
 class CreateTableOrderRequestSerializer(serializers.Serializer):
     customer_name = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
     customer_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    pin_code = serializers.CharField(max_length=4, required=False, allow_blank=True, default='')
     items = serializers.ListField(child=OrderItemInputSerializer(), min_length=1)
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')
 
@@ -173,5 +209,6 @@ class CloseTableSessionRequestSerializer(serializers.Serializer):
     payment_method = serializers.ChoiceField(choices=Order.PAYMENT_CHOICES, default=Order.PAY_PIX)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('0.00'))
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')
+
 
 
