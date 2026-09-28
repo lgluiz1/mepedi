@@ -10,7 +10,7 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=${DEBUG:-False}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-mvp-super-secret-key-change-in-production}
+      - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
       - DATABASE_URL=${DATABASE_URL:-}
     volumes:
