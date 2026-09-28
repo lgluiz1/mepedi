@@ -585,6 +585,11 @@ class OrderService:
         # Validação do PIN da Mesa (se configurado)
         if session.pin_code:
             provided_pin = str(pin_code or '').strip()
+            if not provided_pin and customer_phone:
+                sent_clean = clean_phone_number(customer_phone)
+                if sent_clean and len(sent_clean) >= 4:
+                    provided_pin = sent_clean[-4:]
+
             if provided_pin != session.pin_code:
                 raise ValidationError("Senha da comanda incorreta. Digite os 4 últimos dígitos do celular do titular da mesa.")
 
@@ -613,6 +618,23 @@ class OrderService:
                 phone=table_phone,
                 defaults={'name': name_clean}
             )
+
+        # Se a sessão ainda não possuía titular vinculado ou PIN, salva os dados agora
+        session_updates = []
+        if not session.customer and customer:
+            session.customer = customer
+            session_updates.append('customer')
+        if not session.customer_name and customer.name:
+            session.customer_name = customer.name
+            session_updates.append('customer_name')
+        if not session.customer_phone and clean_phone:
+            session.customer_phone = clean_phone
+            session_updates.append('customer_phone')
+        if not session.pin_code and clean_phone:
+            session.pin_code = clean_phone[-4:]
+            session_updates.append('pin_code')
+        if session_updates:
+            session.save(update_fields=session_updates)
 
         # 2. Localiza pedido ativo existente na sessão para anexar itens ou cria um novo
         existing_order = session.orders.exclude(

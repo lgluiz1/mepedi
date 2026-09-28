@@ -589,10 +589,11 @@ class PublicCreateTableOrderView(APIView):
             msg = e.messages if hasattr(e, 'messages') else [str(e)]
             return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            OrderDetailSerializer(order).data,
-            status=status.HTTP_201_CREATED
-        )
+        order_data = OrderDetailSerializer(order).data
+        order_data["session_pin"] = session.pin_code
+        order_data["session_customer_name"] = session.customer_name
+        order_data["session_customer_phone"] = session.customer_phone
+        return Response(order_data, status=status.HTTP_201_CREATED)
 
 
 class PublicTableComandaView(APIView):
