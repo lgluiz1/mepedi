@@ -24,6 +24,9 @@ COPY . /app/
 # Cria diretórios necessários para mídia e arquivos estáticos
 RUN mkdir -p /app/media /app/staticfiles
 
+# Coleta arquivos estáticos para /app/staticfiles durante o build da imagem
+RUN python manage.py collectstatic --noinput
+
 # Porta padrão de execução interna
 EXPOSE 8000
 
