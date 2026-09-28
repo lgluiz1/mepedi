@@ -136,9 +136,25 @@ O Portainer fará o clone do repositório Git, construirá a imagem Docker usand
 
 ## 🔌 Portas e Redes Utilizadas
 
-- **Porta Exposta**: `8000:8000` (permite testes imediatos na VPS via `http://IP_DA_VPS:8000` e posterior integração via Nginx Proxy Manager).
-- **Rede Docker Utilizada**: `database_net` (`external: true`).
+- **Porta Exposta**: `8000:8000` (permite testes na VPS e encaminhamento pelo proxy reverso).
+- **Redes Docker Utilizadas**:
+  - `database_net` (`external: true`): Conexão direta ao container central PostgreSQL (`postgres`).
+  - `proxy_net` (`external: true`): Conexão com o Nginx Proxy Manager (`npm`).
 - **Volume Persistente de Produção**: `mepedi_media` montado em `/app/media` (garante que logotipos de lojas e fotos de produtos enviados pelos lojistas sejam preservados entre deploys e reinicializações).
+
+---
+
+## 🛡️ Configuração do Nginx Proxy Manager (NPM)
+
+Para disponibilizar o MePedi através do domínio **`mepedi.com.br`**, crie um novo **Proxy Host** no painel do NPM com os seguintes parâmetros:
+
+- **Domain Names**: `mepedi.com.br`, `www.mepedi.com.br`
+- **Scheme**: `http`
+- **Forward Hostname / IP**: `mepedi_web`
+- **Forward Port**: `8000`
+- **Websockets Support**: `enabled` *(fundamental para Django Channels / Daphne)*
+- **Block Common Exploits**: `enabled`
+- **SSL**: Certificado Let's Encrypt gerado pelo próprio NPM com *Force SSL* ativado.
 
 ---
 

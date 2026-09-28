@@ -17,6 +17,7 @@ services:
       - mepedi_media:/app/media
     networks:
       - database_net
+      - proxy_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 10s
@@ -26,6 +27,8 @@ services:
 
 networks:
   database_net:
+    external: true
+  proxy_net:
     external: true
 
 volumes:
