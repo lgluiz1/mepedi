@@ -5,18 +5,24 @@ services:
       dockerfile: Dockerfile
     container_name: mepedi_web
     restart: unless-stopped
-    command: python manage.py runserver 0.0.0.0:8000
+    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
     ports:
       - "8000:8000"
     environment:
       - DEBUG=${DEBUG:-False}
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-mvp-super-secret-key-change-in-production}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-}
     volumes:
       - mepedi_media:/app/media
     networks:
       - database_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 networks:
   database_net:

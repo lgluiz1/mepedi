@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala dependências Python
+# Instala dependências Python (incluindo daphne e channels para ASGI)
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
@@ -27,5 +27,5 @@ RUN mkdir -p /app/media /app/staticfiles
 # Porta padrão de execução interna
 EXPOSE 8000
 
-# Execução padrão do Django
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Execução padrão em produção via Daphne (ASGI / WebSockets)
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
