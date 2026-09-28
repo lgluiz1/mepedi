@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Instala dependências do sistema para compilação e suporte a imagens
+# Instala dependências do sistema para compilação e suporte a banco e imagens
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -18,10 +18,14 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copia o código da aplicação
+# Copia o código da aplicação (respeitando .dockerignore)
 COPY . /app/
 
-# Porta padrão de execução
+# Cria diretórios necessários para mídia e arquivos estáticos
+RUN mkdir -p /app/media /app/staticfiles
+
+# Porta padrão de execução interna
 EXPOSE 8000
 
+# Execução padrão do Django
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

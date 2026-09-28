@@ -674,7 +674,12 @@ class MerchantOrderItemStatusUpdateView(APIView):
             msg = e.messages if hasattr(e, 'messages') else [str(e)]
             return Response({"error": msg[0] if msg else str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(OrderItemSerializer(item).data, status=status.HTTP_200_OK)
+        # Return the item data with attached updated order for real-time dashboard sync
+        order = item.order
+        order.refresh_from_db()
+        item_data = OrderItemSerializer(item).data
+        item_data['order'] = OrderDetailSerializer(order).data
+        return Response(item_data, status=status.HTTP_200_OK)
 
 
 

@@ -744,14 +744,22 @@ class OrderService:
 
         order.subtotal += accumulated_new_subtotal
         order.total += accumulated_new_subtotal
-        order.save(update_fields=['subtotal', 'total', 'notes'])
+        if is_appending:
+            order.status = Order.STATUS_PREPARING
+            order.save(update_fields=['subtotal', 'total', 'notes', 'status'])
+        else:
+            order.save(update_fields=['subtotal', 'total', 'notes'])
 
         # 4. Transmissão em tempo real via WebSocket
         try:
             from .consumers import broadcast_order_event
             from .serializers import OrderDetailSerializer
+            order_data = OrderDetailSerializer(order).data
             event_name = 'ORDER_ITEMS_ADDED' if is_appending else 'ORDER_CREATED'
-            broadcast_order_event(store.id, event_name, OrderDetailSerializer(order).data)
+            broadcast_order_event(store.id, event_name, order_data)
+            if is_appending:
+                # Também emite ORDER_UPDATED para garantir compatibilidade imediata com todos os painéis
+                broadcast_order_event(store.id, 'ORDER_UPDATED', order_data)
         except Exception as ws_err:
             import logging
             logging.getLogger(__name__).warning(f"Erro ao transmitir WebSocket {event_name} (Mesa): {ws_err}")
@@ -816,7 +824,8 @@ class OrderService:
         all_items = order.items.exclude(status=OrderItem.STATUS_CANCELLED)
         if all_items.exists():
             if all(it.status == OrderItem.STATUS_SERVED for it in all_items):
-                order.status = Order.STATUS_DELIVERED
+                # Pedidos de mesa permanecem 'Na Mesa' (SAIU_PARA_ENTREGA) até a comanda ser fechada/paga
+                order.status = Order.STATUS_OUT_FOR_DELIVERY if order.origin == Order.ORIGIN_TABLE else Order.STATUS_COMPLETED
                 order.save(update_fields=['status'])
             elif all(it.status in [OrderItem.STATUS_READY, OrderItem.STATUS_SERVED] for it in all_items):
                 order.status = Order.STATUS_READY

@@ -866,6 +866,84 @@
       }
     }
 
+    /* Responsividade Mobile Extrema (Telas 320px - 768px) */
+    @media (max-width: 768px) {
+      .dash-header {
+        padding: 8px 12px;
+      }
+      .dash-row-top {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .header-left-cluster {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .dash-nav-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .dash-row-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .store-status-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .tabs-container {
+        padding: 0 12px;
+        margin: 10px auto 14px auto;
+      }
+      .status-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+      }
+      .tab-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+      }
+      .orders-grid {
+        padding: 0 12px;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .order-card {
+        padding: 14px;
+      }
+      .order-actions {
+        flex-direction: column;
+      }
+      .order-actions button,
+      .order-actions a {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .dash-header {
+        padding: 6px 8px;
+      }
+      .orders-grid {
+        padding: 0 8px;
+        gap: 12px;
+      }
+      .order-card {
+        padding: 12px 10px;
+      }
+      .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+
     @media print {
       body * {
         visibility: hidden !important;
@@ -2049,8 +2127,9 @@
         if (!res.ok) throw new Error('Erro ao atualizar item');
         return res.json();
       })
-      .then(updatedOrder => {
-        handleLiveOrderUpdated(updatedOrder);
+      .then(data => {
+        const orderData = data.order || data;
+        handleLiveOrderUpdated(orderData);
         showToast('Item Atualizado!', `Status do item alterado para ${newStatus}`);
       })
       .catch(err => {
