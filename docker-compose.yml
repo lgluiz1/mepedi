@@ -13,6 +13,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
       - DATABASE_URL=${DATABASE_URL:-}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://mepedi.com.br,https://www.mepedi.com.br}
     volumes:
       - mepedi_media:/app/media
     networks:

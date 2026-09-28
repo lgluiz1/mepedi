@@ -76,7 +76,8 @@ cp .env.example .env
 | :--- | :--- | :--- | :--- |
 | `DEBUG` | Ativa/desativa o modo de depuração | `False` | `True` |
 | `SECRET_KEY` | Chave criptográfica única do Django | `chave-secreta-complexa-producao` | `django-insecure-mvp...` |
-| `ALLOWED_HOSTS` | Hosts/domínios autorizados a acessar a aplicação | `mepedi.seudominio.com.br,127.0.0.1` | `*` |
+| `ALLOWED_HOSTS` | Hosts/domínios autorizados a acessar a aplicação | `mepedi.com.br,127.0.0.1` | `*` |
+| `CSRF_TRUSTED_ORIGINS` | Origens confiáveis para submissão de formulários e login | `https://mepedi.com.br,https://www.mepedi.com.br` | `http://localhost:8000` |
 | `DATABASE_URL` | String de conexão completa com o PostgreSQL | `postgresql://mepedi:SENHA@postgres:5432/mepedi` | `postgres://postgres:postgres@db:5432/ia_pedidos` |
 | `SECURE_HSTS_SECONDS` | Tempo de cache do cabeçalho HSTS (opcional) | `31536000` | Não obrigatório |
 
@@ -126,6 +127,7 @@ O arquivo `docker-compose.yml` na raiz do projeto está pré-configurado para im
    DEBUG=False
    SECRET_KEY=gere-uma-chave-longa-e-aleatoria-aqui
    ALLOWED_HOSTS=*
+   CSRF_TRUSTED_ORIGINS=https://mepedi.com.br,https://www.mepedi.com.br
    DATABASE_URL=postgresql://mepedi:SUA_SENHA_AQUI@postgres:5432/mepedi
    ```
 6. Clique no botão **Deploy the stack**.

@@ -30,6 +30,12 @@ ALLOWED_HOSTS = config(
     cast=Csv()
 )
 
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://mepedi.com.br,https://www.mepedi.com.br,http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv()
+)
+
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -183,6 +189,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Security Hardening in Production
 if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
